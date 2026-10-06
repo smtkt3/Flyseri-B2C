@@ -6,11 +6,6 @@
       "framework": "nestjs",
       "entrypoint": "src/main.mts",
       "installCommand": "pnpm --dir ../.. install --frozen-lockfile --filter @flyseri/api...",
-      "functions": {
-        "src/main.mts": {
-          "includeFiles": "node_modules/**/*"
-        }
-      },
       "buildCommand": "pnpm --dir ../.. --filter @flyseri/types build && pnpm --dir ../.. --filter @flyseri/config build && pnpm --dir ../.. --filter @flyseri/database build && pnpm --dir ../.. --filter @flyseri/logging build && pnpm --dir ../.. --filter @flyseri/redis build && pnpm --dir ../.. --filter @flyseri/api build"
     },
     "customer-web": {
