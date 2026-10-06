@@ -1,0 +1,36 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": "apps/api",
+      "framework": "nestjs",
+      "buildCommand": "pnpm --dir ../.. build:packages && pnpm --dir ../.. --filter @flyseri/api build"
+    },
+    "customer-web": {
+      "root": "apps/customer-web",
+      "framework": "vite",
+      "buildCommand": "pnpm --dir ../.. build:packages && pnpm --dir ../.. --filter @flyseri/customer-web build",
+      "outputDirectory": "dist",
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "customer-web"
+      }
+    }
+  ]
+}
