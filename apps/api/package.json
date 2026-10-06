@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node ../../scripts/sync-airport-directory.mjs && tsx watch src/main.ts",
+    "dev": "node ../../scripts/sync-airport-directory.mjs && tsx watch src/main.mts",
     "build": "node ../../scripts/sync-airport-directory.mjs && tsc -p tsconfig.json",
-    "start": "node dist/main.js",
+    "start": "node dist/main.mjs",
     "storage:reconcile": "tsx src/document/reconcile-storage.ts",
     "storage:setup": "tsx src/document/setup-storage.ts",
     "crm:sync-worker": "tsx src/crm-sync/run-worker.ts",
