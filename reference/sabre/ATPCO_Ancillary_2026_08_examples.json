@@ -1,0 +1,192 @@
+{
+  "source": "Booking_Management_API_v2_2026.08.postman_collection.json",
+  "notice": "Reference templates only. Variables and sample identities are not approved booking values.",
+  "items": [
+    {
+      "path": "ModifyBookingAPI / ATPCO / Modify Ancillary / Add and delete ancillaries - 2xADT / GetAncillaryOffersRQ 3.1.0",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "text/xml"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{{header}}\r\n\r\n\r\n<gao:GetAncillaryOffersRQ version=\"3.1.0\" xmlns:anc=\"http://services.sabre.com/merch/ancillary/v03\" xmlns:flt=\"http://services.sabre.com/merch/flight/v03\" xmlns:gao=\"http://services.sabre.com/merch/ancillary/offer/v03\" xmlns:itin=\"http://services.sabre.com/merch/itinerary/v03\" xmlns:pax=\"http://services.sabre.com/merch/passenger/v03\">\r\n    <gao:RequestType>payload</gao:RequestType>\r\n    <gao:RequestMode>booking</gao:RequestMode>\r\n    <gao:QueryByItinerary>\r\n        <gao:QueryPassengerItinerary>\r\n            <gao:Passenger id=\"pax_1\" type=\"ADT\">\r\n                <pax:PersonName>\r\n                    <pax:First>John</pax:First>\r\n                    <pax:Last>Smith</pax:Last>\r\n                </pax:PersonName>\r\n            </gao:Passenger>\r\n            <gao:PassengerItinerary>\r\n                <gao:PassengerSegment segmentRef=\"seg_1\">\r\n                    <itin:FareBreakAssociation FareInfoRef=\"fare_1\"/>\r\n                </gao:PassengerSegment>\r\n            </gao:PassengerItinerary>\r\n        </gao:QueryPassengerItinerary>\r\n        <gao:Segment id=\"seg_1\">\r\n            <itin:FlightDetail id=\"flight_1\">\r\n                <flt:Airline>{{journey1_flight1_operatingAirlineCode}}</flt:Airline>\r\n                <flt:FlightNumber>{{journey1_flight1_marketingFlightNumber}}</flt:FlightNumber>\r\n                <flt:DepartureAirport>{{journey1_flight1_departureAirportCode}}</flt:DepartureAirport>\r\n                <flt:DepartureDate>{{journey1_departureDate}}</flt:DepartureDate>\r\n                <flt:DepartureTime>{{journey1_flight1_departureTime}}</flt:DepartureTime>\r\n                <flt:ArrivalAirport>{{journey1_flight1_arrivalAirportCode}}</flt:ArrivalAirport>\r\n                <flt:ClassOfService>{{journey1_flight1_bookingClassCode}}</flt:ClassOfService>\r\n            </itin:FlightDetail>\r\n        </gao:Segment>\r\n        <gao:Segment id=\"seg_2\">\r\n            <itin:FlightDetail id=\"flight_2\">\r\n                <flt:Airline>{{journey2_flight1_operatingAirlineCode}}</flt:Airline>\r\n                <flt:FlightNumber>{{journey2_flight1_marketingFlightNumber}}</flt:FlightNumber>\r\n                <flt:DepartureAirport>{{journey2_flight1_departureAirportCode}}</flt:DepartureAirport>\r\n                <flt:DepartureDate>{{journey2_departureDate}}</flt:DepartureDate>\r\n                <flt:DepartureTime>{{journey2_flight1_departureTime}}</flt:DepartureTime>\r\n                <flt:ArrivalAirport>{{journey2_flight1_arrivalAirportCode}}</flt:ArrivalAirport>\r\n                <flt:ClassOfService>{{journey2_flight1_bookingClassCode}}</flt:ClassOfService>\r\n            </itin:FlightDetail>\r\n        </gao:Segment>\r\n        <gao:FareInfo id=\"fare_1\">\r\n            <FareBasisCode>YEUCLSP0</FareBasisCode>\r\n        </gao:FareInfo>\r\n    </gao:QueryByItinerary>\r\n</gao:GetAncillaryOffersRQ>\r\n\r\n{{footer}}"
+        },
+        "url": {
+          "raw": "{{soap_endpoint}}",
+          "host": [
+            "{{soap_endpoint}}"
+          ]
+        }
+      },
+      "responseExamples": []
+    },
+    {
+      "path": "ModifyBookingAPI / ATPCO / Modify Ancillary / Add and delete ancillaries - 2xADT / GetBooking",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"confirmationId\": \"{{pnr}}\"\n}"
+        },
+        "url": {
+          "raw": "{{rest_endpoint}}/v1/trip/orders/getBooking",
+          "host": [
+            "{{rest_endpoint}}"
+          ],
+          "path": [
+            "v1",
+            "trip",
+            "orders",
+            "getBooking"
+          ]
+        }
+      },
+      "responseExamples": []
+    },
+    {
+      "path": "ModifyBookingAPI / ATPCO / Modify Ancillary / Add and delete ancillaries - 2xADT / ModifyBooking - Add",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingSignature\": \"{{bookingSignature}}\",\n    \"confirmationId\": \"{{pnr}}\",\n    \"before\": {\n        \"travelers\": [\n            {\n                \"givenName\": \"JOHN\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\"\n            },\n            {\n                \"givenName\": \"MARRY\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"2\"\n            }\n        ]\n    },\n    \"after\": {\n        \"travelers\": [\n            {\n                \"givenName\": \"JOHN\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\",\n                \"ancillaries\": [\n                    {\n                        \"flights\": [\n                            {\n                                \"itemId\": {{atpco_flight1_itemId}}\n                            }\n                        ],\n                        \"reasonForIssuanceName\": \"{{flight_1_ancillary_1_reasonForIssuance}}\",\n                        \"subcode\": \"{{flight_1_ancillary_1_subCode}}\",\n                        \"airlineCode\": \"{{flight_1_ancillary_1_airline}}\",\n                        \"electronicMiscellaneousDocumentType\": \"{{flight_1_ancillary_1_electronicMiscDocType}}\",\n                        \"basePrice\": \"{{flight_1_ancillary_1_basePrice}}\",\n                        \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\",\n                        \"groupCode\": \"{{flight_1_ancillary_1_group}}\",\n                        \"totals\": {\n                            \"subtotal\": \"{{flight_1_ancillary_1_subtotal}}\",\n                            \"taxes\": \"{{flight_1_ancillary_1_taxes}}\",\n                            \"total\": \"{{flight_1_ancillary_1_total}}\",\n                            \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\"\n                        }\n                    }\n                ]\n            },\n            {\n                \"givenName\": \"MARRY\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\",\n                \"ancillaries\": [\n                    {\n                        \"flights\": [\n                            {\n                                \"itemId\": {{atpco_flight1_itemId}}\n                            }\n                        ],\n                        \"reasonForIssuanceName\": \"{{flight_1_ancillary_1_reasonForIssuance}}\",\n                        \"subcode\": \"{{flight_1_ancillary_1_subCode}}\",\n                        \"airlineCode\": \"{{flight_1_ancillary_1_airline}}\",\n                        \"electronicMiscellaneousDocumentType\": \"{{flight_1_ancillary_1_electronicMiscDocType}}\",\n                        \"basePrice\": \"{{flight_1_ancillary_1_basePrice}}\",\n                        \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\",\n                        \"groupCode\": \"{{flight_1_ancillary_1_group}}\",\n                        \"totals\": {\n                            \"subtotal\": \"{{flight_1_ancillary_1_subtotal}}\",\n                            \"taxes\": \"{{flight_1_ancillary_1_taxes}}\",\n                            \"total\": \"{{flight_1_ancillary_1_total}}\",\n                            \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\"\n                        }\n                    }\n                ]\n            }\n        ]\n    },\n    \"retrieveBooking\": true,\n    \"receivedFrom\": \"Booking Management API testing\"\n}"
+        },
+        "url": {
+          "raw": "{{modifyBooking_endpoint}}",
+          "host": [
+            "{{modifyBooking_endpoint}}"
+          ]
+        }
+      },
+      "responseExamples": []
+    },
+    {
+      "path": "ModifyBookingAPI / ATPCO / Modify Ancillary / Add and delete ancillaries - 2xADT / GetBooking",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"confirmationId\": \"{{pnr}}\"\n}"
+        },
+        "url": {
+          "raw": "{{rest_endpoint}}/v1/trip/orders/getBooking",
+          "host": [
+            "{{rest_endpoint}}"
+          ],
+          "path": [
+            "v1",
+            "trip",
+            "orders",
+            "getBooking"
+          ]
+        }
+      },
+      "responseExamples": []
+    },
+    {
+      "path": "ModifyBookingAPI / ATPCO / Modify Ancillary / Add and delete ancillaries - 2xADT / ModifyBooking - Remove",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingSignature\": \"{{bookingSignature}}\",\n    \"confirmationId\": \"{{pnr}}\",\n    \"before\": {\n        \"travelers\": [\n            {\n                \"givenName\": \"JOHN\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\",\n                \"ancillaries\": [\n                    {\n                        \"flights\": [\n                            {\n                                \"itemId\": {{atpco_flight1_itemId}}\n                            }\n                        ],\n                        \"reasonForIssuanceName\": \"{{flight_1_ancillary_1_reasonForIssuance}}\",\n                        \"subcode\": \"{{flight_1_ancillary_1_subCode}}\",\n                        \"airlineCode\": \"{{flight_1_ancillary_1_airline}}\",\n                        \"electronicMiscellaneousDocumentType\": \"{{flight_1_ancillary_1_electronicMiscDocType}}\",\n                        \"basePrice\": \"{{flight_1_ancillary_1_basePrice}}\",\n                        \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\",\n                        \"groupCode\": \"{{flight_1_ancillary_1_group}}\",\n                        \"totals\": {\n                            \"subtotal\": \"{{flight_1_ancillary_1_subtotal}}\",\n                            \"taxes\": \"{{flight_1_ancillary_1_taxes}}\",\n                            \"total\": \"{{flight_1_ancillary_1_total}}\",\n                            \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\"\n                        }\n                    }\n                ]\n            },\n            {\n                \"givenName\": \"MARRY\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\",\n                \"ancillaries\": [\n                    {\n                        \"flights\": [\n                            {\n                                \"itemId\": {{atpco_flight1_itemId}}\n                            }\n                        ],\n                        \"reasonForIssuanceName\": \"{{flight_1_ancillary_1_reasonForIssuance}}\",\n                        \"subcode\": \"{{flight_1_ancillary_1_subCode}}\",\n                        \"airlineCode\": \"{{flight_1_ancillary_1_airline}}\",\n                        \"electronicMiscellaneousDocumentType\": \"{{flight_1_ancillary_1_electronicMiscDocType}}\",\n                        \"basePrice\": \"{{flight_1_ancillary_1_basePrice}}\",\n                        \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\",\n                        \"groupCode\": \"{{flight_1_ancillary_1_group}}\",\n                        \"totals\": {\n                            \"subtotal\": \"{{flight_1_ancillary_1_subtotal}}\",\n                            \"taxes\": \"{{flight_1_ancillary_1_taxes}}\",\n                            \"total\": \"{{flight_1_ancillary_1_total}}\",\n                            \"currencyCode\": \"{{flight_1_ancillary_1_currencyCode}}\"\n                        }\n                    }\n                ]\n            }\n        ]\n    },\n    \"after\": {\n        \"travelers\": [\n            {\n                \"givenName\": \"JOHN\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\"\n            },\n            {\n                \"givenName\": \"MARRY\",\n                \"surname\": \"SMITH\",\n                \"type\": \"ADULT\",\n                \"passengerCode\": \"ADT\",\n                \"nameAssociationId\": \"1\"\n            }\n        ]\n    },\n    \"retrieveBooking\": true,\n    \"receivedFrom\": \"Booking Management API testing\"\n}"
+        },
+        "url": {
+          "raw": "{{modifyBooking_endpoint}}",
+          "host": [
+            "{{modifyBooking_endpoint}}"
+          ]
+        }
+      },
+      "responseExamples": []
+    },
+    {
+      "path": "ModifyBookingAPI / ATPCO / Modify Ancillary / Add and delete ancillaries - 2xADT / GetBooking",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"confirmationId\": \"{{pnr}}\"\n}"
+        },
+        "url": {
+          "raw": "{{rest_endpoint}}/v1/trip/orders/getBooking",
+          "host": [
+            "{{rest_endpoint}}"
+          ],
+          "path": [
+            "v1",
+            "trip",
+            "orders",
+            "getBooking"
+          ]
+        }
+      },
+      "responseExamples": []
+    }
+  ]
+}

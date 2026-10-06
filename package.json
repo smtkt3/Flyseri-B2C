@@ -1,0 +1,24 @@
+{
+  "name": "flyseri-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "corepack pnpm build:packages && corepack pnpm --filter ./apps/** -r --parallel dev",
+    "dev:web": "corepack pnpm --filter @flyseri/customer-web dev",
+    "dev:api": "corepack pnpm build:packages && corepack pnpm --filter @flyseri/api dev",
+    "build:packages": "corepack pnpm --filter ./packages/** -r build",
+    "build": "corepack pnpm -r --if-present build",
+    "typecheck": "corepack pnpm build:packages && corepack pnpm --filter ./apps/** -r typecheck",
+    "lint": "eslint .",
+    "test": "corepack pnpm build:packages && corepack pnpm -r --workspace-concurrency=1 --if-present test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

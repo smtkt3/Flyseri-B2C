@@ -1,0 +1,328 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200;0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,200;1,9..144,300;1,9..144,400;1,9..144,600;1,9..144,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+/* ── Reset: box-sizing only — never reset margin/padding globally ──────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+[id^='sec-'] {
+  scroll-margin-top: 5rem;
+}
+
+:is(button, a, input):focus-visible {
+  outline: 3px solid #b86d08;
+  outline-offset: 3px;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: #faf7f2;
+  color: #1a1209;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Design tokens ────────────────────────────────────────────────────── */
+:root {
+  --amber:     #e8960a;
+  --amber-dim: #c97d10;
+  --coral:     #e85d3a;
+  --teal:      #0d9488;
+  --ink:       #1a1209;
+  --ink-60:    rgba(26, 18, 9, 0.6);
+  --ink-45:    rgba(26, 18, 9, 0.45);
+  --ink-30:    rgba(26, 18, 9, 0.3);
+  --ink-12:    rgba(26, 18, 9, 0.12);
+}
+
+/* ── Font utilities ───────────────────────────────────────────────────── */
+/* font-display: Fraunces serif — used extensively in JSX */
+.font-display { font-family: 'Fraunces', serif; }
+/* f-mono: DM Mono — avoids clashing with Tailwind's built-in font-mono */
+.f-mono       { font-family: 'DM Mono', monospace; }
+
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 3px; height: 3px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: rgba(232, 150, 10, 0.3); border-radius: 2px; }
+
+/* ── Glass / card surfaces ────────────────────────────────────────────── */
+/* Warm parchment glass — used for floating satellite cards */
+.card-ink {
+  background: rgba(255, 250, 235, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(232, 150, 10, 0.2);
+  box-shadow: 0 4px 20px rgba(26, 18, 9, 0.07);
+}
+
+/* ── Glow ─────────────────────────────────────────────────────────────── */
+.glow-amber {
+  box-shadow: 0 0 28px rgba(232, 150, 10, 0.35), 0 8px 40px rgba(232, 150, 10, 0.15);
+}
+
+/* ── Gradient text ────────────────────────────────────────────────────── */
+.text-amber-grad {
+  background: linear-gradient(135deg, #e8960a 0%, #c97d10 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-warm-grad {
+  background: linear-gradient(130deg, #e8960a 0%, #e85d3a 60%, #c97d10 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Animated blobs ───────────────────────────────────────────────────── */
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  25%       { transform: translate(20px, -15px) scale(1.03) rotate(2deg); }
+  50%       { transform: translate(-10px, 20px) scale(0.97) rotate(-1deg); }
+  75%       { transform: translate(15px, 10px) scale(1.02) rotate(1deg); }
+}
+@keyframes blob2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-20px, 15px) scale(1.05); }
+  66%       { transform: translate(15px, -10px) scale(0.96); }
+}
+.blob  { animation: blob  18s ease-in-out infinite; }
+.blob2 { animation: blob2 22s ease-in-out infinite; }
+
+/* ── Float ────────────────────────────────────────────────────────────── */
+@keyframes float-a {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-12px) rotate(1deg); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes float-c {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-16px) rotate(-1deg); }
+}
+.float-a { animation: float-a 6s ease-in-out infinite; }
+.float-b { animation: float-b 5s ease-in-out 1.5s infinite; }
+.float-c { animation: float-c 7s ease-in-out 0.8s infinite; }
+
+/* ── Badge pills ──────────────────────────────────────────────────────── */
+.badge-amber {
+  background: rgba(232, 150, 10, 0.12);
+  border: 1px solid rgba(232, 150, 10, 0.3);
+  color: #b86d08;
+}
+.badge-ink {
+  background: rgba(26, 18, 9, 0.07);
+  border: 1px solid rgba(26, 18, 9, 0.12);
+  color: #1a1209;
+}
+
+/* ── Typewriter cursor ────────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.cursor { animation: blink 1s step-end infinite; }
+
+/* ── AI online dot ────────────────────────────────────────────────────── */
+@keyframes ai-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.6); }
+}
+.ai-dot { animation: ai-dot 1.6s ease-in-out infinite; }
+
+/* ── Staggered entrance ───────────────────────────────────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.r1 { animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both; }
+.r2 { animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both; }
+.r3 { animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.30s both; }
+.r4 { animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both; }
+.r5 { animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both; }
+
+/* ── Navigation ───────────────────────────────────────────────────────── */
+/* Always transparent on top; gets glass panel on scroll */
+.nav-top {
+  background: transparent;
+}
+.nav-scrolled {
+  background: rgba(250, 247, 242, 0.9);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-bottom: 1px solid rgba(232, 150, 10, 0.12);
+  box-shadow: 0 2px 30px rgba(26, 18, 9, 0.06);
+}
+
+/* ── Destination & attraction card hover ──────────────────────────────── */
+.dest-card {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.45s ease;
+  cursor: pointer;
+}
+.dest-card:hover {
+  transform: translateY(-10px) scale(1.015);
+  box-shadow: 0 40px 100px rgba(26, 18, 9, 0.2),
+              0 0 0 1px rgba(232, 150, 10, 0.15);
+}
+
+/* ── Horizontal scroll ────────────────────────────────────────────────── */
+.h-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding-bottom: 16px;
+  scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+.h-scroll > * { scroll-snap-align: start; flex-shrink: 0; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, #e8960a, #c97d10);
+  color: #fff;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.22s ease;
+}
+.btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(232, 150, 10, 0.42); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1.5px solid rgba(26, 18, 9, 0.16);
+  color: #1a1209;
+  transition: border-color 0.22s ease, color 0.22s ease, background 0.22s ease;
+}
+.btn-ghost:hover { border-color: var(--amber); color: var(--amber-dim); background: rgba(232,150,10,0.04); }
+
+/* ── Search panel inputs ──────────────────────────────────────────────── */
+.input-warm {
+  background: #fff;
+  border: 1.5px solid rgba(232, 150, 10, 0.15);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+}
+.input-warm:focus-within {
+  border-color: rgba(232, 150, 10, 0.5);
+  box-shadow: 0 0 0 3px rgba(232, 150, 10, 0.08);
+}
+
+/* ── Search tab buttons ───────────────────────────────────────────────── */
+.tab-btn {
+  color: rgba(26, 18, 9, 0.38);
+  border-bottom: 2px solid transparent;
+  padding-bottom: 12px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  background: transparent;
+}
+.tab-btn:hover  { color: rgba(26, 18, 9, 0.65); }
+.tab-btn.active { color: var(--amber); border-color: var(--amber); font-weight: 600; }
+
+/* ── Service selector buttons ─────────────────────────────────────────── */
+.svc-selector {
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+              background 0.22s ease,
+              border-color 0.22s ease,
+              box-shadow 0.22s ease;
+}
+.svc-selector:hover { transform: translateY(-3px); }
+
+/* ── Card hover (testimonials, generic) ───────────────────────────────── */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 50px rgba(26, 18, 9, 0.1);
+}
+
+/* ── Universal transition shorthand ──────────────────────────────────── */
+.t { transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ── Floating chat FAB pulse ──────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  70%  { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+/* ── Chat panel slide-up ──────────────────────────────────────────────── */
+@keyframes chat-slide {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Typing indicator dots ────────────────────────────────────────────── */
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0);   opacity: 0.35; }
+  30%            { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── Slow orbit spin (services section) ──────────────────────────────── */
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.spin-slow { animation: spin-slow 18s linear infinite; }
+
+/* ── Mobile app: hide scrollbar on quick-action strips ───────────────── */
+@media (max-width: 767px) {
+  .h-scroll > * { scroll-snap-align: start; }
+
+  /* Destination & attraction cards full-bleed feel on mobile */
+  .h-scroll {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    gap: 12px;
+  }
+}
+
+/* ── Mobile safe-area padding on footer ──────────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .grid-hero   { grid-template-columns: 1fr !important; }
+  .grid-ai     { grid-template-columns: 1fr !important; }
+  .grid-svc    { grid-template-columns: repeat(3, 1fr) !important; }
+  .grid-3      { grid-template-columns: 1fr 1fr !important; }
+  .grid-stats  { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-footer { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 640px) {
+  .grid-svc    { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-3      { grid-template-columns: 1fr !important; }
+  .grid-stats  { grid-template-columns: 1fr 1fr !important; }
+  .grid-footer { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 767px) {
+  #sec-hero { min-height: 0; }
+  .seri-chat-wrapper { right: 16px !important; }
+  .seri-chat-panel { width: min(360px, calc(100vw - 32px)) !important; max-height: calc(100svh - 130px); }
+  .seri-fab, .seri-fab-pulse { display: none !important; }
+  #sec-destinations, #sec-attractions, #sec-services, #sec-how { padding-top: 4rem; padding-bottom: 4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

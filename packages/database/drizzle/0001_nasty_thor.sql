@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "customer_travellers_one_primary" ON "customer_travellers" USING btree ("customer_id") WHERE "customer_travellers"."is_primary" = true;

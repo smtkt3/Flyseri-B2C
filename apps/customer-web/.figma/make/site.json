@@ -1,0 +1,11 @@
+{
+  "title": "Flyseri | Travel with more wonder",
+  "description": "Discover inspiring destinations and shape your next journey with Flyseri. Preview the travel experience while live services are being connected.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": true,
+    "ignoreReducedMotion": false
+  }
+}

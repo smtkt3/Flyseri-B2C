@@ -1,0 +1,2 @@
+ALTER TABLE "flight_booking_intent_travellers" ADD COLUMN "passenger_type" varchar(3) DEFAULT 'ADT' NOT NULL;--> statement-breakpoint
+ALTER TABLE "flight_booking_intent_travellers" ADD CONSTRAINT "flight_booking_intent_travellers_passenger_type_valid" CHECK ("flight_booking_intent_travellers"."passenger_type" in ('ADT', 'CHD', 'INF'));

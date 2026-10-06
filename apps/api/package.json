@@ -1,0 +1,46 @@
+{
+  "name": "@flyseri/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/sync-airport-directory.mjs && tsx watch src/main.ts",
+    "build": "node ../../scripts/sync-airport-directory.mjs && tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "storage:reconcile": "tsx src/document/reconcile-storage.ts",
+    "storage:setup": "tsx src/document/setup-storage.ts",
+    "crm:sync-worker": "tsx src/crm-sync/run-worker.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@flyseri/config": "workspace:*",
+    "@flyseri/database": "workspace:*",
+    "@flyseri/logging": "workspace:*",
+    "@flyseri/redis": "workspace:*",
+    "@flyseri/types": "workspace:*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@supabase/supabase-js": "^2.116.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "dotenv": "^16.4.0",
+    "drizzle-orm": "^0.44.7",
+    "fast-xml-parser": "5.5.1",
+    "helmet": "^8.0.0",
+    "pg": "^8.23.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@nestjs/testing": "^11.0.0",
+    "@types/express": "^5.0.0",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^6.0.0",
+    "pg-mem": "^3.0.14",
+    "supertest": "^7.0.0",
+    "tsx": "^4.20.0"
+  }
+}

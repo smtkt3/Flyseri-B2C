@@ -1,0 +1,65 @@
+.calendar-date-field{position:relative;min-width:0;color:#213a5b}
+.calendar-date-field.is-open{z-index:160}
+.calendar-date-trigger{position:relative;display:flex;align-items:center;justify-content:space-between;gap:.7rem;width:100%;min-width:0;min-height:58px;padding:.55rem .72rem;border:1px solid #dce8f4;border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(246,251,255,.94));color:inherit;text-align:left;cursor:pointer;transition:border-color .18s,box-shadow .18s,background .18s}
+.calendar-date-trigger:hover{border-color:#9dc6f2;background:#fff}
+.calendar-date-trigger:focus-visible{outline:0;border-color:#6ea9f2;box-shadow:0 0 0 3px rgba(62,139,231,.15)}
+.calendar-date-copy{display:grid;gap:.34rem;min-width:0}
+.calendar-date-label{color:#627895;font-size:.68rem;font-weight:750;letter-spacing:.015em}
+.calendar-date-value{overflow:hidden;color:#203a5d;font-size:.83rem;font-weight:750;text-overflow:ellipsis;white-space:nowrap}
+.calendar-date-value.is-empty{color:#8192a9;font-weight:600}
+.calendar-date-icon{flex:none;width:19px;height:19px;stroke:#3986e8;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.65}
+.calendar-popover{position:absolute;z-index:1000;top:calc(100% + 9px);left:0;width:min(336px,calc(100vw - 28px));padding:14px;border:1px solid rgba(205,222,240,.95);border-radius:18px;background:rgba(255,255,255,.97);box-shadow:0 22px 58px rgba(28,67,111,.2),0 3px 12px rgba(46,112,181,.08);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);animation:calendar-pop-in .16s ease-out}
+.calendar-date-field.align-end .calendar-popover{right:0;left:auto}
+.calendar-popover-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px 13px;border-bottom:1px solid #e8f0f8}
+.calendar-popover-eyebrow{display:block;margin-bottom:3px;color:#6e8bb0;font-size:9px;font-weight:800;letter-spacing:.13em}
+.calendar-popover-header h3{margin:0;color:#19385d;font-size:18px;font-weight:800;letter-spacing:-.025em}
+.calendar-month-controls{display:flex;gap:6px}
+.calendar-month-controls button{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #e0ebf6;border-radius:11px;background:#f7fbff;color:#367fe0;font-size:25px;line-height:1;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.calendar-month-controls button:hover:not(:disabled){transform:translateY(-1px);border-color:#b8d4f1;background:#eaf4ff}
+.calendar-month-controls button:disabled{color:#b9c5d2;cursor:not-allowed;opacity:.55}
+.calendar-weekdays,.calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calendar-weekdays{padding:12px 0 6px;color:#8192a9;font-size:10px;font-weight:750;text-align:center}
+.calendar-days{grid-auto-rows:38px}
+.calendar-day-empty{display:block}
+.calendar-day{display:grid;place-items:center;width:100%;height:38px;padding:0;border:1px solid transparent;border-radius:12px;background:transparent;color:#304c6d;font-size:12px;font-weight:650;cursor:pointer;transition:background .14s,border-color .14s,color .14s,transform .14s}
+.calendar-day:hover:not(:disabled){transform:translateY(-1px);border-color:#cfe2f7;background:#eff7ff;color:#1c69cf}
+.calendar-day.today:not(.selected){border-color:#cfe3fb;color:#3179d5}
+.calendar-day.selected{border-color:#367fe8;background:linear-gradient(140deg,#3b8df0,#6fb9ff);box-shadow:0 5px 12px rgba(59,141,240,.24);color:#fff;font-weight:800}
+.calendar-day:disabled{color:#c3ccd6;cursor:not-allowed}
+.calendar-popover-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:10px 2px 0;border-top:1px solid #e8f0f8;color:#6e829b;font-size:10px}
+.calendar-popover-footer button{padding:6px 10px;border:1px solid #dbe9f7;border-radius:9px;background:#f5faff;color:#347ddf;font-size:10px;font-weight:750;cursor:pointer}
+.calendar-popover-footer button:disabled{color:#aab7c5;cursor:not-allowed}
+.premium-home-date-field .calendar-date-trigger{min-height:62px;padding:8px 12px;border-color:#e3edf6;border-radius:11px;background:#fff}
+.premium-home-date-field .calendar-date-icon{width:17px;height:17px}
+.premium-home-date-field.is-open .calendar-date-trigger{border-color:#79b5ed;box-shadow:0 0 0 3px #58a5ed1c}
+.premium-multi-city-row .premium-leg-date{display:block;min-height:0;padding:0;border:0;background:transparent}
+.premium-leg-date .calendar-date-trigger,.flight-leg-date .calendar-date-trigger{min-height:52px;padding:.4rem .6rem;border-color:#d9e5f1;border-radius:9px;background:#fff}
+.premium-leg-date .calendar-date-value,.flight-leg-date .calendar-date-value{font-size:.76rem}
+.flight-query-date-field .calendar-date-trigger{min-height:58px;padding:.4rem .65rem;border:0;border-radius:0;background:transparent}
+.flight-query-date-field .calendar-date-trigger:hover{background:rgba(236,246,255,.65)}
+.flight-query-date-field .calendar-date-trigger:focus-visible{box-shadow:inset 0 -2px #3988ef,0 0 0 2px rgba(62,139,231,.12)}
+.flight-query-date-field .calendar-date-value{font-size:.78rem}
+.flight-query-dates>.calendar-date-field+.calendar-date-field{border-left:1px solid #dce8f4}
+.flight-query-dates>.calendar-date-field+.calendar-date-field .calendar-popover{left:auto;right:0}
+.flight-leg-date{display:block;min-width:0}
+.flight-leg-date .calendar-date-trigger{font:inherit;color:#627792}
+@media(max-width:760px){.premium-multi-city-row .premium-leg-date{grid-column:2/4;grid-row:2}.premium-multi-city-row>.premium-remove-leg{grid-column:4;grid-row:1}}
+@media(max-width:700px){.flight-multi-leg .flight-leg-date{grid-column:2/4;grid-row:2}.flight-multi-leg>button[aria-label^="Remove flight"]{grid-column:4;grid-row:1}}
+@keyframes calendar-pop-in{from{transform:translateY(-4px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(max-width:600px){.calendar-popover{position:fixed;top:auto;right:14px;bottom:14px;left:14px;width:auto;max-width:390px;margin:0 auto;padding:15px;border-radius:20px;box-shadow:0 24px 70px rgba(18,43,73,.3)}.calendar-date-field.align-end .calendar-popover{right:14px;left:14px}.flight-query-date-field .calendar-date-trigger{min-height:52px;padding:.35rem .5rem}.premium-home-date-field .calendar-date-trigger{min-height:58px;padding:7px 9px}}
+.calendar-popover.calendar-popover-portal{z-index:1200;box-sizing:border-box;margin:0;background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;font-family:Inter,ui-sans-serif,system-ui,sans-serif;animation:none}
+.calendar-popover-portal::-webkit-scrollbar{display:none}
+.calendar-popover-portal .calendar-close{font-size:23px}
+@media(max-width:650px){
+ .calendar-popover.calendar-popover-portal{padding:14px;border-radius:18px;box-shadow:0 16px 60px #17365640}
+ .calendar-popover-portal .calendar-popover-header{gap:6px;padding:0 0 10px}
+ .calendar-popover-portal .calendar-popover-header h3{font-size:17px}
+ .calendar-popover-portal .calendar-month-controls{gap:4px}
+ .calendar-popover-portal .calendar-month-controls button{width:38px;height:44px;min-width:38px}
+ .calendar-popover-portal .calendar-weekdays{padding:10px 0 6px}
+ .calendar-popover-portal .calendar-days{grid-auto-rows:42px;gap:3px}
+ .calendar-popover-portal .calendar-day{height:42px;min-height:42px;font-size:12px}
+ .calendar-popover-portal .calendar-popover-footer{align-items:center;line-height:1.5;gap:8px}
+ .calendar-popover-portal .calendar-popover-footer button{min-height:40px;flex:none;padding:8px 12px}
+}
+@media(prefers-reduced-motion:reduce){.calendar-popover{animation:none}.calendar-date-trigger,.calendar-day,.calendar-month-controls button{transition:none}}

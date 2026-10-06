@@ -1,0 +1,93 @@
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { PGlite } from '@electric-sql/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
+import * as schema from '@flyseri/database';
+import type { DatabaseConnection } from '@flyseri/database';
+import type { VisaAssistanceRequestInput } from '@flyseri/types';
+import { AdminVisaService } from '../admin/admin-visa.service.js';
+import { CommerceRepository } from '../commerce/commerce.repository.js';
+import { DrizzleVisaStore } from './visa.repository.js';
+
+describe('visa assistance persistence and document isolation', () => {
+ it('persists full applicant data, isolates customers, rejects invalid attachments and locks submitted requests', async () => {
+  const database = new PGlite();
+  try {
+   await database.exec('create role flyseri_api');
+   const dir = resolve(process.cwd(), '../../packages/database/drizzle');
+   const journal = JSON.parse(readFileSync(resolve(dir, 'meta/_journal.json'), 'utf8')) as { entries: Array<{tag:string}> };
+   for (const migration of journal.entries) for (const statement of readFileSync(resolve(dir, migration.tag + '.sql'), 'utf8').split('--> statement-breakpoint').map(s => s.trim()).filter(Boolean)) await database.exec(statement);
+   const owner = randomUUID(), stranger = randomUUID(), travellerId = randomUUID(), otherTraveller = randomUUID(), tripId = randomUUID();
+   for (const customer of [owner, stranger]) await database.query('insert into customers (id,auth_user_id) values ($1,$2)', [customer, randomUUID()]);
+   for (const person of [travellerId, otherTraveller]) await database.query("insert into travellers (id,legal_first_name,legal_last_name) values ($1,'Test','Person')", [person]);
+   await database.query("insert into customer_travellers (customer_id,traveller_id,relationship_type) values ($1,$2,'SELF')", [owner, travellerId]);
+   await database.query('insert into trips (id,customer_id) values ($1,$2)', [tripId, owner]);
+   await database.query("insert into trip_destinations (trip_id,country_code,sequence) values ($1,'MY',1)", [tripId]);
+   await database.query('insert into trip_travellers (trip_id,traveller_id) values ($1,$2)', [tripId, travellerId]);
+   const address = { addressLine1:'1 Test Street',city:'Dhaka',countryCode:'BD' };
+   const input: VisaAssistanceRequestInput = { tripId,destinationCountryCode:'MY',expectedTravelDate:'2099-12-01',purpose:'Tourism',contactName:'Test Person',contactEmail:'test@example.com',applicants:[{ travellerId,firstName:'Test',middleName:'Middle',lastName:'Person',dateOfBirth:'1990-01-01',gender:'MALE',nationalityCountryCode:'BD',birthCountryCode:'BD',documentType:'PASSPORT',documentNumber:'TEST123',documentIssuingCountryCode:'BD',documentExpiresOn:'2100-01-01',currentAddress:address,permanentAddress:address,notes:'Synthetic applicant' }] };
+   const store = new DrizzleVisaStore({ db: drizzle(database, { schema }) } as unknown as DatabaseConnection);
+   await expect(store.createAssistanceRequest(stranger,input)).rejects.toThrow();
+   const request = await store.createAssistanceRequest(owner,input);
+   expect((await store.assistanceDetail(owner,request.id))?.applicants[0]?.details).toEqual(input.applicants[0]);
+   expect(await store.assistanceDetail(stranger,request.id)).toBeNull();
+   expect(await store.assistanceList(stranger)).toEqual([]);
+   const makeDoc = async (customer: string, person: string, state = 'UPLOADED', scan = 'UNAVAILABLE') => {
+    const documentId = randomUUID(), documentVersionId = randomUUID();
+    await database.query("insert into documents (id,customer_id,traveller_id,document_type) values ($1,$2,$3,'PASSPORT')", [documentId,customer,person]);
+    await database.query("insert into document_versions (id,document_id,storage_path,original_filename,mime_type,file_size,checksum_sha256,version_number,idempotency_key,upload_state,security_scan_status) values ($1,$2,$3,'test.pdf','application/pdf',50,$4,1,$5,$6,$7)", [documentVersionId,documentId,randomUUID(), 'a'.repeat(64),randomUUID(),state,scan]);
+    return { travellerId,documentId,documentVersionId };
+   };
+   expect(await store.assistanceAction(stranger,request.id,'NOTE',{customerMessage:'Foreign note'})).toBeNull();
+   await expect(store.assistanceAction(owner,request.id,'NOTE',{customerMessage:'x'.repeat(2001)})).rejects.toThrow();
+   await store.assistanceAction(owner,request.id,'NOTE',{customerMessage:' Please review the missing hotel booking. '});
+   expect((await store.assistanceDetail(owner,request.id))?.customerMessage).toBe('Please review the missing hotel booking.');
+   await store.assistanceAction(owner,request.id,'NOTE',{customerMessage:' '});
+   expect((await store.assistanceDetail(owner,request.id))?.customerMessage).toBeNull();
+   const valid = await makeDoc(owner,travellerId);
+   for (const invalid of [await makeDoc(stranger,travellerId),await makeDoc(owner,otherTraveller),await makeDoc(owner,travellerId,'PENDING'),await makeDoc(owner,travellerId,'UPLOADED','FAILED'),{ ...valid, documentVersionId:randomUUID() }]) await expect(store.assistanceAction(owner,request.id,'LINK',invalid)).rejects.toThrow();
+   expect(await store.assistanceAction(stranger,request.id,'LINK',valid)).toBeNull();
+   await store.assistanceAction(owner,request.id,'LINK',valid);
+   await store.assistanceAction(owner,request.id,'LINK',valid);
+   expect((await store.assistanceDetail(owner,request.id))?.documents).toHaveLength(1);
+   const first = (await store.assistanceDetail(owner,request.id))!.documents[0]!;
+   await store.assistanceAction(owner,request.id,'UNLINK',{linkId:first.id});
+   expect((await store.assistanceDetail(owner,request.id))?.documents).toHaveLength(0);
+   await store.assistanceAction(owner,request.id,'LINK',valid);
+   await database.query("update document_versions set upload_state='FAILED' where id=$1", [valid.documentVersionId]);
+   await expect(store.assistanceAction(owner,request.id,'SUBMIT')).rejects.toThrow();
+   await database.query("update document_versions set upload_state='UPLOADED' where id=$1", [valid.documentVersionId]);
+   await expect(store.assistanceAction(owner,request.id,'SUBMIT')).rejects.toThrow('Complete payment');
+   const connection = { db: drizzle(database, { schema }) } as unknown as DatabaseConnection;
+   const unconfigured = new CommerceRepository(connection);
+   await expect(unconfigured.createAssistanceOrder(owner,request.id,'test')).rejects.toThrow();
+   const admin = new AdminVisaService(connection);
+   await expect(admin.saveAssistanceFee({amount:'0',currency:'MYR',basis:'APPLICANT',active:true},{staffUserId:randomUUID(),role:'owner'},'test')).rejects.toThrow();
+   await admin.saveAssistanceFee({amount:'50.00',currency:'MYR',basis:'APPLICANT',active:true},{staffUserId:randomUUID(),role:'owner'},'test');
+   const commerce = new CommerceRepository(connection);
+   await expect(commerce.createAssistanceOrder(stranger,request.id,'test')).rejects.toThrow();
+   const order = await commerce.createAssistanceOrder(owner,request.id,'test');
+   expect(order.totalAmount).toBe('50.00');
+   expect(order.visaAssistanceRequestId).toBe(request.id);
+   await admin.saveAssistanceFee({amount:'90.00',currency:'USD',basis:'APPLICATION',active:true},{staffUserId:randomUUID(),role:'owner'},'test');
+   expect((await commerce.createAssistanceOrder(owner,request.id,'test')).id).toBe(order.id);
+   expect((await commerce.createAssistanceOrder(owner,request.id,'test')).totalAmount).toBe('50.00');
+   await expect(store.assistanceAction(owner,request.id,'SUBMIT')).rejects.toThrow('Complete payment');
+   const reserved = await commerce.reservePayment(owner,order.id,'STRIPE_TEST',randomUUID());
+   await commerce.checkoutCreated(reserved.paymentId,reserved.attemptId,'cs_test_assistance');
+   await expect(store.assistanceAction(owner,request.id,'SUBMIT')).rejects.toThrow('Complete payment');
+   // Synthetic verified provider event through the same persistence path used by Stripe reconciliation.
+   await commerce.applyVerifiedEvent('STRIPE_TEST',reserved.paymentId,{providerEventId:'evt_assistance_paid',providerPaymentId:'cs_test_assistance',status:'SUCCEEDED',amount:'50.00',currency:'MYR'},'test');
+   expect((await store.assistanceAction(owner,request.id,'SUBMIT',{customerMessage:'Final note'}))?.status).toBe('IN_REVIEW');
+   expect((await store.assistanceAction(owner,request.id,'SUBMIT'))?.status).toBe('IN_REVIEW');
+   await expect(store.assistanceAction(owner,request.id,'UNLINK',{linkId:first.id})).rejects.toThrow();
+   expect((await store.assistanceDetail(owner,request.id))?.customerMessage).toBe('Final note');
+   await expect(store.assistanceAction(owner,request.id,'NOTE',{customerMessage:'Late change'})).rejects.toThrow();
+   const permissions = await database.query<{private:boolean;update:boolean}>("select relrowsecurity as private, has_column_privilege('flyseri_api','visa_assistance_requests','status','UPDATE') as update from pg_class where relname='visa_assistance_request_documents'");
+   expect(permissions.rows[0]).toEqual({private:true,update:true});
+  } finally { await database.close(); }
+ }, 30000);
+});
+

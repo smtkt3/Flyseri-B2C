@@ -1,0 +1,14 @@
+// @vitest-environment jsdom
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,within,waitFor} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
+import {PremiumNavbar} from './PremiumNavbar';
+const auth=vi.hoisted(()=>({signOut:vi.fn()}));
+vi.mock('../services/authService',()=>({authService:auth}));
+vi.mock('../auth/AuthProvider',()=>({useAuth:()=>({session:null})}));
+afterEach(cleanup);
+describe('shared customer navbar',()=>{
+ it('uses homepage destinations from an account page',()=>{render(<MemoryRouter initialEntries={['/app/visa']}><PremiumNavbar/></MemoryRouter>);const nav=screen.getByRole('navigation',{name:'Main navigation'});expect(within(nav).getByRole('link',{name:'Explore'}).getAttribute('href')).toBe('/#explore');expect(within(nav).getByRole('link',{name:'Book'}).getAttribute('href')).toBe('/#book');expect(screen.getByRole('link',{name:/Sign in/}).getAttribute('href')).toBe('/sign-in');fireEvent.click(screen.getByRole('button',{name:'Open navigation'}));expect(screen.getByRole('navigation',{name:'Mobile main navigation'})).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'Close navigation'}));expect(screen.queryByRole('navigation',{name:'Mobile main navigation'})).toBeNull();});
+ it('opens the account menu and closes it with Escape',()=>{render(<MemoryRouter><PremiumNavbar name="Shahid"/></MemoryRouter>);fireEvent.click(screen.getByRole('button',{name:'My Flyseri account'}));const menu=screen.getByRole('navigation',{name:'Account navigation'});for(const [label,path] of [['My Trips','/app/trips'],['My Orders','/app/orders'],['Support','/app/support'],['Profile','/app/profile']])expect(within(menu).getByRole('link',{name:label}).getAttribute('href')).toBe(path);expect(screen.getByRole('button',{name:'Sign out'})).toBeTruthy();fireEvent.keyDown(document,{key:'Escape'});expect(screen.queryByRole('navigation',{name:'Account navigation'})).toBeNull();expect(document.activeElement).toBe(screen.getByRole('button',{name:'My Flyseri account'}));});
+ it('signs out from the profile menu',async()=>{auth.signOut.mockResolvedValue(undefined);render(<MemoryRouter initialEntries={['/app/visa']}><PremiumNavbar name="Shahid"/></MemoryRouter>);fireEvent.click(screen.getByRole('button',{name:'My Flyseri account'}));fireEvent.click(screen.getByRole('button',{name:'Sign out'}));await waitFor(()=>expect(auth.signOut).toHaveBeenCalledTimes(1));await waitFor(()=>expect(screen.queryByRole('navigation',{name:'Account navigation'})).toBeNull());});
+});

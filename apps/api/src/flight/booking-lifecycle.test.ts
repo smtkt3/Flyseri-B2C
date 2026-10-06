@@ -1,0 +1,81 @@
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
+import { PGlite } from '@electric-sql/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
+import * as schema from '@flyseri/database';
+import type { DatabaseConnection } from '@flyseri/database';
+import { parseConfig } from '@flyseri/config';
+import type { FlightOffer, FlightSearchRequest } from '@flyseri/types';
+import { DrizzleBookingIntentStore } from './booking-intent.repository.js';
+import { BookingIntentService } from './booking-intent.service.js';
+import { FlightBookingsService } from './flight-bookings.service.js';
+import { FlightOfferValidationService } from './flight-offer-validation.service.js';
+import { FlightTelemetry } from './flight.telemetry.js';
+import type { FlightService } from './flight.service.js';
+import { SabreBookingUnknownError, type SabreBookingManagementClient } from './sabre-booking-management.client.js';
+import { CommerceRepository } from '../commerce/commerce.repository.js';
+import { PaymentEngineService } from '../commerce/payment-engine.service.js';
+
+describe('flight reservation and payment lifecycle with isolated provider fixtures', () => {
+  it('preserves ownership, one reservation, one order and verified payment; blocks repeat sends after uncertainty', async () => {
+    const database = new PGlite();
+    try {
+      await database.exec('CREATE ROLE flyseri_api');
+      const journal = JSON.parse(readFileSync(resolve('../../packages/database/drizzle/meta/_journal.json'), 'utf8')) as { entries: { tag: string }[] };
+      for (const { tag } of journal.entries) for (const statement of readFileSync(resolve(`../../packages/database/drizzle/${tag}.sql`), 'utf8').split('--> statement-breakpoint').filter(value => value.trim())) await database.exec(statement);
+      const customerId = randomUUID(), travelerId = randomUUID();
+      await database.query('INSERT INTO customers (id,auth_user_id) VALUES ($1,$2)', [customerId, randomUUID()]);
+      await database.query("INSERT INTO travellers (id,legal_first_name,legal_last_name,date_of_birth,gender,nationality_country_code) VALUES ($1,'Test','Traveler','1990-01-01','MALE','MY')", [travelerId]);
+      await database.query("INSERT INTO customer_travellers (customer_id,traveller_id,relationship_type) VALUES ($1,$2,'SELF')", [customerId, travelerId]);
+      const connection = { db: drizzle(database, { schema }) } as unknown as DatabaseConnection;
+      const store = new DrizzleBookingIntentStore(connection);
+      const offer: FlightOffer = { offerId: randomUUID(), currency: 'MYR', totalAmount: '100.00', airlineCodes: ['MH'], baggageSummary: null, inbound: null,
+        outbound: { stops: 0, durationMinutes: 60, segments: [{ origin: 'KUL', destination: 'PEN', departureAt: '2027-02-18T09:00:00+08:00', arrivalAt: '2027-02-18T10:00:00+08:00', marketingCarrier: 'MH', flightNumber: '1148', bookingClass: 'Q', durationMinutes: 60 }] } };
+      const search: FlightSearchRequest = { origin: 'KUL', destination: 'PEN', departureDate: '2027-02-18', tripType: 'ONE_WAY', adults: 1, children: 0, infants: 0, cabin: 'ECONOMY', currency: 'MYR' };
+      const agency = { ticketingPolicy: 'TODAY', address: { name: 'Test Agency', street: 'Test Street', city: 'Test City', stateProvince: 'Test Region', postalCode: '00000', countryCode: 'MY', freeText: 'Test Agency' } };
+      const config = { ...parseConfig({ APP_ENV: 'test' }), FLIGHT_BOOKING_EXECUTION_ENABLED: 'true' as const, SABRE_PCC: 'TEST', SABRE_BOOKING_AGENCY: JSON.stringify(agency) };
+      const telemetry = new FlightTelemetry({ info: vi.fn() } as never);
+      const intents = new BookingIntentService(config, store, undefined, {} as FlightService, telemetry, new FlightOfferValidationService(undefined));
+      const createBooking = vi.fn(async () => ({ confirmationId: 'TEST01', sabreBookingId: 'provider-1' }));
+      const provider = { createBooking, flightCheck: vi.fn(async () => ({ offers: [{ id: 'fare-1', source: { distributionModel: 'ATPCO' }, applicableToPseudoCityCodes: ['TEST'], validUntil: new Date(Date.now() + 600000).toISOString(), totalPrice: { amount: '100.00', currencyCode: 'MYR' }, items: [{ fares: [{ fareComponents: [{ segmentDetails: [{ bookingClassCode: 'Q' }] }] }] }] }] })) };
+      const bookings = new FlightBookingsService(config, connection, provider as unknown as SabreBookingManagementClient, intents, telemetry);
+      const input = { namesConfirmed: true, contactEmail: 'test@example.com', contactPhone: '+12025550100', billingAddress: agency.address };
+      async function selection() {
+        const { intent } = await store.create({ customerId, tripId: null, searchId: randomUUID(), offerId: offer.offerId, idempotencyKey: randomUUID(), travellerIds: [travelerId], offer, search });
+        await store.saveValidation(customerId, intent.id, { result: 'AVAILABLE', currentTotalAmount: offer.totalAmount, currency: offer.currency, itinerary: offer, validatedAt: new Date().toISOString() }, 600);
+        return intent.id;
+      }
+      const intentId = await selection();
+      expect(await bookings.forIntent(customerId, intentId)).toBeNull();
+      await expect(bookings.forIntent(randomUUID(), intentId)).rejects.toMatchObject({ status: 404 });
+      const booking = await bookings.reserve(customerId, intentId, input);
+      expect(booking).toMatchObject({ status: 'PNR_CREATED', pnr: 'TEST01', passengerNamesSource: 'BOOKED_SNAPSHOT', passengerNames: ['Test Traveler'] });
+      expect((await bookings.reserve(customerId, intentId, input)).id).toBe(booking.id);
+      expect(createBooking).toHaveBeenCalledOnce();
+      const commerce = new CommerceRepository(connection);
+      const order = await commerce.createFlightOrder(customerId, intentId, 'test');
+      expect((await commerce.createFlightOrder(customerId, intentId, 'repeat')).id).toBe(order.id);
+      expect((await bookings.forIntent(customerId, intentId))?.order).toMatchObject({ id: order.id, status: 'PENDING_PAYMENT' });
+      await expect(bookings.cancelUnticketed(customerId, booking.id, 'TEST01')).rejects.toMatchObject({ status: 409 });
+      const paymentProvider = { id: 'STRIPE_TEST', createCheckout: vi.fn(async () => ({ providerPaymentId: 'cs_test_fixture', redirectUrl: 'https://checkout.stripe.com/c/pay/cs_test_fixture' })), isAllowedCheckoutUrl: (url: URL) => url.hostname === 'checkout.stripe.com', verifyWebhook: vi.fn(), getStatus: vi.fn() };
+      const engine = new PaymentEngineService(commerce, paymentProvider);
+      const payment = await engine.start(customerId, order.id, randomUUID());
+      await engine.start(customerId, order.id, randomUUID());
+      expect(paymentProvider.createCheckout).toHaveBeenCalledOnce();
+      const event = { providerEventId: 'evt_fixture', providerPaymentId: 'cs_test_fixture', status: 'SUCCEEDED' as const, amount: '100.00', currency: 'MYR' };
+      await expect(commerce.applyVerifiedEvent('STRIPE_TEST', payment.payment.id, { ...event, amount: '1.00' }, 'wrong-amount')).rejects.toThrow();
+      await commerce.applyVerifiedEvent('STRIPE_TEST', payment.payment.id, event, 'verified-fixture');
+      await commerce.applyVerifiedEvent('STRIPE_TEST', payment.payment.id, event, 'duplicate-event');
+      expect(await bookings.detail(customerId, booking.id)).toMatchObject({ status: 'AWAITING_STAFF_TICKETING', ticketStatus: 'NOT_VERIFIED', order: { id: order.id, status: 'PAID' } });
+      const unknownIntent = await selection();
+      createBooking.mockRejectedValueOnce(new SabreBookingUnknownError('NETWORK_OR_TIMEOUT'));
+      const unknown = await bookings.reserve(customerId, unknownIntent, input);
+      expect(unknown.status).toBe('BOOKING_UNKNOWN');
+      expect((await bookings.reserve(customerId, unknownIntent, input)).id).toBe(unknown.id);
+      expect(createBooking).toHaveBeenCalledTimes(2);
+      await expect(commerce.createFlightOrder(customerId, unknownIntent, 'unknown')).rejects.toThrow();
+    } finally { await database.close(); }
+  }, 60000);
+});

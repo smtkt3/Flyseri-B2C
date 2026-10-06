@@ -1,0 +1,120 @@
+/* Shared card proportions for public and account homepages. */
+.premium-main { padding-top:16px; padding-bottom:28px; }
+.premium-main > section, .premium-main > .premium-two-grid, .premium-main > .premium-commerce { margin-top:28px; }
+.premium-main .premium-seri-entry { margin-top:0; margin-bottom:20px; }
+.premium-heading { gap:14px; margin-bottom:14px; align-items:center; }
+.premium-heading h2 { font-size:18px; line-height:1.35; }
+.premium-heading > a { font-size:12px; }
+.premium-heading .premium-eyebrow { margin-bottom:5px; }
+.premium-journey-grid { gap:16px; align-items:stretch; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,.9fr); }
+.premium-journey-grid > .premium-glass { display:flex; flex-direction:column; min-width:0; min-height:340px; padding:18px; border-radius:22px; }
+.premium-trip-photo,.premium-trip-empty-photo { position:relative; height:150px; flex:none; overflow:hidden; border-radius:14px; background-size:cover; background-position:center; }
+.premium-trip-photo > span { position:relative; z-index:1; }
+.premium-trip-illustration { position:absolute; inset:0; width:100%; height:100%; }
+.premium-trip-body { padding:14px 42px 14px 2px; }
+.premium-trip-body h3 { margin:0 0 5px; font-size:16px; line-height:1.4; overflow-wrap:anywhere; }
+.premium-trip-body p { font-size:12px; line-height:1.5; }
+.premium-trip-body small { display:block; margin-top:8px; font-size:11px; line-height:1.5; }
+.premium-trip-actions { margin-top:auto; gap:8px; }
+.premium-trip-actions a { display:flex; align-items:center; justify-content:center; min-height:38px; padding:8px; font-size:11px; }
+.premium-trip-empty-copy { padding:16px 2px 4px; gap:8px; }
+.premium-trip-empty-copy h3 { font-size:16px; }
+.premium-trip-empty-copy p,.premium-trip-empty-copy a { font-size:12px; line-height:1.55; }
+.premium-route-heading { gap:12px; font-size:11px; }
+.premium-route-card::before { inset:45px 10px 50px; background-size:contain; opacity:.25; }
+.premium-route-card .premium-map { flex:1; min-height:210px; gap:8px; margin:10px 0; border-radius:14px; }
+.premium-route-point { max-width:40%; padding:12px; }
+.premium-route-point strong { font-size:16px; overflow-wrap:anywhere; }
+.premium-route-point small { margin-top:5px; font-size:10px; }
+.premium-route-line { min-width:22px; }
+.premium-route-bottom { margin-top:auto; gap:8px; padding-top:12px; font-size:10px; line-height:1.5; flex-wrap:wrap; }
+.premium-selection-card .premium-empty,.premium-route-card .premium-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; padding:20px 8px; }
+.premium-empty h3 { font-size:16px; line-height:1.4; }
+.premium-empty p { max-width:260px; font-size:12px; line-height:1.6; }
+.premium-empty a { margin-top:12px; font-size:12px; }
+.premium-selection-airline { padding:10px; }
+.premium-selection-route { margin:20px 2px 8px; }
+.premium-selection-status { line-height:1.6; font-size:12px; }
+.premium-selection-total { margin-top:auto; padding:14px 0; }
+.premium-selection-card .premium-confirm { min-height:42px; font-size:12px; }
+.premium-flight-steps { gap:14px; align-items:stretch; }
+.premium-flight-steps > a { min-height:98px; padding:18px; gap:12px; border-radius:17px; }
+.premium-flight-steps strong { font-size:13px; line-height:1.4; }
+.premium-flight-steps small { font-size:11px; line-height:1.5; }
+.premium-flight-steps > a > span { width:40px; height:40px; border-radius:12px; }
+.premium-destination-grid { gap:14px; align-items:stretch; }
+.premium-destination,.premium-story { display:flex; flex-direction:column; height:100%; border-radius:18px; }
+.premium-destination img { height:clamp(135px,10vw,185px); width:100%; object-fit:cover; flex:none; }
+.premium-destination > div { flex:1; min-height:72px; padding:14px 42px 14px 14px; gap:5px; }
+.premium-destination strong { font-size:13px; line-height:1.4; }
+.premium-destination small { font-size:11px; line-height:1.5; }
+.premium-destination span { right:12px; bottom:18px; width:28px; height:28px; }
+.premium-story-grid { gap:16px; align-items:stretch; }
+.premium-story img { width:100%; height:clamp(160px,14vw,230px); object-fit:cover; flex:none; }
+.premium-story > div { flex:1; min-height:82px; padding:16px 42px 16px 16px; gap:7px; }
+.premium-story strong { font-size:14px; line-height:1.45; }
+.premium-story small { font-size:11px; line-height:1.5; }
+.premium-story span { right:16px; bottom:18px; }
+.premium-two-grid { gap:20px; align-items:stretch; }
+.premium-help-grid > section { display:flex; flex-direction:column; }
+.premium-help-cards { flex:1; gap:12px; }
+.premium-help-cards > a { display:flex; flex-direction:column; min-height:160px; padding:18px 14px; border-radius:18px; }
+.premium-help-cards strong { font-size:13px; line-height:1.45; }
+.premium-help-cards small { font-size:11px; line-height:1.6; }
+.premium-help-cards span { margin-bottom:14px; }
+.premium-help-grid .premium-trust-card { flex:1; min-height:160px; padding:24px; }
+.premium-trust-card p { font-size:13px; line-height:1.65; }
+.premium-bottom-grid > section { display:flex; }
+.premium-bottom-grid .premium-glass { flex:1; min-height:205px; padding:26px; border-radius:22px; }
+.premium-bottom-grid p { font-size:13px; line-height:1.6; }
+.premium-ai h2 { font-size:19px; }
+.premium-editorial-note { margin:10px 2px 0; font-size:11px; line-height:1.5; }
+.premium-support { min-height:100px; padding:22px; border-radius:18px; }
+@media(max-width:1100px) { .premium-journey-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .premium-journey-grid > .premium-selection-card { grid-column:1/-1; min-height:240px; } .premium-selection-card .premium-empty { min-height:150px; } .premium-destination-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:760px) { .premium-main > section,.premium-main > .premium-two-grid { margin-top:22px; } .premium-journey-grid { grid-template-columns:1fr; gap:14px; } .premium-journey-grid > .premium-glass { min-height:0; padding:18px; } .premium-journey-grid > .premium-selection-card { grid-column:auto; } .premium-route-card .premium-map { min-height:200px; } .premium-flight-steps { grid-template-columns:1fr; } .premium-flight-steps > a { min-height:84px; } .premium-destination-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .premium-two-grid { grid-template-columns:1fr; } .premium-story-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .premium-story-grid > a:last-child { grid-column:1/-1; } .premium-story img { height:180px; } .premium-help-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:430px) { .premium-heading h2 { font-size:17px; } .premium-heading > a { font-size:11px; } .premium-destination-grid,.premium-story-grid { gap:10px; } .premium-destination img { height:130px; } .premium-destination > div { padding:12px 36px 12px 12px; } .premium-bottom-grid .premium-glass { padding:20px; } }
+/* Demo group fares scroll vertically until admin supplied offers are connected. */
+.premium-exclusive-offers .premium-heading { margin-bottom: 3px; }
+.premium-offers-caption { margin: 0 0 10px; color: #71839b; font-size: 10px; font-weight: 700; }
+.premium-offers-window { position: relative; height: 218px; overflow: hidden; border-radius: 13px; }
+.premium-offers-window::before,.premium-offers-window::after { position:absolute; z-index:1; right:0; left:0; height:15px; content:""; pointer-events:none; }
+.premium-offers-window::before { top:0; background:linear-gradient(#f7fbff,transparent); }
+.premium-offers-window::after { bottom:0; background:linear-gradient(transparent,#f7fbff); }
+.premium-offers-track { display:flex; flex-direction:column; gap:8px; animation:premium-offers-scroll 15s linear infinite; }
+.premium-offers-window:hover .premium-offers-track,.premium-offers-window:focus-within .premium-offers-track { animation-play-state:paused; }
+.premium-offer-item { display:flex; flex:none; min-height:64px; align-items:center; gap:9px; padding:9px; border:1px solid #dfedf5; border-radius:12px; background:#ffffffc9; }
+.premium-offer-plane { display:grid; flex:none; width:30px; height:30px; place-items:center; border-radius:10px; background:#e8f4ff; color:#3485e8; }
+.premium-offer-route { display:grid; min-width:0; gap:4px; }
+.premium-offer-route strong { overflow:hidden; color:#203552; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+.premium-offer-route small { color:#768aa2; font-size:9px; line-height:1.3; }
+.premium-offer-price { margin-left:auto; color:#2879da; font-size:11px; white-space:nowrap; }
+.premium-offers-note { margin:9px 0 0; color:#75869d; font-size:9px; line-height:1.45; }
+.premium-visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; clip-path:inset(50%); }
+@keyframes premium-offers-scroll { to { transform:translateY(calc(-50% - 4px)); } }
+@media(max-width:1100px) { .premium-exclusive-offers { grid-column:1/-1; } .premium-offers-window { height:202px; } }
+@media(max-width:760px) { .premium-exclusive-offers { grid-column:auto; } .premium-offers-window { height:210px; } }
+@media(prefers-reduced-motion:reduce) { .premium-offers-track { animation:none; } .premium-offers-track .premium-offer-item:nth-child(n+4) { display:none; } }
+.premium-fare-map-card { background:linear-gradient(145deg,#daf6edcc,#e7f8ffdc 55%,#d9e9fbdf); }
+.premium-fare-map-card .premium-route-heading { align-items:center; }
+.premium-fare-map-card .premium-route-heading>span:last-child { flex:none; color:#718aa4; font-size:10px; }
+.premium-real-map { position:relative; flex:1; min-height:210px; margin:10px 0; overflow:hidden; border:1px solid #ffffffbd; border-radius:14px; background:#d6edf5; isolation:isolate; }
+.premium-map-tiles { position:absolute; inset:0; overflow:hidden; background:linear-gradient(145deg,#d8eff5,#d4eadf); }
+.premium-map-tiles img { position:absolute; width:256px; height:256px; max-width:none; opacity:.92; }
+.premium-fare-routes { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.premium-fare-routes path { fill:none; stroke:#2489ec; stroke-width:2; stroke-dasharray:5 5; vector-effect:non-scaling-stroke; }
+.premium-fare-dot,.premium-kul-dot { position:absolute; z-index:2; transform:translate(-50%,-50%); }
+.premium-fare-dot { width:9px; height:9px; border:2px solid white; border-radius:50%; background:#21a785; box-shadow:0 1px 7px #16476c72; }
+.premium-fare-dot.is-active { width:13px; height:13px; background:#237de5; box-shadow:0 0 0 5px #2985ea3d; }
+.premium-kul-dot { display:flex; align-items:center; gap:4px; padding:3px 6px; border-radius:8px; background:#15325fe8; color:white; font-size:9px; font-weight:800; }
+.premium-kul-dot i { width:6px; height:6px; border-radius:50%; background:#53e0ba; }
+.premium-map-fare-popup { position:absolute; z-index:3; display:grid; min-width:104px; gap:2px; padding:7px 9px; transform:translate(-50%,-112%); border:1px solid #d5e8f4; border-radius:10px; background:white; box-shadow:0 5px 18px #1d4b6d29; text-decoration:none; }
+.premium-map-fare-popup span { overflow:hidden; color:#203552; font-size:10px; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
+.premium-map-fare-popup strong { color:#2378df; font-size:13px; }
+.premium-map-fare-popup small { color:#617a92; font-size:9px; }
+.premium-map-empty { position:absolute; z-index:3; top:50%; left:50%; width:min(80%,300px); padding:12px 15px; transform:translate(-50%,-50%); border-radius:12px; background:#fffF; color:#465f79; font-size:11px; line-height:1.5; text-align:center; box-shadow:0 4px 20px #17476822; }
+.premium-map-attribution { position:absolute; right:3px; bottom:2px; z-index:4; padding:2px 4px; background:#ffffffd9; color:#3d596c; font-size:8px; text-decoration:none; }
+.premium-fare-map-footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; margin-top:auto; padding:10px 4px 2px; border-top:1px solid #ffffffb7; color:#52718e; font-size:9px; font-weight:700; }
+@media(prefers-reduced-motion:reduce) { .premium-fare-dot,.premium-map-fare-popup { transition:none; } }
+.premium-journey-grid > .premium-fare-map-card { padding:8px; }
+.premium-fare-map-card .premium-real-map { min-height:210px; margin:0; flex:1; }
+.premium-fare-map-card .premium-map-attribution { max-width:calc(100% - 6px); font-size:7px; }

@@ -1,0 +1,1 @@
+ALTER TABLE "visa_requirements" ADD COLUMN "applicant_category" varchar(32);

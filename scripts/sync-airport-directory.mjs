@@ -1,0 +1,12 @@
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const source=new URL('../apps/customer-web/src/flight/data/airports.json',import.meta.url);
+const target=new URL('../apps/api/assets/airports.json',import.meta.url);
+const bytes=await readFile(source);
+const rows=JSON.parse(bytes.toString('utf8'));
+if(!Array.isArray(rows)||!rows.length||rows.some(row=>typeof row.code!=='string'))throw new Error('Invalid source airport directory');
+await mkdir(new URL('../apps/api/assets/',import.meta.url),{recursive:true});
+await writeFile(target,bytes);
+const copied=await readFile(target);
+if(!bytes.equals(copied))throw new Error('Airport copy differs from source');
+console.log(`Airport directory copied intact: ${rows.length} entries, SHA256 ${createHash('sha256').update(bytes).digest('hex')}`);

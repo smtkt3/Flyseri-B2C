@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "experimentalDecorators": true, "emitDecoratorMetadata": true,
+    "esModuleInterop": true, "rootDir": "src", "outDir": "dist",
+    "skipLibCheck": true, "noUncheckedIndexedAccess": true
+  },
+  "include": ["src"]
+}

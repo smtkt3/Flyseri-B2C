@@ -1,0 +1,256 @@
+Overview
+What is it?
+The Order Management API is used to create, change, cancel, and view the content of a specified airline order.
+
+All methods listed below are stateless and REST/JSON:
+
+Orders/Create
+The Orders/Create method is used to book flights returned within an NDC (New Distribution Capability) offer. Orders/Create is used for single passenger itineraries and does not currently support ancillary services.
+
+Orders/Change (Passenger Data)
+The Orders/Change method is used to add, delete, or change information in an existing order. Items to change can include remarks, telephone contacts, secure flight information and APIS, email addresses, and frequent flyer numbers. Orders/Change does not currently allow the modification of flights.
+
+Orders/View
+The Orders/View method is used to display information from an Order within the Sabre Order Management System (OMS).
+
+Orders/Cancel
+The Orders/Cancel method is used to cancel an entire order. This may be prior to or after the order has been fulfilled.
+
+Orders/Change (Fulfillment)
+The Orders/Change method is primarily used to add information to an order, but can also be used for fulfillment.
+
+Orders/Change/Exchange
+The Orders/Change/Exchange method is used to request a modification to a fulfilled order.
+
+Use of this method should be proceeded by the v1/Offers/Reshop/Shop request, which determines alternative flights and pricing information.
+The Sabre system will return an updated view of the order with new flights, pricing information, and payment time limits.
+
+This view of the order also includes an indicator in the document information section advising agents that the itinerary is out of sync with the ticket and that they need to complete the fulfillment process to exchange the ticket. Agents can then exchange the ticket with the existing Orders/Change request that was used to fulfill the order.
+
+Orders/Sync
+The Orders/Sync method is used to request synchronization of an NDC order to reflect current order details from the airline.
+
+Orders/Change/Divide
+The Orders/Change/Divide method is used to split NDC orders. This operation results in creation of a new order and PNR for the divided passenger on both the airline’s and Sabre side. Only one passenger can be divided at a time.
+
+Why use it?
+Carriers are looking to enhance product offerings and increase revenues by providing personalized offers. Previously, fares and ancillary prices were based on filed schedules and fare information.
+
+With NDC capabilities, shopping requests are sent to the airline and an offer is returned; these shopping requests may be anonymous or contain passenger information such as a corporate ID.
+
+Orders/Create
+The Orders/Create method enables the booking capability of NDC offers that were returned by carriers and then saved to the Sabre Offer Store.
+
+Orders/Change (Passenger Data)
+After the successful creation of an NDC order, use Orders/Change to update information within the order. For example, an agent may receive a request to add a frequent flyer number to an order.
+
+Orders/View
+After the successful creation of an NDC order, use Orders/View to display information from the order; this can include itinerary information, passenger data, pricing information, and information on any documents that have been issued.
+
+Either a Sabre Order ID or the Sabre Record Locator may be used to retrieve the order.
+Orders/Cancel
+Use Orders/Cancel to cancel an order. Once the cancellation has been completed, the order and the PNR will show that the flights have been canceled.
+
+Orders/Change (Fulfillment)
+Use Orders/Change to complete the payment for an order.
+
+Send the Orders/Change request with the payment information and an Order ID, and the carrier will process the payment and provide the applicable documents, ticket numbers, and coupon statuses in the response.
+
+Offers/Reshop/CancelOrder
+Use Offers/Reshop/CancelOrder to determine if a ticket may be voided or if it needs to be refunded first. Offers/Reshop/CancelOrder will also identify any cancellation fees that the passenger should be made aware of.
+
+The carrier will return an offer ID for the cancellation, which must be referenced in the Orders/Cancel request.
+
+Orders/Change/Exchange
+Use Orders/Change/Exchange to enable agents to process voluntary changes for an existing order that has been fulfilled.
+
+Orders/Sync
+Use Orders/Sync to request synchronization of current order state with the airline data.
+
+Orders/Change/Divide
+Use Orders/Change/Divide to request a split of an NDC order. The operation results in creation of a new order and PNR for the divided passenger on both the airline’s and Sabre side. Only one passenger can be divided at a time.
+
+How it works
+Data used by Orders/Create
+To make a successful call, include the OfferID in the Orders/Create request, along with the passenger name and other mandatory data elements. After the request is sent, a response is returned with the carrier’s OrderID, the Sabre OrderID, and the Sabre Record Locator.
+
+Orders/Create is dependent on a sellable offer in the Offer Store
+
+The response to an Orders/Create request an Orders/View response
+
+The offer is validated with Offers/Price, which includes additional information from the initial Bargain Finder Max (BFM) API response, including a full breakdown of taxes
+
+The order is written to the Sabre Order Management System (OMS)
+
+All offers pertain to single adult passengers
+
+Flight types include: nonstop, connecting, and flights with stops (direct)
+
+Offers may include codeshare flights, flights operated by regional carriers, and interline itineraries
+
+For total fares, all taxes and fees are included. However, ancillary fees charged by airlines, such as baggage and preferred seating, are not included.
+
+Orders can only be created for NDC offers; carrier activations will increase the amount of NDC offers returned in the BFM API’s results
+
+After the successful creation of an order, a Passenger Name Record (PNR) is created in the Sabre system
+
+An NDC order may be added to a partial or completed PNR
+
+Passenger information can be added to the order during creation, with the supported data elements:
+
+Remarks
+
+Frequent flyer number
+
+Telephone contact numbers
+
+Email address
+
+Secure flight information
+
+Passport (APIS)
+
+Client ID (CLID)
+
+Data used by Orders/Change (Passenger Data)
+Orders/Change does not currently allow for the modification of flights.
+Orders/Change is dependent on an order in the Sabre Order Management System (OMS)
+
+The response to an Orders/Change request is an Orders/View response
+
+Passenger information can be added to the order with the supported data elements:
+
+Remarks
+
+Frequent flyer number
+
+Telephone contact numbers
+
+Email address
+
+Secure flight information
+
+Passport (APIS)
+
+Information added to the order may be replicated into the Sabre PNR
+
+Some carriers may not support the addition or deletion of passenger data to or from an order
+
+Data used by Orders/View
+Orders/View is dependent on an order in the Sabre OMS
+
+The response to an Orders/View request is an Orders/View response
+
+Orders/View returns all data within the order from the Sabre OMS, including:
+
+Flight segments
+
+Passenger information
+
+Pricing data, including full breakdown of taxes
+
+Ticket information, including document numbers and coupon status
+
+Carrier order IDs
+
+Data used by Orders/Cancel
+This method may be utilized prior to or after the order has been fulfilled.
+
+An Orders/Cancel request requires either a Sabre Order ID, or the Sabre Record Locator and ReshopOfferItemID if the order has been fulfilled
+
+The response to an Orders/Cancel request is an Orders/View response without canceled flight information
+
+In the event where an order has already been fulfilled, the Sabre PNR will be updated with the applicable ticketing lines (void or refund)
+
+At this time, a refund accounting line is not added to the PNR and an Interface User Record (IUR) is not generated
+
+Data used by Orders/Change (Fulfillment)
+To fulfill an order using the Orders/Change method, send payment information, along with the OrderID, in the request:
+
+Orders/Change is dependent on an order in the Sabre Order Management System (OMS)
+
+Orders/Change sends the fulfillment request to the airline who is processing payments and is issuing documents for the flight
+
+The order is updated with the ticket number(s) and coupon status
+
+Supported forms of payment include cash and credit card. When cash is requested, Sabre checks the TJR for CC FOP and validates that the requestor has a valid IATA number.
+
+Orders/Change updates the Sabre PNR with ticketing lines and an accounting line
+
+An IUR is generated to the agent’s back office system, if applicable
+
+Data used by Offers/Reshop/CancelOrder
+This method is used prior to the Orders/Cancel request and identifies whether the ticket is in the void period, or if it’s eligible to be refunded (and if so, whether any penalty fees apply).
+
+This method is mandatory prior to cancelling a fulfilled order. The re-shop offer ID must be included in the cancellation request.
+
+Offers/Reshop/CancelOrder requires the Sabre Order ID and the Order Items ID.
+Offers/Reshop/CancelOrder sends the re-shop request to the carrier, who determines if the ticket(s) is in the void period or if it must be refunded. If so, cancellation fees are calculated and returned in the response.
+
+The carrier returns an offer for the cancellation, which is written to the Sabre Offer Store (OFS).
+
+The offer has a time to live that is returned in the response (offer expiration date/time).
+
+If the agent decides to continue with the cancellation, then the Offer Item ID(s) must be included in the Orders/Cancel request.
+
+Some carriers may not support void or refund actions.
+
+A refund accounting line is not added to the PNR and an Interface User Record (IUR) is not generated to the agent’s back office system, if applicable.
+
+Data used by Orders/Change/Exchange
+Orders/Change/Exchange requires a Sabre Order ID, along with the Offer ID of the desired flight option.
+
+Orders/Change/Exchange sends the booking modification request to the carrier, who updates the PNR and order in their own system.
+
+The carrier returns the updated order, which is written to the Sabre OMS.
+
+A boolean is included to advise the agent that the itinerary and the ticket are out of sync and that they must complete the fulfillment step to exchange the ticket.
+
+The order is updated with a new payment time limit written to the Sabre OMS.
+
+Some carriers may not be supported, as the use of this method is only for carriers that have opted to support a deferred payment model.
+Data used by Orders/Sync
+Orders/Sync requires a Sabre Order ID
+
+Orders/Sync creates a command that asynchronously compares a Sabre order with an airline order.
+
+As a result of this comparison, the Order Management System updates the Sabre order to reflect the airline order status.
+
+Data used by Orders/Change/Divide
+Orders/Change/Divide requires a Sabre order ID and an array of passengerRefIds.
+
+The divide operation results in creation of a new Order and PNR for the divided passenger on both airline’s and Sabre side. Only one passenger can be divided at the time.
+
+How to use
+Orders/Create API
+POST /v1/orders/create HTTP/1.1 - Create Order
+Request: Order with OfferID.
+Response: Created Order with OrderID.
+
+Orders/Change API
+POST /v1/orders/change HTTP/1.1 - Change Order
+Request: Elements to be added or changed in Order.
+Response: Changed Order.
+
+Orders/View API
+POST /v1/orders/view HTTP/1.1 - View Order
+Request: OrderID.
+Response: Order.
+
+Orders/Cancel API
+POST /v1/orders/cancel HTTP/1.1 - Cancel Order
+Request: Cancel Order.
+Response: Canceled Order.
+
+Orders/Change/Exchange API
+POST /v1/orders/change/exchange HTTP/1.1 - Exchange Order
+Request: Exchange Order.
+Response: Exchange Order.
+
+Orders/Sync API
+POST /v1/orders/sync HTTP/1.1 - Sync Order
+Request: OrderID. Response: Order synchronization request date-time.
+
+Orders/Change/Divide API
+POST /v1/orders/change/divide HTTP/1.1 - Divide Order
+Request: OrderID and PassengerRefIds Response: Divided Order.

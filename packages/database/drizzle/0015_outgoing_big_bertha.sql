@@ -1,0 +1,1 @@
+ALTER TABLE "ai_usage_events" ADD COLUMN "provider_tier" varchar(16);
