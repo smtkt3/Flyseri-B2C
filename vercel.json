@@ -4,12 +4,12 @@
     "api": {
       "root": "apps/api",
       "framework": "nestjs",
-      "buildCommand": "pnpm --dir ../.. build:packages && pnpm --dir ../.. --filter @flyseri/api build"
+      "buildCommand": "pnpm --dir ../.. --filter ./packages/** -r build && pnpm --dir ../.. --filter @flyseri/api build"
     },
     "customer-web": {
       "root": "apps/customer-web",
       "framework": "vite",
-      "buildCommand": "pnpm --dir ../.. build:packages && pnpm --dir ../.. --filter @flyseri/customer-web build",
+      "buildCommand": "pnpm --dir ../.. --filter ./packages/** -r build && pnpm --dir ../.. --filter @flyseri/customer-web build",
       "outputDirectory": "dist",
       "rewrites": [
         {
