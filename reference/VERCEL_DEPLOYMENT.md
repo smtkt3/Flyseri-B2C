@@ -34,6 +34,12 @@ Hosted Redis must be reachable over TLS for shared shopping sessions, supplier
 tokens, and rate limits. A local `127.0.0.1` Redis instance is not reachable from
 Vercel. Configure its standard Redis connection string as server-only `REDIS_URL`.
 
+`flyseri-test-cache` is connected through the Upstash integration using the Free
+plan in Singapore (`sin1`, 500,000 monthly commands). The integration supplies
+server-only `REDIS_URL` to this project's deployed test environment. No paid plan
+was selected. Cache eviction is disabled so durable operation locks are not
+silently removed to make space.
+
 Every environment change requires a redeployment.
 
 ## Verification
