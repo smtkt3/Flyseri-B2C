@@ -12,11 +12,13 @@ import { createAiProvider } from './ai-provider.js';
 import { SeriController } from './seri.controller.js';
 import { SeriRepository } from './seri.repository.js';
 import { SeriOrchestratorService } from './seri.service.js';
+import { SabreMcpService } from './sabre-mcp.service.js';
 
 @Module({
   imports: [CustomerModule, TripModule, VisaModule, DocumentModule, FlightModule, CommerceModule],
   controllers: [SeriController],
   providers: [
+    SabreMcpService,
     SeriOrchestratorService,
     { provide: AI_PROVIDER, useFactory: (config: AppConfig) => createAiProvider(config), inject: [APP_CONFIG] },
     { provide: AI_STORE, useFactory: (database: DatabaseConnection | undefined) => new SeriRepository(database), inject: [DATABASE_CONNECTION] },

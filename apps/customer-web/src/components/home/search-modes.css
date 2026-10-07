@@ -1,0 +1,92 @@
+.premium-search-view { display:contents; }
+.premium-search-view[hidden] { display:none !important; }
+
+@media (max-width:1100px) {
+  .premium-search-view { display:block; min-width:0; }
+  .premium-home-layout:not(.is-embedded) .premium-overlap,
+  .premium-home-main .premium-overlap { margin-top:12px; }
+  .premium-search-mode-switch {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+    padding:5px;
+    margin-bottom:12px;
+    border:1px solid #ffffff;
+    border-radius:18px;
+    background:rgba(241,249,255,.94);
+    box-shadow:0 6px 24px #24598710;
+  }
+  .premium-search-mode-switch > button {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:48px;
+    padding:10px 8px;
+    border:1px solid transparent;
+    border-radius:13px;
+    color:#58718c;
+    background:transparent;
+    font:inherit;
+    font-size:13px;
+    font-weight:750;
+    cursor:pointer;
+    transition:background .18s,color .18s,box-shadow .18s;
+  }
+  .premium-search-mode-switch svg { flex:none; width:19px; height:19px; }
+  .premium-search-mode-switch > button[aria-selected="true"] {
+    color:#fff;
+    background:linear-gradient(115deg,#2379ed,#53a9f7);
+    border-color:#438ff3;
+    box-shadow:0 4px 12px #2379ed30,inset 0 1px 0 #ffffff30;
+  }
+  .premium-search-mode-switch > button:not([aria-selected="true"]):hover { background:#e4f0fc; color:#246dba; }
+  .premium-search-mode-switch > button:focus-visible { outline:3px solid #76b5f5; outline-offset:2px; }
+  .premium-home-main .premium-main .premium-seri-entry { margin:0 0 16px; }
+  .premium-home-main:is([data-search-mode="map"],[data-search-mode="ai"]) .premium-main { padding-top:0; }
+  #home-search-flights .premium-search { max-height:var(--home-search-panel-height); overflow:auto; overscroll-behavior:contain; }
+  .premium-home-main #home-search-flights .premium-search { padding:14px; }
+  .premium-home-main #home-search-flights .premium-search-route { grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr); grid-template-rows:auto; }
+  .premium-home-main #home-search-flights .premium-search-route > .airport-picker:first-child { grid-column:1; grid-row:1; border-bottom:0; }
+  .premium-home-main #home-search-flights .premium-search-route > .airport-picker:last-child { grid-column:3; grid-row:1; }
+  .premium-home-main #home-search-flights .premium-search-route > .premium-swap { grid-column:2; grid-row:1; width:34px; transform:none; }
+  #home-search-map .explore-map { height:var(--home-search-panel-height); display:flex; flex-direction:column; }
+  #home-search-map .explore-map-toolbar { flex:none; }
+  #home-search-map .explore-map-tabs { flex:none; }
+  #home-search-map .explore-map-canvas { flex:1; height:auto; min-height:150px; }
+  #home-search-map .explore-map > p { flex:none; font-size:9px; line-height:1.4; }
+  .premium-home-main .premium-main .premium-seri-chat {
+    height:var(--home-search-panel-height);
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:12px;
+    padding:16px;
+    box-sizing:border-box;
+  }
+  .premium-seri-chat .premium-seri-entry-heading { flex:none; }
+  .premium-seri-chat .home-seri-transcript { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:2px 3px; scrollbar-width:thin; }
+  .premium-seri-chat .home-seri-welcome { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; text-align:center; color:#244366; }
+  .premium-seri-chat .home-seri-welcome > span { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:#e7f3ff; color:#3289e8; font-size:28px; }
+  .premium-seri-chat .home-seri-welcome > div { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; }
+  .premium-seri-chat .home-seri-welcome button { min-height:36px; padding:7px 10px; background:#f4f9ff; color:#3873ae; border:1px solid #dceaf7; border-radius:10px; font-size:11px; }
+  .premium-seri-chat .home-seri-message { width:fit-content; max-width:94%; margin:0 0 12px; padding:11px 13px; border:1px solid #e2ecf6; border-radius:14px 14px 14px 4px; background:#fff; overflow-wrap:anywhere; }
+  .premium-seri-chat .home-seri-message.is-user { margin-left:auto; background:#e8f3ff; border-color:#d6e8fd; border-radius:14px 14px 4px 14px; }
+  .premium-seri-chat .home-seri-message > small { display:block; margin-bottom:4px; color:#5182af; font-size:10px; font-weight:750; }
+  .premium-seri-chat .home-seri-message > p { color:#284260; font-size:13px; line-height:1.6; white-space:pre-wrap; }
+  .premium-seri-chat .seri-data-list { display:grid; gap:7px; margin-top:10px; }
+  .premium-seri-chat .seri-data-list article { display:grid; gap:4px; padding:9px; border:1px solid #e0ecf7; border-radius:9px; font-size:12px; }
+  .premium-seri-chat .home-seri-status { padding:10px; color:#397eae; }
+  .premium-seri-chat .home-seri-error { padding:10px; color:#a62f42; background:#fff0f2; border-radius:10px; }
+  .premium-seri-chat .home-seri-sign-in { flex:none; text-align:center; }
+  .premium-seri-chat form { flex:none; }
+  .premium-seri-chat a { color:#2377cf; font-size:12px; }
+}
+@media (max-width:420px) {
+  .premium-search-mode-switch > button { gap:6px; font-size:12px; }
+  .premium-search-mode-switch svg { width:17px; height:17px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .premium-search-mode-switch > button { transition:none; }
+}

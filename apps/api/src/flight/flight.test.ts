@@ -47,6 +47,18 @@ class MemoryRedis {
 }
 
 describe('flight cache identity and coalescing', () => {
+  it.each(['LHR', 'AKL'])('exposes a recent real-search quote for expanded map destination %s', async (destination) => {
+    const departureDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const searchInput: FlightSearchRequest = { ...base, destination, departureDate, returnDate: undefined, tripType: 'ONE_WAY', adults: 1 };
+    const searchedOffer: FlightOffer = { ...offer, outbound: { ...offer.outbound, segments: offer.outbound.segments.map(segment => ({ ...segment, destination })) } };
+    const search = vi.fn(async () => [searchedOffer]);
+    const service = new FlightService(config, undefined, undefined, { search }, telemetry());
+    expect(await service.popularCachedFares()).toEqual([]);
+    await service.search(null, 'map-search', searchInput);
+    expect(await service.popularCachedFares()).toEqual([expect.objectContaining({ destination, departureDate, price: searchedOffer.totalAmount, currency: 'MYR' })]);
+    expect(search).toHaveBeenCalledOnce();
+  });
+
   it('shares five-minute quotes across customers without sharing their search sessions', async () => {
     const clock = vi.spyOn(Date, 'now'); const now = Date.now(); clock.mockReturnValue(now);
     try {

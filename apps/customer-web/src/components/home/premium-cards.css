@@ -94,27 +94,3 @@
 @media(max-width:1100px) { .premium-exclusive-offers { grid-column:1/-1; } .premium-offers-window { height:202px; } }
 @media(max-width:760px) { .premium-exclusive-offers { grid-column:auto; } .premium-offers-window { height:210px; } }
 @media(prefers-reduced-motion:reduce) { .premium-offers-track { animation:none; } .premium-offers-track .premium-offer-item:nth-child(n+4) { display:none; } }
-.premium-fare-map-card { background:linear-gradient(145deg,#daf6edcc,#e7f8ffdc 55%,#d9e9fbdf); }
-.premium-fare-map-card .premium-route-heading { align-items:center; }
-.premium-fare-map-card .premium-route-heading>span:last-child { flex:none; color:#718aa4; font-size:10px; }
-.premium-real-map { position:relative; flex:1; min-height:210px; margin:10px 0; overflow:hidden; border:1px solid #ffffffbd; border-radius:14px; background:#d6edf5; isolation:isolate; }
-.premium-map-tiles { position:absolute; inset:0; overflow:hidden; background:linear-gradient(145deg,#d8eff5,#d4eadf); }
-.premium-map-tiles img { position:absolute; width:256px; height:256px; max-width:none; opacity:.92; }
-.premium-fare-routes { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
-.premium-fare-routes path { fill:none; stroke:#2489ec; stroke-width:2; stroke-dasharray:5 5; vector-effect:non-scaling-stroke; }
-.premium-fare-dot,.premium-kul-dot { position:absolute; z-index:2; transform:translate(-50%,-50%); }
-.premium-fare-dot { width:9px; height:9px; border:2px solid white; border-radius:50%; background:#21a785; box-shadow:0 1px 7px #16476c72; }
-.premium-fare-dot.is-active { width:13px; height:13px; background:#237de5; box-shadow:0 0 0 5px #2985ea3d; }
-.premium-kul-dot { display:flex; align-items:center; gap:4px; padding:3px 6px; border-radius:8px; background:#15325fe8; color:white; font-size:9px; font-weight:800; }
-.premium-kul-dot i { width:6px; height:6px; border-radius:50%; background:#53e0ba; }
-.premium-map-fare-popup { position:absolute; z-index:3; display:grid; min-width:104px; gap:2px; padding:7px 9px; transform:translate(-50%,-112%); border:1px solid #d5e8f4; border-radius:10px; background:white; box-shadow:0 5px 18px #1d4b6d29; text-decoration:none; }
-.premium-map-fare-popup span { overflow:hidden; color:#203552; font-size:10px; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
-.premium-map-fare-popup strong { color:#2378df; font-size:13px; }
-.premium-map-fare-popup small { color:#617a92; font-size:9px; }
-.premium-map-empty { position:absolute; z-index:3; top:50%; left:50%; width:min(80%,300px); padding:12px 15px; transform:translate(-50%,-50%); border-radius:12px; background:#fffF; color:#465f79; font-size:11px; line-height:1.5; text-align:center; box-shadow:0 4px 20px #17476822; }
-.premium-map-attribution { position:absolute; right:3px; bottom:2px; z-index:4; padding:2px 4px; background:#ffffffd9; color:#3d596c; font-size:8px; text-decoration:none; }
-.premium-fare-map-footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; margin-top:auto; padding:10px 4px 2px; border-top:1px solid #ffffffb7; color:#52718e; font-size:9px; font-weight:700; }
-@media(prefers-reduced-motion:reduce) { .premium-fare-dot,.premium-map-fare-popup { transition:none; } }
-.premium-journey-grid > .premium-fare-map-card { padding:8px; }
-.premium-fare-map-card .premium-real-map { min-height:210px; margin:0; flex:1; }
-.premium-fare-map-card .premium-map-attribution { max-width:calc(100% - 6px); font-size:7px; }

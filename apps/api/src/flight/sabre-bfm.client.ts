@@ -37,6 +37,8 @@ export class SabreBfmClient implements FlightProvider {
       await delivery;
     }));
     const incomplete = outcomes.some((outcome) => outcome.status === 'rejected');
+    const invalidDate = outcomes.find((outcome) => outcome.status === 'rejected' && outcome.reason instanceof ApiException && outcome.reason.code === 'VALIDATION_ERROR');
+    if (!unique.size && invalidDate?.status === 'rejected') throw invalidDate.reason;
     if (outcomes.every((outcome) => outcome.status === 'rejected') || (incomplete && !unique.size)) throw unavailable();
     return { offers: [...unique.values()], incomplete };
   }
@@ -60,6 +62,14 @@ export class SabreBfmClient implements FlightProvider {
       if (!response.ok) throw unavailable();
       let parsed: unknown;
       try { parsed = await response.json(); } catch { throw unavailable(); }
+      // BFM can return HTTP 200 with a date rejection instead of itinerary descriptors.
+      const grouped = (parsed as { groupedItineraryResponse?: { messages?: unknown[] } } | null)?.groupedItineraryResponse;
+      if (Array.isArray(grouped?.messages) && grouped.messages.some((message) => {
+        if (!message || typeof message !== 'object') return false;
+        const item = message as Record<string, unknown>;
+        return item.severity === 'Error' && item.type === 'SCHEDULES' && item.code === 'PROCESS' &&
+          typeof item.text === 'string' && /^DSF server returned an error: Invalid requested date: \d{4}-\d{2}-\d{2}$/.test(item.text);
+      })) throw new ApiException('VALIDATION_ERROR', 'The airline search cannot accept these travel dates yet. Please choose another date or check closer to departure.', 400);
       try { return this.contract.mapResponse(parsed, input); } catch { throw unavailable(); }
     }
     throw unavailable();

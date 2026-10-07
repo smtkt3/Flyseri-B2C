@@ -6,7 +6,7 @@ import type { RedisStore } from '@flyseri/redis';
 import { FlightRateGuard } from './flight-rate.guard.js';
 import { FlightTelemetry } from './flight.telemetry.js';
 
-const context = (id?: string, address = '192.0.2.1', forwarded?: string) => ({ switchToHttp: () => ({ getRequest: () => ({ identity: id ? { customerId: id } : undefined, socket: { remoteAddress: address }, headers: { 'x-forwarded-for': forwarded } }) }) }) as unknown as ExecutionContext;
+const context = (id?: string, address = '192.0.2.1', forwarded?: string) => ({ switchToHttp: () => ({ getRequest: () => ({ identity: id ? { customerId: id } : undefined, socket: { remoteAddress: address }, headers: { 'x-forwarded-for': forwarded } }), getResponse: () => ({ setHeader: vi.fn() }) }) }) as unknown as ExecutionContext;
 const telemetry = new FlightTelemetry({ info: vi.fn() } as never);
 const config = { ...parseConfig({ APP_ENV: 'test' }), SABRE_SEARCH_RATE_LIMIT_PER_MINUTE: 2 } as AppConfig;
 describe('flight customer rate limit', () => {

@@ -5,24 +5,9 @@ import { ApiClientError } from '../lib/api/client';
 import { seriService } from '../services/seriService';
 import { tripService } from '../services/tripService';
 import { displayDate, displayTripTitle } from '../trip/tripPresentation';
+import { SeriMessageDetails } from './SeriMessageDetails';
 import './seri.css';
 import './seri-confirmation.css';
-
-function payloadSummary(message: SeriMessage) {
-  const payload = message.payload;
-  if (!payload) return null;
-  const trips = Array.isArray(payload.trips) ? payload.trips as Array<Record<string, unknown>> : [];
-  const applications = Array.isArray(payload.applications) ? payload.applications as Array<Record<string, unknown>> : [];
-  const payments = Array.isArray(payload.payments) ? payload.payments as Array<Record<string, unknown>> : [];
-  const orders = Array.isArray(payload.orders) ? payload.orders as Array<Record<string, unknown>> : [];
-  const offers = Array.isArray(payload.offers) ? payload.offers as Array<Record<string, unknown>> : [];
-  if (trips.length) return <div className="seri-data-list">{trips.slice(0, 5).map((trip, i) => <article key={String(trip.id ?? i)}><strong>{String(trip.title || (trip.primaryDestination as { cityName?: string | null } | null)?.cityName || 'Your trip')}</strong><span>{trip.startDate ? displayDate(String(trip.startDate)) : 'Dates to be decided'} · {String(trip.status ?? '')}</span></article>)}</div>;
-  if (applications.length) return <div className="seri-data-list">{applications.slice(0, 5).map((item, i) => <article key={String(item.id ?? i)}><strong>{String(item.visaTypeName ?? 'Visa application')}</strong><span>{String(item.status ?? '')}{typeof item.requiredCompleted === 'number' ? ` · ${item.requiredCompleted}/${String(item.requiredTotal)} checklist items` : ''}</span>{Array.isArray(item.missing) && item.missing.length > 0 && <small>Still needed: {(item.missing as string[]).join(', ')}</small>}</article>)}</div>;
-  if (payments.length) return <div className="seri-data-list">{payments.slice(0, 5).map((item, i) => <article key={String(item.id ?? i)}><strong>{String(item.status ?? 'Payment')}</strong><span>{String(item.currency ?? '')} {String(item.amount ?? '')}{item.paidAt ? ` · Paid ${displayDate(String(item.paidAt).slice(0, 10))}` : ''}</span></article>)}</div>;
-  if (orders.length) return <div className="seri-data-list">{orders.slice(0, 5).map((item, i) => <article key={String(item.id ?? i)}><strong>{String(item.orderNumber ?? 'Order')}</strong><span>{String(item.status ?? '')} · {String(item.currency ?? '')} {String(item.totalAmount ?? '')}</span></article>)}</div>;
-  if (offers.length) return <div className="seri-data-list">{offers.slice(0, 4).map((item, i) => <article key={String(item.offerId ?? i)}><strong>{String(item.airlineCodes ?? 'Flight option')}</strong><span>{String(item.currency ?? '')} {String(item.totalAmount ?? '')} · shopping fare</span></article>)}</div>;
-  return null;
-}
 
 export function SeriPage() {
   const { tripId } = useParams<{ tripId?: string }>();
@@ -127,7 +112,7 @@ export function SeriPage() {
       {conversations.filter((item) => item.tripId === (tripId ?? null)).length > 1 && <label className="seri-conversation-select">Conversation <select value={conversationId ?? ''} onChange={(event) => { setConversationId(event.target.value); setSearchParams({ conversation: event.target.value }); }}>{conversations.filter((item) => item.tripId === (tripId ?? null)).map((item) => <option key={item.id} value={item.id}>{item.tripId ? `Trip chat · ${item.lastMessageAt.slice(0, 10)}` : `Chat · ${item.lastMessageAt.slice(0, 10)}`}</option>)}</select></label>}
       {loading ? <div className="seri-loading" role="status"><span /><span /><span />Opening your conversation…</div> : <div className="seri-messages">
         {!messages.length && <div className="seri-welcome"><span className="seri-avatar">S</span><h2>Where would you like to go?</h2><p>Ask about your trip, visa checklist, documents, order, or payment. I can also help you shape a new travel plan.</p><div>{['Show my next trip', 'What documents am I missing?', 'Help me plan a relaxed Japan trip'].map((suggestion) => <button key={suggestion} onClick={() => setDraft(suggestion)}>{suggestion}</button>)}</div></div>}
-        {messages.map((message) => <article key={message.id} className={`seri-message seri-${message.role.toLowerCase()}`}><div className="seri-message-bubble"><p>{message.content}</p>{payloadSummary(message)}{message.messageType === 'CONFIRMATION' && typeof message.payload?.actionId === 'string' && <div className="seri-confirm-card"><strong>{String(message.payload.summary)}</strong><small>This sends a request to the support team; it does not share this conversation.</small>{message.payload.status === 'PENDING' ? <div><button disabled={actionBusy === message.payload.actionId} onClick={() => { void resolveAction(String(message.payload?.actionId), true); }}>Yes, contact support</button><button disabled={actionBusy === message.payload.actionId} onClick={() => { void resolveAction(String(message.payload?.actionId), false); }}>Not now</button></div> : <small>{message.payload.status === 'EXECUTED' ? 'Request sent' : 'Request cancelled'}</small>}</div>}</div><small>{message.role === 'ASSISTANT' ? 'Seri' : 'You'}</small></article>)}
+        {messages.map((message) => <article key={message.id} className={`seri-message seri-${message.role.toLowerCase()}`}><div className="seri-message-bubble"><p>{message.content}</p>{<SeriMessageDetails message={message} />}{message.messageType === 'CONFIRMATION' && typeof message.payload?.actionId === 'string' && <div className="seri-confirm-card"><strong>{String(message.payload.summary)}</strong><small>This sends a request to the support team; it does not share this conversation.</small>{message.payload.status === 'PENDING' ? <div><button disabled={actionBusy === message.payload.actionId} onClick={() => { void resolveAction(String(message.payload?.actionId), true); }}>Yes, contact support</button><button disabled={actionBusy === message.payload.actionId} onClick={() => { void resolveAction(String(message.payload?.actionId), false); }}>Not now</button></div> : <small>{message.payload.status === 'EXECUTED' ? 'Request sent' : 'Request cancelled'}</small>}</div>}</div><small>{message.role === 'ASSISTANT' ? 'Seri' : 'You'}</small></article>)}
         {sending && <div className="seri-message seri-assistant"><div className="seri-message-bubble seri-typing" role="status">Seri is checking that for you…</div></div>}
         <div ref={endRef} />
       </div>}

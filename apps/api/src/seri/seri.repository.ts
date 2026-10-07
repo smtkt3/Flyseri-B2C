@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { aiConversations, aiMessages, aiPendingActions, aiToolCalls, aiUsageEvents, crmSyncEvents, type DatabaseConnection } from '@flyseri/database';
 import type { SeriConversationSummary, SeriMessage } from '@flyseri/types';
 
@@ -39,6 +39,13 @@ export class SeriRepository {
       return [message!];
     });
     return messageDto(row!);
+  }
+  async flightPlanning(customerId: string, conversationId: string): Promise<unknown> {
+    const [row] = await this.db().select({ payload: aiMessages.payload }).from(aiMessages)
+      .innerJoin(aiConversations, eq(aiConversations.id, aiMessages.conversationId))
+      .where(and(eq(aiConversations.customerId, customerId), eq(aiMessages.conversationId, conversationId), eq(aiMessages.role, 'ASSISTANT'), sql`${aiMessages.payload}->'flightPlanning' IS NOT NULL`))
+      .orderBy(desc(aiMessages.createdAt)).limit(1);
+    return row?.payload?.flightPlanning ?? null;
   }
   async recordToolCall(conversationId: string, toolName: string, status: 'SUCCEEDED' | 'FAILED', durationMs: number, requestId: string) {
     await this.db().insert(aiToolCalls).values({ conversationId, toolName, riskLevel: 'READ_ONLY', status, durationMs, requestId });

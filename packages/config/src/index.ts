@@ -56,6 +56,7 @@ const configSchema = z.object({
   STRIPE_SECRET_KEY: z.string().regex(/^sk_test_[A-Za-z0-9]+$/).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().regex(/^whsec_[A-Za-z0-9]+$/).optional(),
   SERI_AI_ENABLED: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+  SERI_SABRE_MCP_ENABLED: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
   SERI_AI_STREAMING_ENABLED: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
   SERI_AI_WRITE_TOOLS_ENABLED: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
   SERI_AI_FALLBACK_ENABLED: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
@@ -97,10 +98,10 @@ export function parseConfig(input: Record<string, unknown>): AppConfig {
   }
   const sabreFields = ['SABRE_BASE_URL', 'SABRE_AUTH_URL', 'SABRE_CLIENT_ID', 'SABRE_CLIENT_SECRET', 'SABRE_USERNAME', 'SABRE_PASSWORD', 'SABRE_PCC'] as const;
   const configured = sabreFields.filter((name) => parsed.data[name]);
+  if (configured.length > 0 && configured.length !== sabreFields.length) throw new Error('Invalid Flyseri configuration: incomplete Sabre configuration');
   if (configured.length && (parsed.data.SABRE_ENV !== 'CERT' || parsed.data.SABRE_BASE_URL !== 'https://api.cert.platform.sabre.com' || parsed.data.SABRE_AUTH_URL !== 'https://api.cert.platform.sabre.com/v3/auth/token')) {
     throw new Error('Invalid Flyseri configuration: this trial permits Sabre CERT endpoints only');
   }
-  if (configured.length > 0 && configured.length !== sabreFields.length) throw new Error('Invalid Flyseri configuration: incomplete Sabre configuration');
   if (Boolean(parsed.data.CRM_SYNC_URL) !== Boolean(parsed.data.CRM_SYNC_SHARED_SECRET)) {
     throw new Error('Invalid Flyseri configuration: CRM_SYNC_URL and CRM_SYNC_SHARED_SECRET must be configured together');
   }

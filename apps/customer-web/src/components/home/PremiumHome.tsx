@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CustomerProfile, DocumentSummary, FlightBookingIntent, OrderSummary, PaymentSummary, TripSummary, VisaApplicationSummary } from '@flyseri/types';
-import type { PopularCachedFlightFare } from '@flyseri/types';
+import { ExploreFareMap } from './ExploreFareMap';
+import { HomeSeriSearch } from './HomeSeriSearch';
 import { useAuth } from '../../auth/AuthProvider';
 import { customerService } from '../../services/customerService';
 import { tripService } from '../../services/tripService';
@@ -17,18 +18,14 @@ import { cabinOptions } from '../../flight/flightPresentation';
 import { PremiumNavbar } from '../PremiumNavbar';
 import { BrandMark } from '../BrandMark';
 import { destinations, stories } from './marketingContent';
-import { destinationLabel, displayDate, displayTripTitle, tripGroup } from '../../trip/tripPresentation';
+import { tripGroup } from '../../trip/tripPresentation';
 import './premium-home.css';
 import './premium-reference.css';
 import './premium-services.css';
 import './premium-cards.css';
+import './search-modes.css';
 
 const photo = (id: string, width = 800) => `https://images.unsplash.com/${id}?w=${width}&q=82&fit=crop&auto=format`;
-const tripPhotos: Record<string, string> = {
-  JP: 'photo-1492571350019-22de08371fd3', GR: 'photo-1570077188670-e3a8d69ac5ff',
-  ID: 'photo-1537996194471-e657df975ab4', FR: 'photo-1502602898657-3e91760cbb34',
-  AE: 'photo-1512453979798-5ea266f8880c', TH: 'photo-1563492065599-3520f775eeed',
-};
 type Overview = { profile: CustomerProfile | null; trips: TripSummary[]; orders: OrderSummary[]; payments: PaymentSummary[];
   documents: DocumentSummary[]; visas: VisaApplicationSummary[]; intent: FlightBookingIntent | null };
 const empty: Overview = { profile: null, trips: [], orders: [], payments: [], documents: [], visas: [], intent: null };
@@ -122,7 +119,7 @@ function SeriQuickInput() {
   return <section className="premium-seri-entry" aria-labelledby="premium-seri-entry-title"><div className="premium-seri-entry-heading"><span className="premium-seri-entry-icon" aria-hidden="true">✦</span><div><h2 id="premium-seri-entry-title">Plan your journey with Seri</h2><p>Your AI travel assistant · {session ? 'Ask about flights, trips and travel plans.' : 'Sign in to continue your conversation.'}</p></div></div><form onSubmit={openSeri}><label className="sr-only" htmlFor="premium-seri-question">Ask Seri a travel question</label><input id="premium-seri-question" type="text" maxLength={4000} value={question} onChange={event=>setQuestion(event.target.value)} placeholder="Where shall we go?"/><button type="submit" disabled={!question.trim()}>Ask Seri <span aria-hidden="true">↗</span></button></form></section>;
 }
 
-function SearchPanel() {
+function SearchPanel({ active = true }: { active?: boolean }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<'ROUND_TRIP' | 'ONE_WAY' | 'MULTI_CITY'>('ROUND_TRIP');
   const [origin, setOrigin] = useState('');
@@ -135,6 +132,7 @@ function SearchPanel() {
   const [infants, setInfants] = useState(0);
   const [cabin, setCabin] = useState('ECONOMY');
   const [passengerPickerOpen, setPassengerPickerOpen] = useState(false);
+  useEffect(() => { if (!active) setPassengerPickerOpen(false); }, [active]);
   const passengerPicker = useRef<HTMLDivElement>(null);
   const passengerTrigger = useRef<HTMLButtonElement>(null);
   const passengerPopover = useRef<HTMLElement>(null);
@@ -201,7 +199,7 @@ function SearchPanel() {
         </div>
       </div>
     </div>
-    <form className={`premium-search-fields${mode === 'MULTI_CITY' ? ' is-multi-city' : ''}`} onSubmit={submit}>
+    <form key={String(active)} className={`premium-search-fields${mode === 'MULTI_CITY' ? ' is-multi-city' : ''}`} onSubmit={submit}>
       {mode === 'MULTI_CITY' ? <div className="premium-multi-city-legs" role="group" aria-label="Multi-city flight legs">{multiLegs.map((leg,index) => <div className="premium-multi-city-row" key={index}><span className="premium-leg-number">{index + 1}</span><AirportPicker label="From" value={leg.origin} onChange={(value) => setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, origin: value } : item))} /><AirportPicker label="To" value={leg.destination} onChange={(value) => { const valueCode = code(value); setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, destination: value } : mode === 'MULTI_CITY' && i === index + 1 && valueCode.length === 3 ? { ...item, origin: valueCode } : item)); }} /><CalendarDateField label={`Flight ${index + 1} date`} className="premium-leg-date" minDate={index ? multiLegs[index - 1]!.departureDate || minimumDate : minimumDate} value={leg.departureDate} onChange={(departureDate) => setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, departureDate } : item))} />{multiLegs.length > 2 && <button className="premium-remove-leg" type="button" aria-label={`Remove flight ${index + 1}`} onClick={() => setMultiLegs((items) => items.filter((_,i) => i !== index))}>×</button>}</div>)}{multiLegs.length < 6 && <button type="button" className="premium-add-leg" onClick={() => setMultiLegs((items) => [...items, { origin: code(items.at(-1)!.destination), destination: '', departureDate: '' }])}>＋ Add another flight</button>}</div> : <>
       <div className="premium-search-route" role="group" aria-label="Flight route">
         <AirportPicker label="From" value={origin} onChange={setOrigin} />
@@ -220,67 +218,6 @@ function SearchPanel() {
   </Glass>;
 }
 
-function TripCard({ trip, loading, signedIn }: { trip?: TripSummary; loading: boolean; signedIn: boolean }) {
-  const tripPhoto = trip && tripPhotos[trip.primaryDestination?.countryCode ?? ''];
-  return <Glass className="premium-trip-card"><Heading title="Upcoming trip" action="View all" to="/app/trips" />{loading ? <div className="premium-skeleton premium-trip-skeleton" role="status" aria-label="Loading trips" /> : trip ? <><div className="premium-trip-photo" style={tripPhoto ? { backgroundImage: `url(${photo(tripPhoto)})` } : undefined}><span>{tripGroup(trip)}</span>{!tripPhoto && <svg className="premium-trip-illustration" viewBox="0 0 500 160" fill="none" aria-hidden="true"><circle cx="390" cy="44" r="27" fill="white" fillOpacity=".25"/><path d="M0 130 90 70l75 48 70-75 110 76 62-34 93 45v30H0Z" fill="white" fillOpacity=".22"/><path d="M58 104c90-100 216 72 372-44" stroke="white" strokeOpacity=".75" strokeWidth="2" strokeDasharray="6 7"/><path d="m291 65 28-10-11 27-5-12-12-5Z" fill="white"/></svg>}</div><div className="premium-trip-body"><h3>{displayTripTitle(trip)}</h3><p>{destinationLabel(trip)}</p><small>{trip.startDate ? `${displayDate(trip.startDate)}${trip.endDate ? ` – ${displayDate(trip.endDate)}` : ''}` : 'Dates to be decided'} · {trip.travellerCount} {trip.travellerCount === 1 ? 'traveller' : 'travellers'}</small><Link className="premium-circle-link" to={`/app/trips/${trip.id}`} aria-label={`Open ${displayTripTitle(trip)}`}>→</Link></div><div className="premium-trip-actions"><Link to={`/app/trips/${trip.id}`}>✧ Manage</Link><Link to={`/app/trips/${trip.id}`}>▦ Itinerary</Link><Link to={`/app/trips/${trip.id}/visa`}>◇ Visa</Link></div></> : <div className="premium-trip-empty"><div className="premium-trip-empty-photo" aria-hidden="true" /><div className="premium-trip-empty-copy"><h3>No trips yet</h3><p>{signedIn ? 'Start with a destination. Dates and companions can come later.' : 'Sign in to see your journeys in one place.'}</p><Link to={signedIn ? '/app/trips/new' : '/sign-in'}>{signedIn ? 'Plan a trip' : 'Sign in'} →</Link></div></div>}</Glass>;
-}
-const fareMapDestinations: Record<string, { city: string; country: string; lat: number; lon: number; group: 'Popular with Malaysians' | 'Worker routes' }> = {
-  BKK:{city:'Bangkok',country:'Thailand',lat:13.69,lon:100.75,group:'Popular with Malaysians'}, SIN:{city:'Singapore',country:'Singapore',lat:1.36,lon:103.99,group:'Popular with Malaysians'},
-  CGK:{city:'Jakarta',country:'Indonesia',lat:-6.13,lon:106.66,group:'Popular with Malaysians'}, DPS:{city:'Bali',country:'Indonesia',lat:-8.75,lon:115.17,group:'Popular with Malaysians'},
-  SGN:{city:'Ho Chi Minh City',country:'Vietnam',lat:10.82,lon:106.65,group:'Popular with Malaysians'}, NRT:{city:'Tokyo',country:'Japan',lat:35.77,lon:140.39,group:'Popular with Malaysians'},
-  KIX:{city:'Osaka',country:'Japan',lat:34.43,lon:135.24,group:'Popular with Malaysians'}, TPE:{city:'Taipei',country:'Taiwan',lat:25.08,lon:121.23,group:'Popular with Malaysians'},
-  MNL:{city:'Manila',country:'Philippines',lat:14.51,lon:121.02,group:'Popular with Malaysians'}, DAC:{city:'Dhaka',country:'Bangladesh',lat:23.84,lon:90.40,group:'Worker routes'},
-  CGP:{city:'Chattogram',country:'Bangladesh',lat:22.25,lon:91.81,group:'Worker routes'}, KTM:{city:'Kathmandu',country:'Nepal',lat:27.70,lon:85.36,group:'Worker routes'},
-  CMB:{city:'Colombo',country:'Sri Lanka',lat:7.18,lon:79.88,group:'Worker routes'}, KHI:{city:'Karachi',country:'Pakistan',lat:24.91,lon:67.16,group:'Worker routes'},
-  CCU:{city:'Kolkata',country:'India',lat:22.65,lon:88.45,group:'Worker routes'}, MAA:{city:'Chennai',country:'India',lat:12.99,lon:80.17,group:'Worker routes'},
-};
-type MapSize = { width: number; height: number };
-function projectMapPoint(lon: number, lat: number, size: MapSize, zoom = 2) {
-  const world = 256 * 2 ** zoom;
-  const centerX = (95 + 180) / 360 * world;
-  const centerLat = 19 * Math.PI / 180;
-  const centerY = (1 - Math.asinh(Math.tan(centerLat)) / Math.PI) / 2 * world;
-  const y = Math.max(-85, Math.min(85, lat)) * Math.PI / 180;
-  return { x: (lon + 180) / 360 * world - centerX + size.width / 2,
-    y: (1 - Math.asinh(Math.tan(y)) / Math.PI) / 2 * world - centerY + size.height / 2 };
-}
-function RouteCard() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState<MapSize>({width:600,height:220});
-  const [fares, setFares] = useState<PopularCachedFlightFare[]>([]);
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    let mounted = true;
-    const refresh = () => { void flightService.popularCachedFares().then((items) => { if (mounted) { setFares(items.filter((item) => fareMapDestinations[item.destination])); setActive(0); } }).catch(() => { if (mounted) setFares([]); }); };
-    refresh(); const id = window.setInterval(refresh, 45_000);
-    return () => { mounted = false; window.clearInterval(id); };
-  }, []);
-  useEffect(() => {
-    const element = mapRef.current;
-    if (!element || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(([entry]) => { if (entry) setSize({width:Math.max(1,entry.contentRect.width),height:Math.max(1,entry.contentRect.height)}); });
-    observer.observe(element); return () => observer.disconnect();
-  }, []);
-  useEffect(() => {
-    if (fares.length < 2) return;
-    const id = window.setInterval(() => setActive((value) => (value + 1) % fares.length), 6500);
-    return () => window.clearInterval(id);
-  }, [fares.length]);
-  const zoom=2, world=256*2**zoom, centerX=(95+180)/360*world, centerLat=19*Math.PI/180, centerY=(1-Math.asinh(Math.tan(centerLat))/Math.PI)/2*world;
-  const left=centerX-size.width/2, top=centerY-size.height/2, firstX=Math.floor(left/256), lastX=Math.floor((left+size.width)/256), firstY=Math.max(0,Math.floor(top/256)), lastY=Math.min(2**zoom-1,Math.floor((top+size.height)/256));
-  const tiles=[];
-  for(let y=firstY;y<=lastY;y++)for(let x=firstX;x<=lastX;x++){const wrapped=((x%(2**zoom))+(2**zoom))%(2**zoom);tiles.push({x:wrapped,y,left:x*256-left,top:y*256-top});}
-  const selected=fares.length?fares[active%fares.length]:undefined, origin=projectMapPoint(101.7,2.75,size,zoom), target=selected?projectMapPoint(fareMapDestinations[selected.destination]!.lon,fareMapDestinations[selected.destination]!.lat,size,zoom):undefined;
-  const searchUrl=selected?`/flights?${new URLSearchParams({origin:'KUL',destination:selected.destination,departureDate:selected.departureDate,tripType:'ONE_WAY',adults:'1',children:'0',infants:'0',cabin:'ECONOMY',currency:selected.currency})}`:'/flights';
-  return <Glass className="premium-route-card premium-fare-map-card"><div className="premium-real-map" ref={mapRef} role="group" aria-label={`Map showing cached one-way fares from Kuala Lumpur${selected?` to ${fareMapDestinations[selected.destination]!.city}, MYR ${selected.price}`:''}`}>
-    <div className="premium-map-tiles" aria-hidden="true">{tiles.map((tile)=><img key={`${tile.x}-${tile.y}`} alt="" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={`https://tile.openstreetmap.org/${zoom}/${tile.x}/${tile.y}.png`} style={{left:tile.left,top:tile.top}} />)}</div>
-    <svg className="premium-fare-routes" viewBox={`0 0 ${size.width} ${size.height}`} preserveAspectRatio="none" aria-hidden="true">{target&&<path d={`M ${origin.x} ${origin.y} Q ${(origin.x+target.x)/2} ${Math.min(origin.y,target.y)-28} ${target.x} ${target.y}`} />}</svg>
-    {fares.map((fare,index)=>{const point=projectMapPoint(fareMapDestinations[fare.destination]!.lon,fareMapDestinations[fare.destination]!.lat,size,zoom);return <span key={fare.destination} className={`premium-fare-dot${index===active?' is-active':''}`} style={{left:point.x,top:point.y}} title={`${fareMapDestinations[fare.destination]!.city}: RM ${fare.price}`} />;})}
-    <span className="premium-kul-dot" style={{left:origin.x,top:origin.y}} aria-hidden="true"><i/>KUL</span>
-    {selected&&target&&<Link className="premium-map-fare-popup" to={searchUrl} style={{left:target.x,top:target.y}} aria-label={`Check one-way cached fare to ${fareMapDestinations[selected.destination]!.city}, MYR ${selected.price}`}><span>{fareMapDestinations[selected.destination]!.city}</span><strong>MYR {Number(selected.price).toFixed(0)}</strong><small>{displayDate(selected.departureDate)} · Check ↗</small></Link>}
-    <a className="premium-map-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
-  </div></Glass>;
-}
 function ExclusiveAirlineOffers() {
   const offers = [
     { route: 'Kuala Lumpur → Dhaka', code: 'KUL → DAC', price: 'MYR 699', note: 'Group fare example' },
@@ -306,6 +243,55 @@ function ExclusiveAirlineOffers() {
 
 export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
+  const [searchMode, setSearchMode] = useState<'flights' | 'map' | 'ai'>('flights');
+  const [compactSearch, setCompactSearch] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches);
+  const searchTabs = useRef<HTMLDivElement>(null);
+  const [searchPanelHeight, setSearchPanelHeight] = useState(400);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 1100px)');
+    const update = () => setCompactSearch(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  useLayoutEffect(() => {
+    if (!compactSearch) return;
+    const root = searchTabs.current?.closest('.premium-home-main');
+    const panel = root?.querySelector<HTMLElement>(`#home-search-${searchMode}`);
+    if (!panel) return;
+    const update = () => {
+      const tabs = searchTabs.current;
+      if (!tabs) return;
+      const headerHeight = root?.querySelector('.premium-header')?.getBoundingClientRect().height ?? 0;
+      const panelOffset = panel.getBoundingClientRect().top - tabs.getBoundingClientRect().top;
+      setSearchPanelHeight(Math.max(180, Math.floor(window.innerHeight - headerHeight - 24 - panelOffset - 12)));
+    };
+    update();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    for (const element of root?.querySelectorAll('.premium-hero,.premium-header,.premium-search-mode-switch') ?? []) observer?.observe(element);
+    window.addEventListener('resize', update);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', update); };
+  }, [compactSearch, searchMode]);
+  function chooseSearchMode(mode: typeof searchMode) {
+    setSearchMode(mode);
+    const tabs = searchTabs.current;
+    if (!tabs) return;
+    const headerHeight = tabs.closest('.premium-home-main')?.querySelector('.premium-header')?.getBoundingClientRect().height ?? 0;
+    window.scrollTo({ top: Math.max(0, tabs.getBoundingClientRect().top + window.scrollY - headerHeight - 24), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  }
+  const searchModes = [
+    { id: 'flights', label: 'Flights', icon: 'flight' },
+    { id: 'map', label: 'Map Search', icon: 'map' },
+    { id: 'ai', label: 'AI Search', icon: 'ai' },
+  ] as const;
+  const panelProps = (mode: typeof searchMode) => ({
+    id: `home-search-${mode}`,
+    role: compactSearch ? 'tabpanel' : undefined,
+    'aria-labelledby': compactSearch ? `home-search-tab-${mode}` : undefined,
+    hidden: compactSearch && searchMode !== mode,
+    className: 'premium-search-view',
+    style: compactSearch ? { '--home-search-panel-height': `${searchPanelHeight}px` } as CSSProperties : undefined,
+  });
   const [servicesExpanded, setServicesExpanded] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(min-width: 761px)').matches,
   );
@@ -316,20 +302,33 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [servicesExpanded]);
   const { data, loading, error, reload } = useOverview(!!session);
-  const trip = relevantTrip(data.trips);
+
   const name = data.profile?.displayName?.trim() || session?.user.email?.split('@')[0] || null;
   const pending = data.payments.filter((payment) => ['CREATED', 'PENDING', 'PROCESSING', 'UNKNOWN'].includes(payment.status)).length;
   const review = data.documents.filter((document) => document.status === 'REVIEW_REQUIRED').length;
   return <div className={`premium-site${embedded ? ' premium-embedded' : ''}`}>
-    <div className={`premium-home-layout${embedded ? ' is-embedded' : ''}${servicesExpanded ? ' services-open' : ''}`}>{!embedded && <><ServiceSidebar expanded={servicesExpanded} onToggle={() => setServicesExpanded((value) => !value)} onNavigate={() => setServicesExpanded(false)} /><button type="button" className="premium-service-backdrop" aria-label="Close travel services" onClick={() => setServicesExpanded(false)} /></>}<div className="premium-home-main">
+    <div className={`premium-home-layout${embedded ? ' is-embedded' : ''}${servicesExpanded ? ' services-open' : ''}`}>{!embedded && <><ServiceSidebar expanded={servicesExpanded} onToggle={() => setServicesExpanded((value) => !value)} onNavigate={() => setServicesExpanded(false)} /><button type="button" className="premium-service-backdrop" aria-label="Close travel services" onClick={() => setServicesExpanded(false)} /></>}<div className="premium-home-main" data-search-mode={compactSearch ? searchMode : 'all'}>
     {!embedded && <PremiumNavbar name={name} servicesExpanded={servicesExpanded} onToggleServices={() => setServicesExpanded((value) => !value)} />}
     <main>
       <section className="premium-hero" id="book"><div className="premium-hero-photo" role="img" aria-label="White buildings and blue domes above the sea in Santorini"/><div className="premium-hero-content"><p className="premium-eyebrow">DISCOVER A BRIGHTER TOMORROW</p><h1>Travel Farther<br /><em>With Flyseri</em></h1><p>Beautiful journeys begin with a simple idea. Search flights, shape your plans, and keep every detail close.</p><div className="premium-trust"><span>✓ Live flight search</span><span>✓ Your plans in one place</span><span>✓ Travel documents together</span></div></div><div className="premium-hero-script" aria-hidden="true">More<br />than a Trip <span>↗</span><small>New Places<br />Brighter Stories</small></div><div className="premium-hero-note"><img src={photo('photo-1560703649-e3055f28bcf8', 100)} alt="" /><span>Santorini, Greece</span><b>›</b></div></section>
-      <div className="premium-container premium-overlap"><SearchPanel /></div>
+      <div className="premium-container premium-overlap">
+        {compactSearch && <div className="premium-search-mode-switch" role="tablist" aria-label="Search your way" ref={searchTabs}>
+          {searchModes.map((mode, index) => <button key={mode.id} type="button" role="tab" id={`home-search-tab-${mode.id}`} aria-controls={`home-search-${mode.id}`} aria-selected={searchMode === mode.id} tabIndex={searchMode === mode.id ? 0 : -1} onClick={() => chooseSearchMode(mode.id)} onKeyDown={event => {
+            const next = event.key === 'ArrowRight' ? (index + 1) % searchModes.length : event.key === 'ArrowLeft' ? (index + searchModes.length - 1) % searchModes.length : event.key === 'Home' ? 0 : event.key === 'End' ? searchModes.length - 1 : null;
+            if (next === null) return;
+            event.preventDefault();
+            chooseSearchMode(searchModes[next]!.id);
+            searchTabs.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+          }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {mode.icon === 'flight' ? <><path d="m21 3-8.5 18-2.7-7-6.8-2.5L21 3Z"/><path d="M9.8 14 21 3"/></> : mode.icon === 'map' ? <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/></> : <><path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z"/><path d="M20 2v4M18 4h4"/></>}
+          </svg><span>{mode.label}</span></button>)}
+        </div>}
+        <div {...panelProps('flights')}><SearchPanel active={!compactSearch || searchMode === 'flights'} /></div>
+      </div>
       <div className="premium-container premium-main">
-        <SeriQuickInput />
+        <div {...panelProps('ai')}>{compactSearch ? <HomeSeriSearch /> : <SeriQuickInput />}</div>
         {session && error && <div className="premium-inline-error" role="alert">Some of your travel details could not be loaded. <button onClick={reload}>Try again</button></div>}
-        <div className="premium-journey-grid"><TripCard trip={trip} loading={loading && !!session} signedIn={!!session} /><RouteCard /><ExclusiveAirlineOffers /></div>
+        <div className="premium-journey-grid"><div {...panelProps('map')}><ExploreFareMap /></div><ExclusiveAirlineOffers /></div>
         <section className="premium-featured"><Heading title="Featured flight options" action="View all flights" to="/flights" /><div className="premium-flight-steps">
           <Link to="/flights"><span>✈</span><div><strong>Search your route</strong><small>Choose airports and dates</small></div><b>›</b></Link>
           <Link to="/flights"><span>⌁</span><div><strong>Compare live flights</strong><small>See current fares and stops</small></div><b>›</b></Link>

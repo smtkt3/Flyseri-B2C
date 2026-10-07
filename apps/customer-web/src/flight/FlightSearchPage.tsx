@@ -111,8 +111,8 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
   const [orderRevision, setOrderRevision] = useState(0);
   const [formOffscreen, setFormOffscreen] = useState(false);
   const filterPanel = useRef<HTMLElement>(null);
-  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 900px)').matches);
-  useEffect(() => { const media = window.matchMedia('(max-width: 900px)'); const update = () => { setMobile(media.matches); if (!media.matches) setFiltersOpen(false); }; media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
+  const [mobile, setMobile] = useState(() => window.matchMedia?.('(max-width: 900px)').matches ?? false);
+  useEffect(() => { const media = window.matchMedia?.('(max-width: 900px)'); if (!media) return; const update = () => { setMobile(media.matches); if (!media.matches) setFiltersOpen(false); }; media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
   useFlightDialog(filtersOpen && mobile, filterPanel, () => setFiltersOpen(false));
   const controller = useRef<AbortController | null>(null);
   const searchForm = useRef<HTMLFormElement>(null);
@@ -484,7 +484,7 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
     ...(maxDuration !== null ? [{ label: `Up to ${minutes(maxDuration)}`, clear: () => setMaxDuration(null) }] : []),
     ...(maxPrice !== null ? [{ label: `Up to ${money(String(maxPrice), currency)}`, clear: () => setMaxPrice(null) }] : []),
   ];
-  const editSearch = () => { setFiltersOpen(false); searchForm.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); searchForm.current?.querySelector<HTMLInputElement>('input:not([type="radio"]):not([type="hidden"])')?.focus({ preventScroll: true }); };
+  const editSearch = () => { setFiltersOpen(false); searchForm.current?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); searchForm.current?.querySelector<HTMLInputElement>('input:not([type="radio"]):not([type="hidden"])')?.focus({ preventScroll: true }); };
   const summaryFrom = code(tripType === 'MULTI_CITY' ? multiLegs[0]?.origin ?? '' : origin);
   const summaryTo = code(tripType === 'MULTI_CITY' ? multiLegs.at(-1)?.destination ?? '' : destination);
   const stageLeg = stageOffers[0] ? legOf(stageOffers[0],currentLegIndex) : undefined;

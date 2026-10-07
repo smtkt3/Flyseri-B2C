@@ -27,7 +27,7 @@ export default function FlightComparison({ offers, passengerLabel, finalLeg, onC
           <nav className="flight-comparison-shortcuts" aria-label="Jump to a fare option">
             {offers.map((fare, index) => <button type="button" key={fare.offerId}
               aria-label={`View option ${index + 1}, ${money(fare.totalAmount, fare.currency)}`}
-              onClick={() => panel.current?.querySelector(`[data-comparison-option="${index}"]`)?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}>
+              onClick={() => panel.current?.querySelector(`[data-comparison-option="${index}"]`)?.scrollIntoView({ block: 'start', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}>
               <span>Option {index + 1}</span><strong>{money(fare.totalAmount, fare.currency)}</strong>
             </button>)}
           </nav>

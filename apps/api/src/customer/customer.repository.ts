@@ -1,4 +1,4 @@
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { auditEvents, customers, customerTravellers, travellers, type DatabaseConnection } from '@flyseri/database';
 import type { CustomerProfile, TravellerProfile, TravellerRelationship, TravellerGender } from '@flyseri/types';
 
@@ -74,8 +74,11 @@ export class DrizzleCustomerStore implements CustomerStore {
   async listTravellers(customerId: string): Promise<TravellerProfile[]> {
     const rows = await this.connection.db.select({ traveller: travellers, link: customerTravellers })
       .from(customerTravellers).innerJoin(travellers, eq(customerTravellers.travellerId, travellers.id))
-      .where(and(eq(customerTravellers.customerId, customerId), isNull(travellers.archivedAt), sql`NOT EXISTS (SELECT 1 FROM audit_events a WHERE a.actor_customer_id = ${customerTravellers.customerId} AND a.traveller_id = ${travellers.id} AND a.event = 'traveller.booking_only')`));
-    return rows.map(({ traveller, link }) => safeTraveller(traveller, link));
+      .where(and(eq(customerTravellers.customerId, customerId), isNull(travellers.archivedAt)));
+    const bookingOnly = await this.connection.db.select({ travellerId: auditEvents.travellerId }).from(auditEvents)
+      .where(and(eq(auditEvents.actorCustomerId, customerId), eq(auditEvents.event, 'traveller.booking_only')));
+    const hiddenIds = new Set(bookingOnly.map(({ travellerId }) => travellerId));
+    return rows.filter(({ traveller }) => !hiddenIds.has(traveller.id)).map(({ traveller, link }) => safeTraveller(traveller, link));
   }
 
   async getTraveller(customerId: string, travellerId: string): Promise<TravellerProfile | null> {

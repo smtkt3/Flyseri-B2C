@@ -61,6 +61,6 @@ const configured = (config: AppConfig) => config.SABRE_ENV === 'CERT' &&
       configured(config) && auth ? new SabreBookingManagementClient(config, auth) : undefined,
       inject: [APP_CONFIG, SabreAuthService] },
   ],
-  exports: [FLIGHT_TELEMETRY, SABRE_BOOKING_CLIENT, FlightService, BookingIntentService, FlightBookingsService],
+  exports: [AirportDirectoryService, SabreAuthService, FLIGHT_TELEMETRY, SABRE_BOOKING_CLIENT, FlightService, BookingIntentService, FlightBookingsService],
 })
 export class FlightModule {}

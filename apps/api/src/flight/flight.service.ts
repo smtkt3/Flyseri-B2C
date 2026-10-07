@@ -15,7 +15,7 @@ export interface FlightProvider {
 }
 interface CachedSearch { offers: FlightOffer[]; searchedAt: string; incomplete?: boolean }
 const progressRevision = (value: CachedSearch) => `${value.searchedAt}:${value.offers.length}:${value.offers.at(-1)?.offerId ?? ''}`;
-const POPULAR_FARE_DESTINATIONS = ['BKK','SIN','CGK','DPS','SGN','NRT','KIX','TPE','MNL','DAC','CGP','KTM','CMB','KHI','CCU','MAA'] as const;
+const POPULAR_FARE_DESTINATIONS = ['LHR','ICN','NRT','DXB','BKK','CGK','DPS','SYD','SIN','SGN','KIX','TPE','MNL','DAC','CGP','KTM','CMB','KHI','CCU','MAA','PEN','LGK','BKI','KCH','JHB','HKT','CNX','HAN','DAD','PNH','SAI','VTE','RGN','DEL','BOM','BLR','HYD','MLE','HKG','PEK','PVG','CAN','HND','DOH','AUH','JED','RUH','IST','CDG','AMS','FRA','FCO','MAD','ZRH','ATH','CAI','JNB','CPT','NBO','MEL','PER','AKL','JFK','LAX','SFO','YVR','YYZ','GRU','SCL','MEX','HNL','NAN'] as const;
 interface SearchSession { customerId: string | null; tripId: string | null; search: NormalizedFlightSearch; offers: FlightOffer[]; expiresAt: string }
 export interface SelectedFlightOffer { searchId: string; tripId: string | null; search: NormalizedFlightSearch; offer: FlightOffer }
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Flight search is temporarily unavailable. Please try again.', 503);
@@ -122,7 +122,7 @@ export class FlightService {
             result = winner ?? await this.callProvider(search, requestId);
             if (!winner && !await this.redis.setJson(`flight:bfm:v5:fare-details3:result:${hash}`, result, result.incomplete ? 5 : this.config.SABRE_BFM_CACHE_TTL_SECONDS)) this.telemetry.increment('bfm_cache_error_total');
           } catch (error) {
-            await this.redis.setJson(`flight:bfm:v5:fare-details3:failed:${hash}`, { failed: true }, 5);
+            if (!(error instanceof ApiException && error.code === 'VALIDATION_ERROR')) await this.redis.setJson(`flight:bfm:v5:fare-details3:failed:${hash}`, { failed: true }, 5);
             throw error;
           } finally { await this.redis.releaseLock(lockKey, owner); }
         } else {
@@ -345,7 +345,8 @@ export class FlightService {
           this.redis.delete(`flight:bfm:v5:fare-details3:partial:${hash}`),
         ]);
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiException && error.code === 'VALIDATION_ERROR') throw error;
       this.telemetry.increment('bfm_sabre_error_total');
       throw unavailable();
     } finally {

@@ -16,10 +16,10 @@ function setup(provider?: AiProvider, overrides: Record<string, string | number 
   const messageRows: Array<{ id: string; role: 'USER' | 'ASSISTANT'; content: string; messageType: 'TEXT'; payload: null; createdAt: string }> = [];
   const store = {
     getConversation: vi.fn(async () => conversation), listConversations: vi.fn(async () => [conversation]), messages: vi.fn(async () => messageRows),
-    addMessage: vi.fn(async (_id: string, input: { role: 'USER' | 'ASSISTANT'; content: string }) => {
+    addMessage: vi.fn(async (_id: string, input: { role: 'USER' | 'ASSISTANT'; content: string; payload?: Record<string, unknown> | null }) => {
       const item = { id: randomUUID(), role: input.role, content: input.content, messageType: 'TEXT' as const, payload: null, createdAt: new Date().toISOString() };
       messageRows.push(item); return item;
-    }), recordToolCall: vi.fn(async () => undefined), recordUsage: vi.fn(async (_entry: { kind: string }) => undefined),
+    }), flightPlanning: vi.fn(async () => null), recordToolCall: vi.fn(async () => undefined), recordUsage: vi.fn(async (_entry: { kind: string }) => undefined),
   };
   const customer = { listTravellers: vi.fn(async () => []) };
   const trips = { list: vi.fn(async () => []), detail: vi.fn(async () => ({ id: randomUUID() })) };

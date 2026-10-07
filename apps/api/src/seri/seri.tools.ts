@@ -1,4 +1,5 @@
 import { plainToInstance } from 'class-transformer';
+import { ApiException } from '../api-exception.js';
 import { validate } from 'class-validator';
 import type { CustomerProfile, FlightSearchRequest, SeriMessageType } from '@flyseri/types';
 import { CustomerService } from '../customer/customer.service.js';
@@ -11,6 +12,7 @@ import { BookingIntentService } from '../flight/booking-intent.service.js';
 import { CommerceService } from '../commerce/commerce.service.js';
 import { conditionMatches } from '../visa/visa-form.js';
 import type { AiFunctionDeclaration } from './ai-provider.js';
+import type { SabreMcpService } from './sabre-mcp.service.js';
 
 export type ToolContext = { customerId: string; conversationTripId: string | null; requestId: string; profile: CustomerProfile;
   tripContext: { title: string | null; status: string; startDate: string | null; endDate: string | null; destinations: { countryCode: string; cityName: string | null }[] } | null };
@@ -28,7 +30,7 @@ export class SeriToolRegistry {
   readonly tools: Map<string, SeriTool>;
   constructor(private readonly customer: CustomerService, private readonly trips: TripService, private readonly visa: VisaService,
     private readonly documents: DocumentService, private readonly flights: FlightService, private readonly intents: BookingIntentService,
-    private readonly commerce: CommerceService) {
+    private readonly commerce: CommerceService, private readonly mcp?: SabreMcpService) {
     const def = (name: string, description: string, parameters: Record<string, unknown>, handler: Handler): SeriTool => ({
       declaration: { name, description, parameters }, risk: 'READ_ONLY', requiresAuth: true, requiresConfirmation: false, handler,
     });
@@ -117,7 +119,7 @@ export class SeriToolRegistry {
         const allowed = ['origin', 'destination', 'departureDate', 'returnDate', 'tripType', 'legs', 'adults', 'children', 'infants', 'cabin', 'currency', 'tripId'];
         if (Object.keys(a).some((key) => !allowed.includes(key)) || !Number.isInteger(a.adults) || !Number.isInteger(a.children) || !Number.isInteger(a.infants)) throw new Error('Invalid flight search arguments');
         const dto = plainToInstance(FlightSearchDto, { ...a, ...(a.tripId === undefined && c.conversationTripId ? { tripId: c.conversationTripId } : {}) });
-        if ((await validate(dto)).length) throw new Error('Flight search details are incomplete or invalid');
+        if ((await validate(dto)).length) throw new ApiException('VALIDATION_ERROR', 'Please confirm the departure date including year, one-way or return, and the number of adults, children and infants before I search.', 400);
         const data = await this.flights.search(c.customerId, c.requestId, dto as FlightSearchRequest);
         return { text: JSON.stringify({ searchId: data.searchId, offers: data.offers }), messageType: 'FLIGHT_RESULTS', payload: data as unknown as Record<string, unknown> };
       }),
@@ -131,11 +133,21 @@ export class SeriToolRegistry {
         handler: async () => ({ text: 'Confirmation is required.', messageType: 'CONFIRMATION' }),
       },
     ];
+    if (this.mcp?.enabled) registry.push(def('searchHotels', 'Search Sabre CERT hotel availability near an airport only when the customer explicitly requests a hotel search. Ask for airport, stay dates and guest count first. Results are test availability, not bookable hotel offers. Never collect payment or guest identity details.', objectSchema({
+      airport: { type: 'STRING', description: 'Three-letter airport code near the destination.' },
+      checkInDate: { type: 'STRING', description: 'YYYY-MM-DD' }, checkOutDate: { type: 'STRING', description: 'YYYY-MM-DD' },
+      adults: { type: 'INTEGER' }, childAges: { type: 'ARRAY', items: { type: 'INTEGER' } },
+    }, ['airport', 'checkInDate', 'checkOutDate', 'adults']), async (c, a) => {
+      const data = await this.mcp!.searchHotels(a, c.profile.preferredCurrency ?? 'MYR');
+      return { text: JSON.stringify(data), messageType: 'TEXT', payload: data };
+    }));
     this.tools = new Map(registry.map((tool) => [tool.declaration.name, tool]));
   }
 
-  forRequest(explicitFlightSearch: boolean, allowWriteTools = false): AiFunctionDeclaration[] {
+  forRequest(explicitFlightSearch: boolean, allowWriteTools = false, explicitHotelSearch = false): AiFunctionDeclaration[] {
     return [...this.tools.values()].filter((tool) => (tool.declaration.name !== 'searchFlights' || explicitFlightSearch) &&
+      (tool.declaration.name !== 'searchHotels' || explicitHotelSearch) &&
+      (!(explicitFlightSearch || explicitHotelSearch) || ['getMyProfile', 'searchFlights', 'searchHotels', ...(allowWriteTools ? ['requestHumanSupport'] : [])].includes(tool.declaration.name)) &&
       (!tool.requiresConfirmation || allowWriteTools)).map((tool) => tool.declaration);
   }
   async execute(name: string, context: ToolContext, args: unknown): Promise<ToolResult> {

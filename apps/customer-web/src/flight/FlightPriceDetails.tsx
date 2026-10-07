@@ -19,6 +19,7 @@ export function FlightPriceDetails({ offer, search, purchasedExtras = [], reques
     // Measure the rendered height, including expanded meals and ticket details.
     const updateHeight = () => card.style.setProperty('--flight-price-card-height', `${card.getBoundingClientRect().height}px`);
     updateHeight();
+    if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(updateHeight);
     observer.observe(card);
     return () => observer.disconnect();

@@ -65,8 +65,9 @@ export function AirportPicker({ label, value, onChange }: AirportPickerProps) {
     const viewport = list.current;
     const top = option.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop;
     const bottom = top + option.offsetHeight;
-    if (top < viewport.scrollTop) viewport.scrollTo({top,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
-    else if (bottom > viewport.scrollTop + viewport.clientHeight) viewport.scrollTo({top:bottom-viewport.clientHeight,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+    const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    if (top < viewport.scrollTop) viewport.scrollTo({top,behavior});
+    else if (bottom > viewport.scrollTop + viewport.clientHeight) viewport.scrollTo({top:bottom-viewport.clientHeight,behavior});
   }, [active, open]);
 
   function show() {
