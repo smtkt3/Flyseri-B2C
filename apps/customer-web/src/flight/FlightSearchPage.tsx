@@ -250,7 +250,6 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
         if (next.signal.aborted || controller.current !== next) return;
         receivedFlights = receivedFlights || response.offers.length > 0;
         setResult(previous=>mergeProgressiveFlightResults(previous,response));
-        setVisibleCount(count=>Math.max(count,response.offers.length));
       }, { signal: next.signal });
     }
     catch (cause) {

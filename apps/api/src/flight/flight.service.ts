@@ -188,16 +188,15 @@ export class FlightService {
 
   async popularCachedFares(): Promise<PopularCachedFlightFare[]> {
     const now = Date.now();
-    const fares: PopularCachedFlightFare[] = [];
-    for (const destination of POPULAR_FARE_DESTINATIONS) {
+    const fares = await Promise.all(POPULAR_FARE_DESTINATIONS.map(async (destination) => {
       let fare: PopularCachedFlightFare | undefined;
       if (this.redis) {
         const read = await this.redis.readJson<PopularCachedFlightFare>(`flight:popular-fare:v1:${destination}`);
         if (read.state === 'hit' && read.value?.destination === destination && Number.isFinite(Number(read.value.price)) && read.value.currency === 'MYR') fare = read.value;
       } else if (this.config.APP_ENV !== 'production') fare = this.localPopularFares.get(destination);
-      if (fare && Date.parse(fare.expiresAt) > now && Date.parse(`${fare.departureDate}T23:59:59+08:00`) > now) fares.push(fare);
-    }
-    return fares.sort((a, b) => Number(a.price) - Number(b.price));
+      return fare && Date.parse(fare.expiresAt) > now && Date.parse(`${fare.departureDate}T23:59:59+08:00`) > now ? fare : undefined;
+    }));
+    return fares.filter((fare): fare is PopularCachedFlightFare => !!fare).sort((a, b) => Number(a.price) - Number(b.price));
   }
 
   private async capturePopularFare(search: NormalizedFlightSearch, result: CachedSearch): Promise<void> {

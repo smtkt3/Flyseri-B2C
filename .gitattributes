@@ -144,3 +144,8 @@
 *.stl                filter=lfs diff=lfs merge=lfs -text
 *.nc                 filter=lfs diff=lfs merge=lfs -text
 *.mat                filter=lfs diff=lfs merge=lfs -text
+
+# Small web assets must be present in ordinary Git checkouts used by hosting builds.
+apps/customer-web/public/airlines/* -filter -diff -merge -text
+apps/customer-web/src/assets/flyseri-logo.* -filter -diff -merge -text
+apps/customer-web/src/imports/images__1_.jpg -filter -diff -merge -text

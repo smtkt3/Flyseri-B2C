@@ -61,3 +61,10 @@ Stripe test webhook `we_1UNlsSJz7MtPYNQ37B858ovz` is enabled at
 with its server-only signing secret in Vercel. It subscribes to Checkout Session
 completion, asynchronous payment success/failure, and expiration, using API
 version `2025-06-30.basil` to match the application provider.
+# Logo delivery and search performance
+
+- Airline and Flyseri logos are small ordinary Git assets. `.gitattributes` excludes them from Git LFS so a hosting checkout cannot publish pointer text as an image.
+- The API function runs in `sin1`, alongside the existing Singapore Redis instance. Avoid moving only one side of that connection to a distant region: shopping uses shared rate limits, locks, cached results and checkout sessions.
+- Popular homepage fares load their independent Redis records concurrently.
+- Progressive flight results retain the 30-flight initial page; additional fares update the results without mounting every card. Buyers can use Show more flights.
+- Mobile navigation keeps the menu, brand, currency and account action on one row; currency uses the same control on desktop and mobile.
