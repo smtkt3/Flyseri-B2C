@@ -5,6 +5,11 @@
       "root": ".",
       "framework": "nestjs",
       "entrypoint": "apps/api/src/main.mts",
+      "functions": {
+        "apps/api/src/main.mts": {
+          "includeFiles": "certs/supabase-root-2021.crt"
+        }
+      },
       "installCommand": "pnpm install --frozen-lockfile",
       "buildCommand": "pnpm --filter @flyseri/types build && pnpm --filter @flyseri/config build && pnpm --filter @flyseri/database build && pnpm --filter @flyseri/logging build && pnpm --filter @flyseri/redis build && pnpm --filter @flyseri/api build"
     },
