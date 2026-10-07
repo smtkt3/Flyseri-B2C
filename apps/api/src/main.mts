@@ -14,8 +14,9 @@ async function bootstrap(): Promise<void> {
   const logger = createLogger(config.APP_ENV);
   const app = await NestFactory.create(AppModule, { logger: false, rawBody: true, abortOnError: false });
   configureApp(app, config, logger);
-  await app.listen(config.API_PORT);
-  logger.info({ port: config.API_PORT }, 'Flyseri API started');
+  const port = process.env.PORT ? Number(process.env.PORT) : config.API_PORT;
+  await app.listen(port);
+  logger.info({ port }, 'Flyseri API started');
 }
 
 bootstrap().catch((error: unknown) => {

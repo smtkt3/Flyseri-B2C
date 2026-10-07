@@ -2,11 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
     "api": {
-      "root": "apps/api",
+      "root": ".",
       "framework": "nestjs",
-      "entrypoint": "src/main.mts",
-      "installCommand": "pnpm --dir ../.. install --frozen-lockfile --filter @flyseri/api...",
-      "buildCommand": "pnpm --dir ../.. --filter @flyseri/types build && pnpm --dir ../.. --filter @flyseri/config build && pnpm --dir ../.. --filter @flyseri/database build && pnpm --dir ../.. --filter @flyseri/logging build && pnpm --dir ../.. --filter @flyseri/redis build && pnpm --dir ../.. --filter @flyseri/api build"
+      "entrypoint": "apps/api/src/main.mts",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm --filter @flyseri/types build && pnpm --filter @flyseri/config build && pnpm --filter @flyseri/database build && pnpm --filter @flyseri/logging build && pnpm --filter @flyseri/redis build && pnpm --filter @flyseri/api build"
     },
     "customer-web": {
       "root": "apps/customer-web",
