@@ -18,7 +18,15 @@ export const latitudeAtY = (y: number) =>
     180) /
   Math.PI
 export const worldSize = (view: MapView, viewport: MapViewport) =>
-  Math.max(256, viewport.width) * view.zoom
+  Math.max(256, viewport.width, viewport.height) * view.zoom
+/** Keep the vertical world edges outside the visible map area while panning or resizing. */
+export function clampMapView(view: MapView, viewport: MapViewport): MapView {
+  const world = worldSize(view, viewport)
+  const inset = Math.min(0.5, viewport.height / (2 * world))
+  const centerY = mercatorY(view.lat)
+  const boundedY = Math.max(inset, Math.min(1 - inset, centerY))
+  return boundedY === centerY ? view : { ...view, lat: latitudeAtY(boundedY) }
+}
 export function projectAirport(
   lon: number,
   lat: number,
@@ -41,16 +49,16 @@ export function transformMap(
 ): MapView {
   const zoom = Math.max(1, Math.min(32, view.zoom * factor))
   const oldWorld = worldSize(view, viewport),
-    nextWorld = Math.max(256, viewport.width) * zoom
+    nextWorld = worldSize({ ...view, zoom }, viewport)
   const longitude = view.lon + ((from.x - viewport.width / 2) / oldWorld) * 360
   const y = mercatorY(view.lat) + (from.y - viewport.height / 2) / oldWorld
-  return {
+  return clampMapView({
     lon: wrapLongitude(
       longitude - ((to.x - viewport.width / 2) / nextWorld) * 360,
     ),
     lat: latitudeAtY(y - (to.y - viewport.height / 2) / nextWorld),
     zoom,
-  }
+  }, viewport)
 }
 export type LabelBox = MapPoint & {
   width: number
@@ -91,7 +99,10 @@ export function layoutMapLabels(
           box.y >= 8 &&
           box.x + width < viewport.width - 8 &&
           box.y + height < viewport.height - 8 &&
-          ![...result, ...blocked].some((other) =>
+          !result.some((other) =>
+            intersects({ ...box, width, height }, other),
+          ) &&
+          !blocked.some((other) =>
             intersects({ ...box, width, height }, other),
           ),
       )

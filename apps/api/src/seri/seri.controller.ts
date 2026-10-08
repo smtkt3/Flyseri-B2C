@@ -1,5 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, ParseUUIDPipe, Post, Req, UseGuards, ValidationPipe } from '@nestjs/common';
-import { IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { GuestSeriService } from './guest-seri.service.js';
 import type { ApiSuccess, SeriConversationSummary, SeriMessage, SeriTurnResponse } from '@flyseri/types';
 import { ApiException } from '../api-exception.js';
 import { CurrentUser, CustomerAuthGuard } from '../customer/auth.js';
@@ -13,6 +15,23 @@ class SupportRequestDto { @IsString() @MinLength(1) @MaxLength(1000) reason!: st
 const validate = (type: new () => object) => new ValidationPipe({ expectedType: type, transform: true, whitelist: true, forbidNonWhitelisted: true,
   exceptionFactory: () => new BadRequestException('The request is invalid.') });
 const response = <T>(request: ContextRequest, data: T): ApiSuccess<T> => ({ success: true, data, requestId: request.requestId });
+
+class GuestHistoryDto {
+  @IsIn(['USER', 'ASSISTANT']) role!: 'USER' | 'ASSISTANT';
+  @IsString() @MinLength(1) @MaxLength(4000) content!: string;
+}
+class GuestMessageDto extends SendMessageDto {
+  @IsArray() @ArrayMaxSize(12) @ValidateNested({ each: true }) @Type(() => GuestHistoryDto) history!: GuestHistoryDto[];
+  @IsOptional() @IsString() @Matches(/^[A-Z]{3}$/) currency?: string;
+}
+@Controller('seri/guest')
+export class GuestSeriController {
+  constructor(@Inject(GuestSeriService) private readonly seri: GuestSeriService) {}
+  @Post('messages')
+  async send(@Body(validate(GuestMessageDto)) body: GuestMessageDto, @Req() request: ContextRequest) {
+    return response(request, await this.seri.send(body, request.socket?.remoteAddress ?? request.ip ?? 'unknown'));
+  }
+}
 
 @Controller('seri')
 @UseGuards(CustomerAuthGuard)

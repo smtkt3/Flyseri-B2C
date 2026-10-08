@@ -8,6 +8,9 @@ const AuthPage = lazy(() => import('./AuthPage').then((module) => ({ default: mo
 const CustomerShell = lazy(() => import('../account/CustomerShell').then((module) => ({ default: module.CustomerShell })));
 const PublicFlightPage = lazy(() => import('../flight/PublicFlightPage').then((module) => ({ default: module.PublicFlightPage })));
 const GuestFlightCheckoutPage = lazy(() => import('../flight/GuestFlightCheckoutPage').then((module) => ({ default: module.GuestFlightCheckoutPage })));
+const HolidayCataloguePage = lazy(() => import('../holiday/HolidayPages').then(module => ({ default: module.HolidayCataloguePage })));
+const HolidayDetailPage = lazy(() => import('../holiday/HolidayPages').then(module => ({ default: module.HolidayDetailPage })));
+const HolidayBookingsPage = lazy(() => import('../holiday/HolidayPages').then(module => ({ default: module.HolidayBookingsPage })));
 
 const overlayPaths = new Set(['/sign-in', '/create-account', '/forgot-password']);
 
@@ -36,6 +39,9 @@ export function AuthRoutes() {
           <Route path="/reset-password" element={<div className="customer-site-shell"><PremiumNavbar/><AuthPage mode="reset-password" /></div>} />
           <Route path="/flights" element={<PublicFlightPage />} />
           <Route path="/flight-checkout" element={<GuestFlightCheckoutPage />} />
+          <Route path="/holidays" element={<HolidayCataloguePage />} />
+          <Route path="/holidays/bookings" element={<ProtectedRoute><HolidayBookingsPage /></ProtectedRoute>} />
+          <Route path="/holidays/:id" element={<HolidayDetailPage />} />
           <Route path="/app/*" element={<ProtectedRoute><CustomerShell /></ProtectedRoute>} />
         </Routes>
       </Suspense>

@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { AuthProvider } from '../../auth/AuthProvider';
 import { PremiumHome } from './PremiumHome';
+import { emptyHomeSearch, updateHomeSearch } from './homeSearchDraft';
 
 const auth = vi.hoisted(() => ({ restore: vi.fn(), onChange: vi.fn(() => () => undefined) }));
 const customer = vi.hoisted(() => ({ me: vi.fn() }));
@@ -13,6 +14,8 @@ const orders = vi.hoisted(() => ({ orders: vi.fn(), payments: vi.fn() }));
 const documents = vi.hoisted(() => ({ list: vi.fn() }));
 const visas = vi.hoisted(() => ({ list: vi.fn() }));
 const flights = vi.hoisted(() => ({ intentsForTrip: vi.fn(), popularCachedFares: vi.fn<() => Promise<unknown[]>>() }));
+const guestSeri = vi.hoisted(() => ({ guestSend: vi.fn().mockResolvedValue({ message: { id: 'guest-1', role: 'ASSISTANT', content: 'Let’s plan your Tokyo trip.', messageType: 'TEXT', payload: null } }) }));
+vi.mock('../../services/seriService', () => ({ seriService: guestSeri }));
 vi.mock('../../services/authService', () => ({ authService: auth }));
 vi.mock('../../services/customerService', () => ({ customerService: customer }));
 vi.mock('../../services/tripService', () => ({ tripService: trips }));
@@ -27,7 +30,7 @@ function SearchDestination() {
 }
 function renderHome(compact = false) {
   Object.defineProperty(window, 'scrollTo', { configurable: true, value: vi.fn() });
-  Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn().mockImplementation((query: string) => ({ matches: compact && query === '(max-width: 1100px)', media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })) });
+  Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn().mockImplementation((query: string) => ({ matches: compact && query === '(max-width: 1366px)', media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })) });
   render(<MemoryRouter initialEntries={['/']}><AuthProvider><Routes>
     <Route path="/" element={<PremiumHome />} />
     <Route path="/flights" element={<SearchDestination />} />
@@ -53,10 +56,15 @@ beforeEach(() => flights.popularCachedFares.mockResolvedValue([]));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('premium homepage', () => {
+  beforeEach(() => { sessionStorage.clear(); updateHomeSearch(emptyHomeSearch); });
   it('switches compact search modes without losing flight dates or AI drafts', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome(true);
-    expect(screen.getByRole('tabpanel', { name: 'Flights' })).toBeTruthy();
+    const flightPanel = screen.getByRole('tabpanel', { name: 'Flights' });
+    expect(flightPanel).toBeTruthy();
+    const flightSearch = flightPanel.querySelector('.premium-search') as HTMLElement;
+    expect(getComputedStyle(flightSearch).overflowY).toBe('visible');
+    expect(getComputedStyle(flightSearch).maxHeight).toBe('none');
     expect(screen.queryByRole('region', { name: 'Explore flights on the world map' })).toBeNull();
     chooseDate('Departure', '2026-11-12');
     fireEvent.click(screen.getByRole('button', { name: /^Departure,/ }));
@@ -72,15 +80,16 @@ describe('premium homepage', () => {
     expect(screen.getByRole('button', { name: /^Departure,/ }).textContent).not.toContain('Choose date');
     fireEvent.click(screen.getByRole('tab', { name: 'AI Search' }));
     expect((screen.getByLabelText('Ask Seri a travel question') as HTMLInputElement).value).toBe('Find a beach trip');
-    expect(screen.getByRole('button', { name: 'Ask Seri' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('link', { name: 'Sign in to chat with Seri →' }).getAttribute('href')).toBe('/sign-in');
+    expect(screen.getByRole('button', { name: 'Ask Seri' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('link', { name: 'Sign in for your saved trips' }).getAttribute('href')).toBe('/sign-in');
   });
 
-  it('opens Seri with the question entered between search and journey cards',async()=>{
+  it('answers guest questions on the desktop homepage',async()=>{
     auth.restore.mockResolvedValue(null);renderHome();await screen.findByText('Find your next escape');
     const button=screen.getByRole('button',{name:'Ask Seri'});expect(button.hasAttribute('disabled')).toBe(true);
     fireEvent.change(screen.getByLabelText('Ask Seri a travel question'),{target:{value:'Plan 5 days in Tokyo'}});fireEvent.click(button);
-    const destination=await screen.findByTestId('search-destination');expect(new URLSearchParams(destination.textContent || '').get('draft')).toBe('Plan 5 days in Tokyo');
+    expect(await screen.findByText('Let’s plan your Tokyo trip.')).toBeTruthy();
+    expect(guestSeri.guestSend).toHaveBeenCalledWith('Plan 5 days in Tokyo', [], 'BDT');
   });
 
   it('expands and closes the travel services menu without presenting future services as live', async () => {
@@ -91,7 +100,8 @@ describe('premium homepage', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(toggle);
     expect(screen.getByRole('button', { name: 'Collapse travel services' }).getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getAllByText('Soon')).toHaveLength(4);
+    expect(screen.getAllByText('Soon')).toHaveLength(3);
+    expect(screen.getByRole('link', { name: /^Packages$/ }).getAttribute('href')).toBe('/holidays');
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.getByRole('button', { name: 'Expand travel services' }).getAttribute('aria-expanded')).toBe('false');
   });
@@ -109,12 +119,13 @@ describe('premium homepage', () => {
   it('shows many destinations and only displays prices returned by the cached fare service', async () => {
     auth.restore.mockResolvedValue(null);
     flights.popularCachedFares.mockResolvedValue([
-      { destination: 'BKK', departureDate: '2026-11-12', price: '499', currency: 'MYR', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
-      { destination: 'NRT', departureDate: '2026-11-20', price: '1299', currency: 'MYR', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
+      { destination: 'BKK', departureDate: '2026-11-12', price: '499', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
+      { destination: 'NRT', departureDate: '2026-11-20', price: '1299', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
     ]);
     renderHome();
-    expect(await screen.findByRole('button', { name: 'Select Bangkok, MYR 499' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Select Tokyo, MYR 1,299' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show full world map' }));
+    expect(await screen.findByRole('button', { name: 'Select Bangkok, BDT 499' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Select Tokyo, BDT 1,299' })).toBeTruthy();
     const map = screen.getByRole('group', { name: 'Interactive world destination map' });
     expect(map.querySelectorAll('.explore-map-place').length).toBeGreaterThan(5);
     expect(map.querySelectorAll('.explore-map-routes g').length).toBeGreaterThan(5);
@@ -122,7 +133,7 @@ describe('premium homepage', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Recent fares only' }));
     expect(screen.getByRole('group', { name: 'Interactive world destination map' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Select London, Check fares' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Select Tokyo, MYR 1,299' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select Tokyo, BDT 1,299' }));
     expect(screen.getByRole('link', { name: 'View flights' }).getAttribute('href')).toContain('destination=NRT');
     fireEvent.change(screen.getByRole('slider', { name: 'Maximum cached fare' }), { target: { value: '1000' } });
     expect(screen.getByRole('group', { name: 'Interactive world destination map' })).toBeTruthy();

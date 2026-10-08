@@ -20,7 +20,7 @@ DECLARE
     'payments', 'payment_attempts', 'payment_events', 'refunds',
     'commerce_outbox', 'commerce_audit_events', 'crm_customer_links',
     'crm_sync_events', 'ai_conversations', 'ai_messages',
-    'ai_tool_calls', 'ai_pending_actions', 'ai_usage_events'
+    'ai_tool_calls', 'ai_pending_actions', 'ai_usage_events', 'holiday_packages', 'holiday_bookings'
   ];
 BEGIN
   IF NOT EXISTS (

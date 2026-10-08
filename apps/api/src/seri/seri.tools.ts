@@ -121,7 +121,7 @@ export class SeriToolRegistry {
         const dto = plainToInstance(FlightSearchDto, { ...a, ...(a.tripId === undefined && c.conversationTripId ? { tripId: c.conversationTripId } : {}) });
         if ((await validate(dto)).length) throw new ApiException('VALIDATION_ERROR', 'Please confirm the departure date including year, one-way or return, and the number of adults, children and infants before I search.', 400);
         const data = await this.flights.search(c.customerId, c.requestId, dto as FlightSearchRequest);
-        return { text: JSON.stringify({ searchId: data.searchId, offers: data.offers }), messageType: 'FLIGHT_RESULTS', payload: data as unknown as Record<string, unknown> };
+        return { text: JSON.stringify({ searchId: data.searchId, offers: data.offers }), messageType: 'FLIGHT_RESULTS', payload: { ...data, searchRequest: { ...dto } } as unknown as Record<string, unknown> };
       }),
       {
         declaration: {
@@ -138,7 +138,7 @@ export class SeriToolRegistry {
       checkInDate: { type: 'STRING', description: 'YYYY-MM-DD' }, checkOutDate: { type: 'STRING', description: 'YYYY-MM-DD' },
       adults: { type: 'INTEGER' }, childAges: { type: 'ARRAY', items: { type: 'INTEGER' } },
     }, ['airport', 'checkInDate', 'checkOutDate', 'adults']), async (c, a) => {
-      const data = await this.mcp!.searchHotels(a, c.profile.preferredCurrency ?? 'MYR');
+      const data = await this.mcp!.searchHotels(a, c.profile.preferredCurrency ?? 'BDT');
       return { text: JSON.stringify(data), messageType: 'TEXT', payload: data };
     }));
     this.tools = new Map(registry.map((tool) => [tool.declaration.name, tool]));

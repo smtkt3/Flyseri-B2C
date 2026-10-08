@@ -38,7 +38,7 @@ export function ProfilePage() {
           <label>Phone country code<input pattern="\+[1-9][0-9]{0,3}" value={profile.phoneCountryCode ?? ''} onChange={field('phoneCountryCode')} placeholder="+60" /></label>
           <label>Phone number<input inputMode="tel" pattern="[0-9]{4,20}" value={profile.phoneNumber ?? ''} onChange={field('phoneNumber')} placeholder="Digits only" /></label>
           <label>Preferred language<input pattern="[a-z]{2,3}(-[A-Z]{2})?" value={profile.preferredLanguage ?? ''} onChange={field('preferredLanguage')} placeholder="en or en-MY" /></label>
-          <label>Preferred currency<input pattern="[A-Z]{3}" maxLength={3} value={profile.preferredCurrency ?? ''} onChange={field('preferredCurrency')} placeholder="MYR" /></label>
+          <label>Preferred currency<input pattern="[A-Z]{3}" maxLength={3} value={profile.preferredCurrency ?? ''} onChange={field('preferredCurrency')} placeholder="BDT" /></label>
         </div><button className="btn-primary account-submit" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
       </form><div className="account-panel account-security"><h2>Security</h2><p>Your password and sign-in are managed through Flyseri authentication.</p><Link to="/reset-password">Change password →</Link></div>
     </>}

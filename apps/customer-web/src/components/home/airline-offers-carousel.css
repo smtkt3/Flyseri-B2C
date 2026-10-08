@@ -1,0 +1,24 @@
+.premium-main .premium-exclusive-offers{border:1px solid #d5e7f8;background:linear-gradient(145deg,#f8fcff 0%,#eef6ff 56%,#f2f2ff 100%);box-shadow:0 12px 32px #2c63910d}
+.premium-exclusive-offers .premium-offers-tab{background:linear-gradient(110deg,#ffffffd9,#f0f7ffb8);color:#203552;padding:18px 20px 10px}
+.premium-exclusive-offers .premium-offers-tab h2{color:#203552;font-size:20px;letter-spacing:-.45px}
+.premium-exclusive-offers .premium-offers-bell{color:#2877d4;background:linear-gradient(145deg,#fff,#edf5ff);border-color:#d5e6fa;box-shadow:0 3px 10px #2877d410}
+.premium-exclusive-offers .premium-offers-bell:hover{background:#e0edff;transform:translateY(-1px)}
+.premium-exclusive-offers>.premium-offers-demo-label{display:table;margin:0 20px 8px;padding:5px 9px;border:1px solid #d7e7f7;border-radius:999px;background:#ffffffa8;color:#637d9b;font-size:11px;line-height:1.2}
+.premium-offers-marquee{container-type:inline-size;overflow:hidden;padding:4px 18px 18px;outline-offset:-3px;mask-image:linear-gradient(90deg,transparent 0,#000 3%,#000 97%,transparent 100%)}
+.premium-exclusive-offers .premium-offers-track{display:flex;flex-direction:row;gap:0;width:max-content;animation:airline-offers-travel 36s linear infinite;will-change:transform}
+.premium-offers-group{display:flex;gap:16px;padding-right:16px;flex:none}
+.premium-exclusive-offers .premium-offers-group .premium-offer-preview{box-sizing:border-box;flex:none;width:calc((100cqw - 32px)/3);min-width:280px;min-height:118px;gap:16px;padding:18px;border-radius:17px;background:linear-gradient(145deg,#fff,#fcfdff);border:1px solid #d8e7f7;box-shadow:0 7px 20px #284d7410;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.premium-exclusive-offers .premium-offers-group .premium-offer-preview:hover{transform:translateY(-2px);border-color:#a9cff4;box-shadow:0 12px 24px #2c72b51a}
+.premium-exclusive-offers .premium-offer-preview:focus-visible{outline:3px solid #378bef;outline-offset:2px;z-index:1}
+.premium-offer-airline-logo{display:grid;place-items:center;flex:none;width:62px;height:62px;padding:6px;border-radius:16px;background:linear-gradient(145deg,#f8fbff,#eef5ff);border:1px solid #e7eff8}
+.premium-offer-airline-logo img{width:100%;height:100%;object-fit:contain}
+.premium-exclusive-offers .premium-offer-preview h3{font-size:17px;margin:5px 0 4px;letter-spacing:-.2px}
+.premium-exclusive-offers .premium-offer-preview p,.premium-exclusive-offers .premium-offer-preview small{font-size:12px}
+.premium-exclusive-offers .premium-offer-preview small{color:#6f86a1;font-weight:650}
+.premium-exclusive-offers .premium-offer-preview>strong{padding:9px 11px;border:1px solid #d9e9fc;border-radius:11px;background:#f0f7ff;color:#2672ce;font-size:17px;letter-spacing:-.2px}
+.premium-offers-marquee:hover .premium-offers-track,.premium-offers-marquee:focus-within .premium-offers-track{animation-play-state:paused}
+@keyframes airline-offers-travel{to{transform:translateX(-50%)}}
+@media(max-width:1366px){.premium-exclusive-offers .premium-offers-group .premium-offer-preview{width:calc((100cqw - 16px)/2)}}
+@media(max-width:650px){.premium-exclusive-offers .premium-offers-tab{padding:15px 16px 9px}.premium-exclusive-offers .premium-offers-tab h2{font-size:17px}.premium-exclusive-offers>.premium-offers-demo-label{margin-left:16px}.premium-offers-marquee{padding:4px 12px 15px}.premium-exclusive-offers .premium-offers-group .premium-offer-preview{width:88cqw;min-width:0;min-height:102px;padding:14px;gap:11px}.premium-offer-airline-logo{width:48px;height:48px;padding:5px}.premium-exclusive-offers .premium-offer-preview h3{font-size:15px}.premium-exclusive-offers .premium-offer-preview>strong{padding:8px;font-size:14px}.premium-exclusive-offers .premium-offer-preview p{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.premium-exclusive-offers .premium-offers-group .premium-offer-preview{transition:none}}
+@media(prefers-reduced-motion:reduce){.premium-offers-track{animation:none;will-change:auto}.premium-offers-marquee{overflow-x:auto}.premium-offers-group[aria-hidden=true]{display:none}}

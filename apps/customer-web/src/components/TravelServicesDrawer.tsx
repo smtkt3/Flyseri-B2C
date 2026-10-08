@@ -27,7 +27,7 @@ export function TravelServicesDrawer({open,onClose,onClosed}:{open:boolean;onClo
     {name:'Flight',kind:'flight',to:'/app/flights'},
     {name:'Hotels',kind:'hotels',soon:true},
     {name:'Attractions',kind:'attractions',soon:true},
-    {name:'Packages',kind:'packages',soon:true},
+    {name:'Packages',kind:'packages',to:'/holidays'},
     {name:'Visa',kind:'visa',to:'/app/visa'},
     {name:'E-SIM',kind:'esim',soon:true},
   ];

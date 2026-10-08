@@ -57,3 +57,20 @@ button.premium-profile { border:0; cursor:pointer; font:inherit; text-align:left
 .flyseri-services-drawer .premium-service-sidebar-item.active{background:#e8f3ff;border-color:#d4e8ff;color:#2875cc}
 @media(max-width:760px){.flyseri-services-drawer{width:min(300px,72vw)}.flyseri-services-drawer .premium-service-sidebar-item{min-height:48px}}
 @media(prefers-reduced-motion:reduce){.flyseri-services-drawer,.flyseri-services-overlay{scroll-behavior:auto}}
+
+/* Shared glass surface across public and account pages. */
+html body .premium-header.flyseri-site-navbar {
+  background:linear-gradient(115deg,rgba(255,255,255,.72),rgba(247,252,255,.43) 55%,rgba(235,247,255,.60))!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  box-shadow:0 8px 30px rgba(36,79,119,.12),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.25)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.35)!important;
+  backdrop-filter:blur(22px) saturate(1.35)!important;
+}
+html body .flyseri-site-navbar .premium-mobile-services-toggle {
+  background:rgba(255,255,255,.42);
+  border-color:rgba(255,255,255,.8);
+}
+html body .flyseri-site-navbar .premium-profile { background:rgba(255,255,255,.6); }
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  html body .premium-header.flyseri-site-navbar { background:rgba(248,252,255,.96)!important; }
+}

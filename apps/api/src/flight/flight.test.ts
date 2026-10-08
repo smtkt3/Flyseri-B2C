@@ -47,15 +47,32 @@ class MemoryRedis {
 }
 
 describe('flight cache identity and coalescing', () => {
+  it('isolates currencies for the same map route and supports other departure airports', async () => {
+    const departureDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const search = vi.fn(async (input: FlightSearchRequest) => [{ ...offer, currency: input.currency, totalAmount: input.currency === 'BDT' ? '12000' : '500' }]);
+    const service = new FlightService(config, undefined, undefined, { search }, telemetry());
+    for (const currency of ['BDT', 'MYR']) await service.search(null, `map-${currency}`, { ...base, origin: 'SIN', destination: 'BKK', departureDate, returnDate: undefined, tripType: 'ONE_WAY', adults: 1, currency });
+    expect(await service.popularCachedFares('SIN', 'BDT')).toEqual([expect.objectContaining({ destination: 'BKK', currency: 'BDT', price: '12000' })]);
+    expect(await service.popularCachedFares('SIN', 'MYR')).toEqual([expect.objectContaining({ destination: 'BKK', currency: 'MYR', price: '500' })]);
+    expect(await service.popularCachedFares('DAC', 'BDT')).toEqual([]);
+  });
+  it('keeps Dhaka and Kuala Lumpur map quotes separate', async () => {
+    const departureDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const search = vi.fn(async () => [offer]);
+    const service = new FlightService(config, undefined, undefined, { search }, telemetry());
+    await service.search(null, 'dhaka-map-search', { ...base, origin: 'DAC', destination: 'KUL', departureDate, returnDate: undefined, tripType: 'ONE_WAY', adults: 1 });
+    expect(await service.popularCachedFares('DAC', 'MYR')).toEqual([expect.objectContaining({ destination: 'KUL', price: offer.totalAmount })]);
+    expect(await service.popularCachedFares('KUL', 'MYR')).toEqual([]);
+  });
   it.each(['LHR', 'AKL'])('exposes a recent real-search quote for expanded map destination %s', async (destination) => {
     const departureDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const searchInput: FlightSearchRequest = { ...base, destination, departureDate, returnDate: undefined, tripType: 'ONE_WAY', adults: 1 };
     const searchedOffer: FlightOffer = { ...offer, outbound: { ...offer.outbound, segments: offer.outbound.segments.map(segment => ({ ...segment, destination })) } };
     const search = vi.fn(async () => [searchedOffer]);
     const service = new FlightService(config, undefined, undefined, { search }, telemetry());
-    expect(await service.popularCachedFares()).toEqual([]);
+    expect(await service.popularCachedFares('KUL', 'MYR')).toEqual([]);
     await service.search(null, 'map-search', searchInput);
-    expect(await service.popularCachedFares()).toEqual([expect.objectContaining({ destination, departureDate, price: searchedOffer.totalAmount, currency: 'MYR' })]);
+    expect(await service.popularCachedFares('KUL', 'MYR')).toEqual([expect.objectContaining({ destination, departureDate, price: searchedOffer.totalAmount, currency: 'MYR' })]);
     expect(search).toHaveBeenCalledOnce();
   });
 

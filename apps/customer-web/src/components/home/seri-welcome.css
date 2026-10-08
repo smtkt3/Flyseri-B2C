@@ -1,0 +1,34 @@
+/* Shared welcome treatment for the inline and floating assistant. */
+.premium-seri-chat:has(.seri-welcome-design){background:radial-gradient(ellipse at 85% 35%,#dcf6f151,transparent 60%),linear-gradient(155deg,#f9fcff,#f1f9ff 55%,#f1fbf8)}
+.premium-seri-chat .home-seri-welcome.seri-welcome-design{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;height:100%;min-height:340px;padding:22px 8px;box-sizing:border-box;text-align:center}
+.premium-seri-chat .seri-welcome-design .seri-welcome-orbit{display:grid;place-items:center;position:relative;width:116px;height:116px;margin:0 0 24px;border:1px solid #cde4f67a;border-radius:50%;background:radial-gradient(circle,#e4f5fd70,transparent 72%)}
+.premium-seri-chat .seri-welcome-orbit>div{display:grid;place-items:center;width:78px;height:78px;border-radius:26px;border:1px solid #ffffffec;background:linear-gradient(145deg,#d6eaff,#d7f5ed);color:#3486de;box-shadow:0 12px 30px #428fc91a,inset 0 1px 0 #ffffffd9;transform:rotate(-7deg)}
+.premium-seri-chat .seri-welcome-orbit svg{width:38px;height:38px;transform:rotate(7deg)}
+.seri-welcome-orbit i{position:absolute;width:8px;height:8px;background:#74b5f5;border:3px solid #f5fbff;border-radius:50%;box-sizing:content-box;top:10px;right:10px}.seri-welcome-orbit i:last-child{width:5px;height:5px;background:#80c9bb;top:auto;right:auto;left:5px;bottom:18px}
+.premium-seri-chat .home-seri-welcome.seri-welcome-design>strong{font-size:26px;line-height:1.2;letter-spacing:-.8px;font-weight:800;color:#203c60;margin:0 0 10px}
+.premium-seri-chat .home-seri-welcome.seri-welcome-design>p{font-size:12px;line-height:1.6;color:#6b819a;margin:0 0 26px;max-width:none}
+.premium-seri-chat .seri-welcome-design .seri-welcome-prompts{display:grid;gap:9px;width:100%;max-width:280px}
+.premium-seri-chat .seri-welcome-prompts>button{display:flex;align-items:center;gap:11px;width:100%;min-height:46px;margin:0;padding:11px 13px;border:1px solid #dce9f5;border-radius:13px;background:#ffffffc9;box-shadow:0 2px 5px #35689a03;color:#35567a;font:inherit;font-size:12px;font-weight:600;text-align:left;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.premium-seri-chat .seri-welcome-prompts>button svg{flex:none;width:19px;height:19px;color:#438fe7}.premium-seri-chat .seri-welcome-prompts>button span:last-child{margin-left:auto;color:#86a2bd;font-size:16px}
+.premium-seri-chat .seri-welcome-prompts>button:hover{background:#fff;border-color:#a9cff4;box-shadow:0 4px 12px #3283ce0d}.premium-seri-chat .seri-welcome-prompts>button:focus-visible{outline:2px solid #3a88e7;outline-offset:3px}
+.premium-seri-chat:has(.seri-welcome-design)>form{box-shadow:0 4px 18px #1d64a808;border-color:#d6e7f6}.premium-seri-chat:has(.seri-welcome-design)>form:focus-within{border-color:#8cbef1;box-shadow:0 0 0 3px #499afa12}
+#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .premium-seri-entry-heading{padding-bottom:16px;border-bottom:1px solid #d9e7f380;gap:10px}
+#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .premium-seri-entry-heading h2{font-size:13px;font-weight:700;letter-spacing:-.1px}
+#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .premium-seri-entry-icon{width:34px;height:34px;min-width:34px;border-radius:12px;font-size:20px}
+#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .home-seri-sign-in{font-size:11px;margin:0 0 1px;color:#7890a7}
+@media(min-width:1367px){#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .home-seri-transcript.is-empty{padding:0;overflow-y:auto}}
+@media(min-width:601px) and (max-width:1366px){#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .home-seri-transcript.is-empty{display:block;grid-column:1/-1;max-height:none;border:0;background:none}#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .seri-welcome-design{min-height:350px}}
+@media(max-width:600px){.premium-seri-chat .home-seri-welcome.seri-welcome-design{min-height:320px;padding:16px 4px}.premium-seri-chat .seri-welcome-design .seri-welcome-orbit{width:96px;height:96px;margin-bottom:18px}.premium-seri-chat .seri-welcome-orbit>div{width:66px;height:66px;border-radius:23px}.premium-seri-chat .home-seri-welcome.seri-welcome-design>strong{font-size:24px}.premium-seri-chat .home-seri-welcome.seri-welcome-design>p{margin-bottom:20px}.premium-seri-chat .seri-welcome-prompts>button{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.premium-seri-chat .seri-welcome-prompts>button{transition:none}}
+#home-search-ai .home-seri-welcome.seri-welcome-design{gap:0}
+#home-search-ai .home-seri-welcome.seri-welcome-design>strong{font-size:26px;line-height:1.2;letter-spacing:-.8px;margin:0 0 10px}
+#home-search-ai .home-seri-welcome.seri-welcome-design>p{font-size:12px;margin:0 0 26px;line-height:1.6;max-width:none}
+@media(max-width:600px){#home-search-ai .home-seri-welcome.seri-welcome-design>strong{font-size:24px}#home-search-ai .home-seri-welcome.seri-welcome-design>p{margin-bottom:20px}}
+.premium-seri-chat .seri-welcome-design .seri-welcome-prompts{grid-template-columns:minmax(0,1fr);justify-content:stretch}
+:is(#home-search-ai,.seri-floating-panel) .seri-welcome-design .seri-welcome-prompts>button{width:100%;min-height:46px;padding:11px 13px;font-size:12px;box-sizing:border-box}
+.premium-seri-chat .seri-welcome-design .seri-welcome-orbit,.premium-seri-chat .seri-welcome-design .seri-welcome-prompts{flex:none}
+.seri-floating-panel .home-seri-welcome.seri-welcome-design{height:auto;min-height:100%;padding:20px 4px}
+.seri-floating-panel .premium-seri-chat .home-seri-transcript.is-empty{display:block;max-height:none;min-height:0;flex:1;padding:8px 12px;overflow-y:auto;border:0;border-radius:0;background:none}
+.seri-floating-panel .seri-welcome-design .seri-welcome-orbit{width:72px;height:72px;margin-bottom:14px}.seri-floating-panel .seri-welcome-orbit>div{width:52px;height:52px;border-radius:18px}.seri-floating-panel .seri-welcome-orbit svg{width:28px;height:28px}
+.seri-floating-panel .home-seri-welcome.seri-welcome-design>strong{font-size:22px}.seri-floating-panel .home-seri-welcome.seri-welcome-design>p{margin-bottom:18px;font-size:11px}
+#seri-floating-chat .seri-welcome-design .seri-welcome-prompts>button{min-height:44px;padding:9px 12px}

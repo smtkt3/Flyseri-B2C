@@ -15,7 +15,7 @@ export interface FlightProvider {
 }
 interface CachedSearch { offers: FlightOffer[]; searchedAt: string; incomplete?: boolean }
 const progressRevision = (value: CachedSearch) => `${value.searchedAt}:${value.offers.length}:${value.offers.at(-1)?.offerId ?? ''}`;
-const POPULAR_FARE_DESTINATIONS = ['LHR','ICN','NRT','DXB','BKK','CGK','DPS','SYD','SIN','SGN','KIX','TPE','MNL','DAC','CGP','KTM','CMB','KHI','CCU','MAA','PEN','LGK','BKI','KCH','JHB','HKT','CNX','HAN','DAD','PNH','SAI','VTE','RGN','DEL','BOM','BLR','HYD','MLE','HKG','PEK','PVG','CAN','HND','DOH','AUH','JED','RUH','IST','CDG','AMS','FRA','FCO','MAD','ZRH','ATH','CAI','JNB','CPT','NBO','MEL','PER','AKL','JFK','LAX','SFO','YVR','YYZ','GRU','SCL','MEX','HNL','NAN'] as const;
+const POPULAR_FARE_DESTINATIONS = ['KUL','LHR','ICN','NRT','DXB','BKK','CGK','DPS','SYD','SIN','SGN','KIX','TPE','MNL','DAC','CGP','KTM','CMB','KHI','CCU','MAA','PEN','LGK','BKI','KCH','JHB','HKT','CNX','HAN','DAD','PNH','SAI','VTE','RGN','DEL','BOM','BLR','HYD','MLE','HKG','PEK','PVG','CAN','HND','DOH','AUH','JED','RUH','IST','CDG','AMS','FRA','FCO','MAD','ZRH','ATH','CAI','JNB','CPT','NBO','MEL','PER','AKL','JFK','LAX','SFO','YVR','YYZ','GRU','SCL','MEX','HNL','NAN'] as const;
 interface SearchSession { customerId: string | null; tripId: string | null; search: NormalizedFlightSearch; offers: FlightOffer[]; expiresAt: string }
 export interface SelectedFlightOffer { searchId: string; tripId: string | null; search: NormalizedFlightSearch; offer: FlightOffer }
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Flight search is temporarily unavailable. Please try again.', 503);
@@ -186,36 +186,37 @@ export class FlightService {
     }
   }
 
-  async popularCachedFares(): Promise<PopularCachedFlightFare[]> {
+  async popularCachedFares(origin = 'DAC', currency = 'BDT'): Promise<PopularCachedFlightFare[]> {
     const now = Date.now();
     const fares = await Promise.all(POPULAR_FARE_DESTINATIONS.map(async (destination) => {
       let fare: PopularCachedFlightFare | undefined;
       if (this.redis) {
-        const read = await this.redis.readJson<PopularCachedFlightFare>(`flight:popular-fare:v1:${destination}`);
-        if (read.state === 'hit' && read.value?.destination === destination && Number.isFinite(Number(read.value.price)) && read.value.currency === 'MYR') fare = read.value;
-      } else if (this.config.APP_ENV !== 'production') fare = this.localPopularFares.get(destination);
+        const read = await this.redis.readJson<PopularCachedFlightFare>(`flight:popular-fare:v3:${origin}:${currency}:${destination}`);
+        if (read.state === 'hit' && read.value?.destination === destination && Number.isFinite(Number(read.value.price)) && read.value.currency === currency) fare = read.value;
+      } else if (this.config.APP_ENV !== 'production') fare = this.localPopularFares.get(`${origin}:${currency}:${destination}`);
       return fare && Date.parse(fare.expiresAt) > now && Date.parse(`${fare.departureDate}T23:59:59+08:00`) > now ? fare : undefined;
     }));
     return fares.filter((fare): fare is PopularCachedFlightFare => !!fare).sort((a, b) => Number(a.price) - Number(b.price));
   }
 
   private async capturePopularFare(search: NormalizedFlightSearch, result: CachedSearch): Promise<void> {
-    if (search.origin !== 'KUL' || search.tripType !== 'ONE_WAY' || search.adults !== 1 || search.children !== 0 || search.infants !== 0 || search.cabin !== 'ECONOMY' || search.currency !== 'MYR' ||
+    if (search.tripType !== 'ONE_WAY' || search.adults !== 1 || search.children !== 0 || search.infants !== 0 || search.cabin !== 'ECONOMY' ||
         !POPULAR_FARE_DESTINATIONS.includes(search.destination as typeof POPULAR_FARE_DESTINATIONS[number]) || Date.parse(`${search.departureDate}T23:59:59+08:00`) <= Date.now()) return;
-    const cheapest = result.offers.filter((offer) => offer.currency === 'MYR' && Number.isFinite(Number(offer.totalAmount)) && Number(offer.totalAmount) > 0)
+    const cheapest = result.offers.filter((offer) => offer.currency === search.currency && Number.isFinite(Number(offer.totalAmount)) && Number(offer.totalAmount) > 0)
       .reduce<FlightOffer | undefined>((low, offer) => !low || Number(offer.totalAmount) < Number(low.totalAmount) ? offer : low, undefined);
     if (!cheapest) return;
-    const key = `flight:popular-fare:v1:${search.destination}`;
-    const previous = this.redis ? await this.redis.getJson<PopularCachedFlightFare>(key) : this.localPopularFares.get(search.destination);
+    const key = `flight:popular-fare:v3:${search.origin}:${search.currency}:${search.destination}`;
+    const previous = this.redis ? await this.redis.getJson<PopularCachedFlightFare>(key) : this.localPopularFares.get(`${search.origin}:${search.currency}:${search.destination}`);
     const previousStillUsable = previous && Date.parse(previous.expiresAt) > Date.now() && Date.parse(`${previous.departureDate}T23:59:59+08:00`) > Date.now();
     if (previousStillUsable && Number(previous.price) <= Number(cheapest.totalAmount)) return;
     const now = Date.now();
     const expiresAtMs = Date.parse(result.searchedAt) + this.config.SABRE_BFM_CACHE_TTL_SECONDS * 1000;
     if (!Number.isFinite(expiresAtMs) || expiresAtMs <= now) return;
-    const fare: PopularCachedFlightFare = { destination: search.destination, departureDate: search.departureDate, price: cheapest.totalAmount, currency: 'MYR', searchedAt: result.searchedAt,
+    const fare: PopularCachedFlightFare = { destination: search.destination, departureDate: search.departureDate, price: cheapest.totalAmount, currency: cheapest.currency, searchedAt: result.searchedAt,
+      durationMinutes: cheapest.outbound.durationMinutes, stops: cheapest.outbound.stops,
       expiresAt: new Date(expiresAtMs).toISOString() };
     if (this.redis) await this.redis.setJson(key, fare, Math.max(1, Math.ceil((expiresAtMs - now) / 1000)));
-    else if (this.config.APP_ENV !== 'production') this.localPopularFares.set(search.destination, fare);
+    else if (this.config.APP_ENV !== 'production') this.localPopularFares.set(`${search.origin}:${search.currency}:${search.destination}`, fare);
   }
 
   private logSearchResults(requestId: string, search: NormalizedFlightSearch, response: FlightSearchResponse): void {

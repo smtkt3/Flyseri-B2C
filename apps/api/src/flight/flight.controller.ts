@@ -108,8 +108,9 @@ export class PublicFlightController {
     @Inject(FlightAncillariesService) private readonly ancillaries: FlightAncillariesService,
     @Inject(FlightAncillaryPurchaseService) private readonly extras: FlightAncillaryPurchaseService) {}
   @Get('popular-cached-fares') @Header('Cache-Control', 'public, max-age=30')
-  async popularCachedFares(@Req() request: ContextRequest) {
-    return { success: true, data: await this.service.popularCachedFares(), requestId: request.requestId };
+  async popularCachedFares(@Req() request: ContextRequest, @Query('origin') origin = 'DAC', @Query('currency') currency = 'BDT') {
+    if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(currency)) throw new BadRequestException('Choose a valid departure airport and currency.');
+    return { success: true, data: await this.service.popularCachedFares(origin, currency), requestId: request.requestId };
   }
   @Post('ancillaries') @HttpCode(200) @Header('Cache-Control', 'no-store')
   @UseGuards(OptionalCustomerAuthGuard, FlightRateGuard)

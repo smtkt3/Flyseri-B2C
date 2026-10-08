@@ -155,7 +155,7 @@
   .premium-home-layout:not(.is-embedded) .premium-hero { min-height: 410px; padding-top: 112px; }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1366px) {
   .premium-home-layout,.premium-home-layout.services-open { display: block; width: 100%; max-width: none; padding: 0; }
   .premium-home-main { width: 100%; }
   .premium-home-main .premium-container { width: min(100% - 28px, 1340px); }

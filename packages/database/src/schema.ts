@@ -1,6 +1,27 @@
 import { foreignKey, check, date, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+export const holidayPackages = pgTable('holiday_packages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  definition: jsonb('definition').notNull(),
+  version: integer('version').notNull().default(1),
+  published: boolean('published').notNull().default(false),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [index('holiday_packages_published_idx').on(table.published), check('holiday_packages_version_valid', sql`${table.version} > 0`)]);
+
+export const holidayBookings = pgTable('holiday_bookings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reference: varchar('reference', { length: 32 }).notNull().unique(),
+  customerId: uuid('customer_id').notNull().references(() => customers.id),
+  packageId: uuid('package_id').notNull().references(() => holidayPackages.id),
+  packageSnapshot: jsonb('package_snapshot').notNull(),
+  request: jsonb('request').notNull(),
+  idempotencyKey: uuid('idempotency_key').notNull(),
+  totalMinor: numeric('total_minor', { precision: 16, scale: 0 }).notNull(),
+  status: varchar('status', { length: 24 }).notNull().default('PENDING_CONFIRMATION'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [uniqueIndex('holiday_bookings_customer_key_unique').on(table.customerId, table.idempotencyKey), index('holiday_bookings_customer_idx').on(table.customerId, table.createdAt), check('holiday_bookings_total_positive', sql`${table.totalMinor} > 0`), check('holiday_bookings_status_valid', sql`${table.status} in ('PENDING_CONFIRMATION','CONFIRMED','CANCELLED')`)]);
+
 /** Admin configured fee for the general assisted visa intake. Orders retain their price snapshot. */
 export const visaAssistanceFeeSettings = pgTable('visa_assistance_fee_settings', {
   id: varchar('id', {length: 32}).primaryKey().default('default'),

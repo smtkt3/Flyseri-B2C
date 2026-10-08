@@ -73,7 +73,94 @@
 @media(max-width:1100px) { .premium-journey-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .premium-journey-grid > .premium-selection-card { grid-column:1/-1; min-height:240px; } .premium-selection-card .premium-empty { min-height:150px; } .premium-destination-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media(max-width:760px) { .premium-main > section,.premium-main > .premium-two-grid { margin-top:22px; } .premium-journey-grid { grid-template-columns:1fr; gap:14px; } .premium-journey-grid > .premium-glass { min-height:0; padding:18px; } .premium-journey-grid > .premium-selection-card { grid-column:auto; } .premium-route-card .premium-map { min-height:200px; } .premium-flight-steps { grid-template-columns:1fr; } .premium-flight-steps > a { min-height:84px; } .premium-destination-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .premium-two-grid { grid-template-columns:1fr; } .premium-story-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .premium-story-grid > a:last-child { grid-column:1/-1; } .premium-story img { height:180px; } .premium-help-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:430px) { .premium-heading h2 { font-size:17px; } .premium-heading > a { font-size:11px; } .premium-destination-grid,.premium-story-grid { gap:10px; } .premium-destination img { height:130px; } .premium-destination > div { padding:12px 36px 12px 12px; } .premium-bottom-grid .premium-glass { padding:20px; } }
-/* Demo group fares scroll vertically until admin supplied offers are connected. */
+/* Published offers panel. Keep the empty state compact until offers are available. */
+.premium-main .premium-journey-grid > .premium-exclusive-offers { align-self:start; min-height:0; padding:0; overflow:hidden; border-radius:20px; background:linear-gradient(145deg,#f6faff,#eef2ff); }
+.premium-offers-tab { display:flex; align-items:center; gap:10px; padding:16px; background:linear-gradient(115deg,#164b98,#376fda 65%,#7375e7); color:#fff; }
+.premium-offers-tab h2 { flex:1; min-width:0; margin:0; color:#fff; font-size:15px; font-weight:800; line-height:1.35; }
+.premium-offers-tab-icon { display:grid; place-items:center; width:32px; height:32px; flex:none; border:1px solid #ffffff40; border-radius:10px; background:#ffffff18; font-size:20px; }
+.premium-offers-bell { display:grid; place-items:center; width:40px; height:40px; flex:none; padding:9px; border:1px solid #ffffff65; border-radius:12px; color:#fff; background:#ffffff20; cursor:pointer; }
+.premium-offers-bell svg { width:21px; height:21px; }
+.premium-offers-bell:hover,.premium-offers-bell[aria-expanded=true] { background:#ffffff38; }
+.premium-offers-bell:focus-visible { outline:3px solid #bde8ff; outline-offset:3px; }
+.premium-offers-empty { display:flex; align-items:center; gap:12px; padding:22px 18px; }
+.premium-offers-empty > span { display:grid; place-items:center; width:38px; height:38px; flex:none; border-radius:12px; background:#e3eaff; color:#6872ce; font-size:22px; }
+.premium-offers-empty strong { color:#2d4569; font-size:12px; line-height:1.5; }
+.premium-offers-empty p { margin:5px 0 0; color:#6c7f9a; font-size:11px; line-height:1.6; }
+.premium-offers-alerts { margin:0 14px 14px; padding:16px; border:1px solid #dbe4fc; border-radius:14px; background:#ffffffdb; }
+.premium-offers-alerts strong { color:#304b73; font-size:13px; }
+.premium-offers-alerts p { margin:8px 0 12px; color:#637a99; font-size:12px; line-height:1.6; }
+.premium-offers-alerts > span { display:inline-flex; padding:5px 9px; border-radius:8px; background:#edf0ff; color:#636cc1; font-size:10px; font-weight:700; }
+.premium-offers-preview { display:grid; gap:9px; padding:14px; }
+.premium-offers-demo-label { margin:0 2px 3px; color:#6d76a0; font-size:10px; font-weight:700; }
+.premium-offer-preview { display:flex; align-items:center; gap:10px; padding:13px 10px; border:1px solid #dfe8f8; border-radius:13px; background:#ffffffec; }
+.premium-offer-preview-icon { display:grid; place-items:center; width:32px; height:38px; flex:none; border-radius:10px; color:#397ee7; background:linear-gradient(135deg,#e5f3ff,#eceaff); font-size:19px; }
+.premium-offer-preview > div { flex:1; min-width:0; }
+.premium-offer-preview h3 { margin:4px 0; color:#233e64; font-size:12px; line-height:1.4; }
+.premium-offer-preview small { display:block; color:#788aa5; font-size:9px; }
+.premium-offer-preview p { margin:0; color:#7b8da7; font-size:9px; line-height:1.5; }
+.premium-offer-preview > strong { color:#346fd0; font-size:12px; text-align:right; white-space:nowrap; }
+.premium-offer-preview > strong small { margin-bottom:5px; font-weight:400; }
+.premium-offers-preview-note { margin:3px 2px 0; color:#7a8ca6; font-size:10px; line-height:1.5; }
+
+.premium-main > .premium-essentials { margin-top:32px; padding:26px; border:1px solid #ffffffd9; border-radius:22px; background:#f8fcffd9; box-shadow:0 8px 28px #315f8908; }
+.premium-essentials-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:20px; }
+.premium-essentials-heading h2 { margin:0; color:#203552; font-size:21px; font-weight:800; letter-spacing:-.025em; }
+.premium-essentials-heading p { margin:6px 0 0; color:#6c819a; font-size:12px; line-height:1.6; }
+.premium-essentials-support { display:grid; gap:5px; color:#7a8da3; font-size:11px; text-align:right; text-decoration:none; scroll-margin-top:90px; }
+.premium-essentials-support span { color:#2776d0; font-size:12px; font-weight:700; }
+.premium-essentials-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.premium-essential-card { display:flex; align-items:center; gap:14px; min-width:0; padding:22px 18px; border:1px solid #dfebf5; border-radius:16px; background:#fff; text-decoration:none; transition:border-color .18s,box-shadow .18s; }
+.premium-essential-card:hover { border-color:#a6cef4; box-shadow:0 5px 18px #315f8910; }
+.premium-essential-icon { display:grid; flex:none; place-items:center; width:44px; height:48px; border-radius:13px; }
+.premium-essential-icon svg { width:24px; height:24px; }
+.premium-essential-icon.is-visa { color:#337bd3; background:#eaf3ff; }
+.premium-essential-icon.is-documents { color:#279589; background:#e8f7f2; }
+.premium-essential-icon.is-trips { color:#7771c1; background:#f0edfc; }
+.premium-essential-card > div { flex:1; min-width:0; }
+.premium-essential-card h3 { margin:0 0 6px; color:#29415f; font-size:14px; font-weight:750; }
+.premium-essential-card p { margin:0; color:#71849b; font-size:11px; line-height:1.6; }
+.premium-essential-arrow { flex:none; color:#6e98c4; font-size:17px; }
+.premium-essential-card:focus-visible,.premium-essentials-support:focus-visible { outline:3px solid #7bb3f2; outline-offset:4px; }
+@media(max-width:1100px) {
+  .premium-essentials-grid { grid-template-columns:1fr; gap:10px; }
+  .premium-essential-card { padding:17px 18px; }
+}
+@media(max-width:650px) {
+  .premium-main > .premium-essentials { margin-top:24px; padding:18px; border-radius:20px; }
+  .premium-essentials-heading { flex-wrap:wrap; gap:14px; margin-bottom:16px; }
+  .premium-essentials-heading h2 { font-size:19px; }
+  .premium-essentials-support { display:flex; gap:6px; align-items:center; min-height:32px; text-align:left; }
+  .premium-essential-card { padding:16px 12px; gap:12px; }
+}
+@media(prefers-reduced-motion:reduce) { .premium-essential-card { transition:none; } }
+
+.premium-home-main .premium-footer-refined { margin-top:36px; padding:40px 0 0; border-top:1px solid #ffffff; background:linear-gradient(120deg,#f9fdfff2,#edf7fcf0 60%,#e9f7f4f2); }
+.premium-home-main .premium-footer-refined > .premium-footer-content { display:grid; grid-template-columns:1.5fr 1fr 1fr 1.2fr; gap:36px; width:min(calc(100% - 64px),1600px); padding-bottom:32px; }
+.premium-footer-brand .premium-logo { display:inline-flex; margin-bottom:14px; }
+.premium-footer-brand .premium-mark { width:142px; height:42px; object-fit:cover; object-position:center; }
+.premium-footer-refined .premium-footer-brand p { margin:0 0 8px; color:#355777; font-size:14px; font-weight:650; line-height:1.6; }
+.premium-footer-brand > span { display:block; color:#7a8da3; font-size:12px; line-height:1.8; }
+.premium-footer-refined nav { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+.premium-footer-refined h2 { margin:4px 0 12px; color:#29415f; font-size:13px; font-weight:800; }
+.premium-footer-refined nav a { display:inline-flex; align-items:center; min-height:32px; color:#6b819a; font-size:12px; text-decoration:none; }
+.premium-footer-refined nav a:hover { color:#2776d0; }
+.premium-footer-refined .premium-footer-help p { margin:0 0 14px; color:#7a8da3; font-size:12px; line-height:1.7; }
+.premium-footer-help > a { display:inline-flex; align-items:center; justify-content:space-between; gap:24px; min-height:42px; padding:10px 14px; border:1px solid #d5e6f3; border-radius:11px; color:#3477bc; background:#ffffffa6; font-size:12px; font-weight:700; text-decoration:none; }
+.premium-home-main .premium-footer-refined > .premium-footer-bottom { display:flex; align-items:center; justify-content:space-between; gap:20px; width:min(calc(100% - 64px),1600px); min-height:64px; padding:16px 0; border-top:1px solid #dfeaf1; }
+.premium-footer-bottom small { color:#8293a6; font-size:11px; line-height:1.6; }
+.premium-footer-bottom a { display:flex; align-items:center; gap:10px; min-height:32px; color:#587b9f; font-size:11px; text-decoration:none; white-space:nowrap; }
+.premium-footer-refined a:focus-visible { outline:3px solid #7bb3f2; outline-offset:4px; border-radius:5px; }
+@media(max-width:1000px) {
+  .premium-home-main .premium-footer-refined > .premium-footer-content { grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+  .premium-footer-brand { grid-column:1/-1; }
+}
+@media(max-width:650px) {
+  .premium-home-main .premium-footer-refined { margin-top:26px; padding-top:28px; }
+  .premium-home-main .premium-footer-refined > .premium-footer-content { width:calc(100% - 40px); grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px 18px; padding-bottom:24px; }
+  .premium-footer-help { grid-column:1/-1; padding-top:18px; border-top:1px solid #dfeaf1; }
+  .premium-footer-refined nav a { min-height:40px; }
+  .premium-home-main .premium-footer-refined > .premium-footer-bottom { width:calc(100% - 40px); gap:12px; flex-wrap:wrap; }
+}
 .premium-exclusive-offers .premium-heading { margin-bottom: 3px; }
 .premium-offers-caption { margin: 0 0 10px; color: #71839b; font-size: 10px; font-weight: 700; }
 .premium-offers-window { position: relative; height: 218px; overflow: hidden; border-radius: 13px; }

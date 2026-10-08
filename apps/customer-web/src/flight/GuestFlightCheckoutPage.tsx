@@ -21,12 +21,14 @@ import { BoundedSelect } from '../components/BoundedSelect';
 import { useCheckoutShoppingFare } from './useCheckoutShoppingFare';
 import { clearCheckoutDraft, keepCheckoutDraft, readCheckoutDraft } from './checkoutDrafts';
 import { flightBrowseReturn, flightBrowseSearchQuery, type FlightBrowseReturn } from './flightSearchBrowsing';
+import { seriReturnPath } from '../seri/seriFlightReturn';
 
 interface GuestCheckoutState {
   offer: FlightOffer;
   searchRequest: FlightSearchRequest;
   searchId: string;
   returnTo?: FlightBrowseReturn;
+  seriReturnTo?: string;
 }
 type PassengerKind = 'Adult' | 'Child' | 'Infant';
 type Passenger = { kind: PassengerKind; givenNames: string; surname: string; gender: string; birthDate: string; nationality: string; idType: FlightIdentityDocumentType; idNumber: string; idExpiryDate: string; issuingCountryCode:string; saveForFuture:boolean; frequentFlyer: string; confirmed: boolean };
@@ -71,6 +73,7 @@ export function GuestFlightCheckoutPage() {
 
 function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   const returnTo = flightBrowseReturn(checkout.returnTo);
+  const seriReturnTo = seriReturnPath(checkout.seriReturnTo);
   const navigate = useNavigate();
   const { session } = useAuth();
   const { offer, searchRequest } = checkout;
@@ -225,8 +228,8 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
 
   return <div className="guest-checkout-shell">
     <PremiumNavbar />
-    <Link className="guest-checkout-back" to={(returnTo?.pathname ?? '/flights') + flightBrowseSearchQuery(checkout.searchRequest)}
-      state={{ flightBrowseKey: returnTo?.key, flightBrowseSearchId: checkout.searchId }}>← Back to results</Link>
+    <Link className="guest-checkout-back" to={seriReturnTo ?? (returnTo?.pathname ?? '/flights') + flightBrowseSearchQuery(checkout.searchRequest)}
+      state={seriReturnTo ? { resumeSeri: true } : { flightBrowseKey: returnTo?.key, flightBrowseSearchId: checkout.searchId }}>← {seriReturnTo ? 'Back to Seri' : 'Back to results'}</Link>
     <main className="guest-checkout-content">
       <BookingProgress current={1} stage={latestSelection ? 2 : passengers.every(person => person.confirmed) ? 1 : 0} />
       <h1>Complete your traveler details</h1>

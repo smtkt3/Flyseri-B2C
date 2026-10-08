@@ -6,7 +6,7 @@ export const flightService = {
   async ancillaryDisplayPrices(prices: { amount: string | null; currency: string | null }[], currency: string): Promise<import('@flyseri/types').FlightAncillaryDisplayPrices> {
     return (await apiClient.post<import('@flyseri/types').FlightAncillaryDisplayPrices>('/flights/ancillary-display-prices', { prices, currency }, { anonymous: true, timeoutMs: 12000 })).data;
   },
-  async popularCachedFares(): Promise<PopularCachedFlightFare[]> { return (await apiClient.get<PopularCachedFlightFare[]>('/flights/popular-cached-fares')).data; },
+  async popularCachedFares(origin = 'DAC', currency = 'BDT'): Promise<PopularCachedFlightFare[]> { return (await apiClient.get<PopularCachedFlightFare[]>(`/flights/popular-cached-fares?${new URLSearchParams({ origin, currency })}`)).data; },
   async ancillaries(input: { searchId: string; offerId: string; passengers: { givenName: string; surname: string }[] }): Promise<FlightAncillaryResponse> {
     return (await apiClient.post<FlightAncillaryResponse>('/flights/ancillaries', input, { timeoutMs: 40000 })).data;
   },

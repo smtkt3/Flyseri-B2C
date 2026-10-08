@@ -1,16 +1,21 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
 import { Link } from "react-router-dom"
+import { CalendarDateField } from "../CalendarDateField"
+import { preferredCurrency, currencyPreferenceEvent } from "../LocaleMenu"
 import type { PopularCachedFlightFare } from "@flyseri/types"
 import { flightService } from "../../services/flightService"
+import { useHomeSearchDraft, useHomeSearchField, homeSearchUrl } from "./homeSearchDraft"
 import airports from "./map-airports.json"
 import {
   WORLD_VIEW,
+  clampMapView,
   layoutMapLabels,
   mercatorY,
   projectAirport,
@@ -55,56 +60,89 @@ const photos: Record<string, string> = {
 }
 const countries = new Intl.DisplayNames(["en"], { type: "region" })
 // Coordinates are extracted from the same airport directory used by flight search.
-const places = airports
-  .filter((place) => place.code !== "KUL")
+const allPlaces = airports
   .map((place) => ({
     ...place,
     city: cityNames[place.code] ?? place.city,
     country: countries.of(place.country) ?? place.country,
     image: photos[place.code],
   }))
-const originAirport = airports.find((place) => place.code === "KUL")!
 const imageUrl = (id: string) =>
   `https://images.unsplash.com/${id}?w=200&q=80&fit=crop&auto=format`
 const money = (fare?: PopularCachedFlightFare) =>
   fare
     ? `${fare.currency} ${Number(fare.price).toLocaleString("en-MY", { maximumFractionDigits: 0 })}`
     : "Check fares"
-const flightUrl = (code: string, fare?: PopularCachedFlightFare) =>
-  `/flights?${new URLSearchParams({ origin: "KUL", destination: code, tripType: "ONE_WAY", ...(fare ? { departureDate: fare.departureDate, currency: fare.currency, autoSearch: "1" } : {}) })}`
-
 export function ExploreFareMap() {
+  const search = useHomeSearchDraft()
+  const [originCode, setOriginCode] = useHomeSearchField("origin")
+  const originAirport = allPlaces.find((place) => place.code === originCode) ?? allPlaces.find(place => place.code === "DAC")!
+  const places = useMemo(() => allPlaces.filter((place) => place.code !== originCode), [originCode])
+  const [currency, setCurrency] = useState(preferredCurrency)
+  const [selectingOrigin, setSelectingOrigin] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 1000, height: 520 })
   const [fares, setFares] = useState<PopularCachedFlightFare[]>([])
   const [active, setActive] = useState("BKK")
-  const [view, setView] = useState<MapView>(WORLD_VIEW)
+  const [destinationValue, setDestinationValue] = useHomeSearchField("destination")
+  const destination = destinationValue || null
+  const setDestination = (code: string | null) => setDestinationValue(code ?? "")
+  const [departureDate, setDepartureDate] = useHomeSearchField("departure")
+  const localToday = new Date()
+  const minimumDate = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, "0")}-${String(localToday.getDate()).padStart(2, "0")}`
+  const [view, setView] = useState<MapView>({ lon: 94, lat: 23, zoom: 4 })
   const viewRef = useRef(view)
   const viewportRef = useRef({ width: 810, height: 472 })
   const pointers = useRef(new Map<number, MapPoint>())
   const dragStart = useRef<MapPoint | null>(null)
   const moved = useRef(false)
+  const frame = useRef<number | null>(null)
+  const gestureRect = useRef<DOMRect | null>(null)
   const [dragging, setDragging] = useState(false)
   const [query, setQuery] = useState("")
   const commitView = (next: MapView) => {
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current)
+      frame.current = null
+    }
     viewRef.current = next
     setView(next)
   }
+  // Pointer events can arrive faster than the display refreshes. Keep every
+  // geographic delta, but render only the latest view once per animation frame.
+  const queueView = (next: MapView) => {
+    viewRef.current = next
+    if (frame.current !== null) return
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null
+      setView(viewRef.current)
+    })
+  }
+  useEffect(() => () => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current)
+  }, [])
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [faresOnly, setFaresOnly] = useState(false)
   const [routes, setRoutes] = useState(true)
-  const [maxPrice, setMaxPrice] = useState(10000)
+  const [maxPrice, setMaxPrice] = useState<number | null>(null)
+  const budgetLimit = currency === "BDT" ? 500000 : 10000
   const [listOpen, setListOpen] = useState(false)
+  useEffect(() => {
+    const update = () => { setCurrency(preferredCurrency()); setFares([]); setMaxPrice(null) }
+    window.addEventListener(currencyPreferenceEvent, update)
+    window.addEventListener("storage", update)
+    return () => { window.removeEventListener(currencyPreferenceEvent, update); window.removeEventListener("storage", update) }
+  }, [])
   useEffect(() => {
     let mounted = true
     const refresh = () =>
       void flightService
-        .popularCachedFares()
+        .popularCachedFares(originCode, currency)
         .then((items) => {
           if (mounted)
             setFares(
               items.filter((item) =>
-                places.some((place) => place.code === item.destination),
+                item.currency === currency && (!departureDate || item.departureDate === departureDate) && places.some((place) => place.code === item.destination),
               ),
             )
         })
@@ -117,15 +155,15 @@ export function ExploreFareMap() {
       mounted = false
       window.clearInterval(timer)
     }
-  }, [])
+  }, [originCode, currency, departureDate, places])
   useEffect(() => {
     if (!mapRef.current || typeof ResizeObserver === "undefined") return
     const observer = new ResizeObserver(([entry]) => {
       if (entry)
-        setSize({
+        setSize((current) => current.width === entry.contentRect.width && current.height === entry.contentRect.height ? current : ({
           width: entry.contentRect.width,
           height: entry.contentRect.height,
-        })
+        }))
     })
     observer.observe(mapRef.current)
     return () => observer.disconnect()
@@ -135,6 +173,11 @@ export function ExploreFareMap() {
   const plotHeight = mobile ? size.height - 154 : size.height - 48
   const viewport = { width: plotWidth, height: plotHeight }
   viewportRef.current = viewport
+  useEffect(() => {
+    const current = viewRef.current
+    const bounded = clampMapView(current, viewportRef.current)
+    if (bounded !== current) commitView(bounded)
+  }, [size.width, size.height])
   const world = worldSize(view, viewport)
   const project = (lon: number, lat: number) =>
     projectAirport(lon, lat, view, viewport)
@@ -187,7 +230,7 @@ export function ExploreFareMap() {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       }
-      commitView(
+      queueView(
         transformMap(
           viewRef.current,
           viewportRef.current,
@@ -211,6 +254,7 @@ export function ExploreFareMap() {
     )
       return
     const rect = event.currentTarget.getBoundingClientRect()
+    gestureRect.current = rect
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top }
     pointers.current.set(event.pointerId, point)
     if (pointers.current.size === 1) {
@@ -225,7 +269,8 @@ export function ExploreFareMap() {
   function pointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     const previous = pointers.current.get(event.pointerId)
     if (!previous) return
-    const rect = event.currentTarget.getBoundingClientRect()
+    const rect = gestureRect.current
+    if (!rect) return
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top }
     const before = [...pointers.current.values()]
     pointers.current.set(event.pointerId, point)
@@ -237,7 +282,7 @@ export function ExploreFareMap() {
       })
       const distance = (points: MapPoint[]) =>
         Math.hypot(points[0]!.x - points[1]!.x, points[0]!.y - points[1]!.y)
-      commitView(
+      queueView(
         transformMap(
           viewRef.current,
           viewportRef.current,
@@ -261,13 +306,15 @@ export function ExploreFareMap() {
     moved.current = true
     setDragging(true)
     event.currentTarget.setPointerCapture?.(event.pointerId)
-    commitView(transformMap(viewRef.current, viewportRef.current, from, point))
+    queueView(transformMap(viewRef.current, viewportRef.current, from, point))
   }
   function pointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
     pointers.current.delete(event.pointerId)
     if (event.currentTarget.hasPointerCapture?.(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId)
     if (!pointers.current.size) {
+      commitView(viewRef.current)
+      gestureRect.current = null
       setDragging(false)
       dragStart.current = null
     } else dragStart.current = [...pointers.current.values()][0]!
@@ -296,16 +343,16 @@ export function ExploreFareMap() {
       else changeZoom(event.key === "-" ? 1 / 1.5 : 1.5)
     }
   }
-  const byCode = new Map(fares.map((fare) => [fare.destination, fare]))
-  const visible = places.filter((place) => {
+  const byCode = useMemo(() => new Map(fares.filter((fare) => fare.currency === currency && (!departureDate || fare.departureDate === departureDate)).map((fare) => [fare.destination, fare])), [fares, currency, departureDate])
+  const visible = useMemo(() => places.filter((place) => {
     const fare = byCode.get(place.code)
     return (
       (!faresOnly || !!fare) &&
-      (!fare || maxPrice === 10000 || Number(fare.price) <= maxPrice)
+      (!fare || maxPrice === null || Number(fare.price) <= maxPrice)
     )
-  })
+  }), [byCode, faresOnly, maxPrice])
   const selected =
-    visible.find((place) => place.code === active) ?? visible[0] ?? places[4]!
+    visible.find((place) => place.code === (destination || active)) ?? visible[0] ?? places[4]!
   const selectedFare = byCode.get(selected.code)
   const onScreen = visible
     .map((place) => ({ ...place, point: project(place.lon, place.lat) }))
@@ -333,13 +380,14 @@ export function ExploreFareMap() {
       { x: 0, y: plotHeight * 0.48, width: 50, height: 110 },
     ],
   )
-  const listed = visible.filter((place) =>
+  const listed = (selectingOrigin ? allPlaces : visible).filter((place) =>
     `${place.city} ${place.country} ${place.code} ${place.name}`
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   )
   const choosePlace = (code: string, focus = false) => {
     setActive(code)
+    setDestination(code)
     setListOpen(false)
     if (focus) {
       const place = places.find((item) => item.code === code)!
@@ -351,7 +399,7 @@ export function ExploreFareMap() {
     }
   }
   const reset = () => {
-    setMaxPrice(10000)
+    setMaxPrice(null)
     setFaresOnly(false)
     setRoutes(true)
   }
@@ -361,28 +409,28 @@ export function ExploreFareMap() {
       aria-label="Explore flights on the world map"
     >
       <div className="explore-map-toolbar">
-        <div>
+        <button type="button" className="explore-map-destination-trigger" aria-label="Choose map departure airport" aria-expanded={listOpen && selectingOrigin} aria-controls="explore-map-destinations" onClick={() => { setSelectingOrigin(true); setQuery(""); setListOpen(!listOpen || !selectingOrigin); setFiltersOpen(false) }}>
           <span>From</span>
           <strong>
-            KUL <small>Kuala Lumpur</small>
+            {originAirport.code} <small>{originAirport.city} ⌄</small>
           </strong>
-        </div>
+        </button>
         <i aria-hidden="true">→</i>
-        <div>
+        <button
+          className="explore-map-destination-trigger"
+          type="button"
+          aria-label="Choose map destination"
+          aria-expanded={listOpen && !selectingOrigin}
+          aria-controls="explore-map-destinations"
+          onClick={() => { setSelectingOrigin(false); setQuery(""); setListOpen(!listOpen || selectingOrigin); setFiltersOpen(false) }}
+        >
           <span>To</span>
           <strong>
-            Anywhere <small>Explore the world</small>
+            {destination ? places.find((place) => place.code === destination)?.city : "Anywhere"}
+            <small>{destination ? `${destination} · Change destination ⌄` : "Explore the world ⌄"}</small>
           </strong>
-        </div>
-        <button
-          className="explore-map-desktop-browse"
-          type="button"
-          aria-expanded={listOpen}
-          onClick={() => setListOpen(!listOpen)}
-        >
-          Explore destinations ⌕
         </button>
-        <Link to="/flights" aria-label="Change flight route">
+        <Link to={`/flights?${new URLSearchParams({ origin: originCode, currency })}`} aria-label="Change flight route">
           ⇄
         </Link>
       </div>
@@ -397,30 +445,7 @@ export function ExploreFareMap() {
         >
           ☷ <span>Filters</span>
         </button>
-        <Link to="/flights">
-          ▦ <span>Choose dates</span>
-        </Link>
-        <button
-          type="button"
-          className={!listOpen ? "is-current" : ""}
-          onClick={() => {
-            setListOpen(false)
-            setFiltersOpen(false)
-          }}
-        >
-          ◎ <span>Map</span>
-        </button>
-        <button
-          type="button"
-          aria-expanded={listOpen}
-          className={listOpen ? "is-current" : ""}
-          onClick={() => {
-            setListOpen(!listOpen)
-            setFiltersOpen(false)
-          }}
-        >
-          ◇ <span>Destinations</span>
-        </button>
+        <CalendarDateField label="Choose dates" value={departureDate} minDate={minimumDate} onChange={setDepartureDate} className="explore-map-date" align="end" />
       </div>
       <div
         className={`explore-map-canvas${dragging ? " is-dragging" : ""}`}
@@ -450,6 +475,7 @@ export function ExploreFareMap() {
               key={tile.key}
               src={`https://tile.openstreetmap.org/${tileZoom}/${tile.x}/${tile.y}.png`}
               alt=""
+              decoding="async"
               style={{
                 left: tile.left,
                 top: tile.top,
@@ -560,7 +586,7 @@ export function ExploreFareMap() {
             <i />
           </span>
           <strong>
-            KUL<small>Kuala Lumpur</small>
+            {originAirport.code}<small>{originAirport.city}</small>
           </strong>
         </div>
         <div className="explore-map-zoom" aria-label="Map controls">
@@ -589,7 +615,7 @@ export function ExploreFareMap() {
           </button>
           <button
             type="button"
-            aria-label="Center map on Kuala Lumpur"
+            aria-label={`Center map on ${originAirport.city}`}
             onClick={() =>
               commitView({
                 lon: originAirport.lon,
@@ -618,9 +644,9 @@ export function ExploreFareMap() {
           <label htmlFor="map-price">
             Max price{" "}
             <strong>
-              {maxPrice === 10000
+              {maxPrice === null
                 ? "Any price"
-                : `MYR ${maxPrice.toLocaleString()}`}
+                : `${currency} ${maxPrice.toLocaleString()}`}
             </strong>
           </label>
           <input
@@ -628,12 +654,12 @@ export function ExploreFareMap() {
             aria-label="Maximum cached fare"
             type="range"
             min="100"
-            max="10000"
+            max={budgetLimit}
             step="100"
-            value={maxPrice}
-            onChange={(event) => setMaxPrice(Number(event.target.value))}
+            value={maxPrice ?? budgetLimit}
+            onChange={(event) => { const value = Number(event.target.value); setMaxPrice(value >= budgetLimit ? null : value) }}
           />
-          <p>Filter recently searched fares</p>
+
           <label className="explore-map-switch">
             Recent fares only
             <input
@@ -653,7 +679,7 @@ export function ExploreFareMap() {
             />
           </label>
           <div className="explore-map-filter-divider" />
-          <small>Explore destinations worldwide</small>
+
           <button type="button" className="explore-map-clear" onClick={reset}>
             Clear all
           </button>
@@ -667,13 +693,13 @@ export function ExploreFareMap() {
           </p>
         )}
         {listOpen && (
-          <div className="explore-map-list" aria-label="All map destinations">
+          <div id="explore-map-destinations" className="explore-map-list" aria-label={selectingOrigin ? "Map departure airports" : "All map destinations"}>
             <header>
               <label>
-                Find a destination
+                {selectingOrigin ? "Choose departure airport" : "Find a destination"}
                 <input
                   type="search"
-                  aria-label="Search map destinations"
+                  aria-label={selectingOrigin ? "Search map departure airports" : "Search map destinations"}
                   placeholder="City, country or airport code"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -691,7 +717,13 @@ export function ExploreFareMap() {
               <button
                 type="button"
                 key={place.code}
-                onClick={() => choosePlace(place.code, true)}
+                onClick={() => {
+                  if (selectingOrigin) {
+                    setOriginCode(place.code); setFares([]); setMaxPrice(null); setListOpen(false)
+                    if (destination === place.code) setDestination(null)
+                    if (active === place.code) setActive(place.code === "BKK" ? "KUL" : "BKK")
+                  } else choosePlace(place.code, true)
+                }}
               >
                 <strong>
                   {place.city}{" "}
@@ -699,7 +731,7 @@ export function ExploreFareMap() {
                     {place.code} · {place.country}
                   </small>
                 </strong>
-                <span>{money(byCode.get(place.code))} →</span>
+                <span>{selectingOrigin ? (place.code === originCode ? "Selected" : "Depart here") : money(byCode.get(place.code))} →</span>
               </button>
             ))}
             {listed.length === 0 && <p>No destinations match your search.</p>}
@@ -720,14 +752,16 @@ export function ExploreFareMap() {
                 {selected.city} <small>({selected.code})</small>
               </h3>
               <p>{selected.country}</p>
-              <span title={selected.name}>
+              <p className="explore-map-route-label">{originCode} → {selected.code}</p>
+              {selectedFare?.durationMinutes != null && Number.isFinite(selectedFare.durationMinutes) && selectedFare.durationMinutes > 0 ? <p className="explore-map-flight-duration">{Math.floor(selectedFare.durationMinutes / 60) > 0 ? `${Math.floor(selectedFare.durationMinutes / 60)}h ` : ''}{selectedFare.durationMinutes % 60 > 0 ? `${selectedFare.durationMinutes % 60}m` : ''}{selectedFare.stops != null && ` · ${selectedFare.stops === 0 ? 'Non-stop' : `${selectedFare.stops} stop${selectedFare.stops === 1 ? '' : 's'}`}`}</p> : <p className="explore-map-flight-duration is-unavailable">Search flights to see duration</p>}
+              <span title={selectedFare ? `One adult · Economy · One-way · ${selectedFare.currency} · Shopping fare, subject to recheck` : selected.name}>
                 {selectedFare
-                  ? `Recent search · ${selectedFare.departureDate}`
+                  ? `Travel ${selectedFare.departureDate} · Checked ${new Date(selectedFare.searchedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
                   : selected.name}
               </span>
             </div>
-            <strong>{money(selectedFare)}</strong>
-            <Link to={flightUrl(selected.code, selectedFare)}>
+            <strong>{selectedFare && <small className="explore-map-cached-label">Cached fare</small>}{money(selectedFare)}</strong>
+            <Link to={homeSearchUrl({ ...search, departure: departureDate || selectedFare?.departureDate || "" }, selected.code) + "&currency=" + currency}>
               View flights <span aria-hidden="true">→</span>
             </Link>
           </article>
@@ -741,7 +775,7 @@ export function ExploreFareMap() {
           © OpenStreetMap contributors
         </a>
       </div>
-      <p id="explore-map-instructions" className="explore-map-footnote">
+      <p id="explore-map-instructions" className="sr-only">
         Drag to explore · Scroll or pinch to zoom · Arrow keys to move · Home
         for the world view. Explore destination ideas. Prices, when shown, are
         from recent searches; check live fares before booking.

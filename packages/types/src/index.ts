@@ -163,6 +163,8 @@ export type FlightSearchEvent =
   | { type: 'error'; code: string; message: string; requestId: string }
   | { type: 'started' };
 export interface PopularCachedFlightFare {
+  durationMinutes?: number | null;
+  stops?: number;
   destination: string;
   departureDate: string;
   price: string;
@@ -620,3 +622,4 @@ export interface VisaAssistanceRequestDetail extends VisaAssistanceRequestSummar
  applicants: Array<{ travellerId: string; details: VisaAssistanceApplicantInput | null }>;
  documents: VisaAssistanceDocument[];
 }
+export type { HolidayPackage, HolidayBookingInput, HolidayBooking } from './holiday.js';

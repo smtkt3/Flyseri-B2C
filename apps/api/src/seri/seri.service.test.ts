@@ -146,6 +146,15 @@ describe('Seri deterministic orchestration and tool boundary', () => {
     expect(registry.forRequest(false).some((tool) => tool.name === 'searchFlights')).toBe(false);
     expect(registry.forRequest(true).some((tool) => tool.name === 'searchFlights')).toBe(true);
   });
+  it('attaches the exact validated search request to selectable chat flight results', async () => {
+    const { service, flights } = setup();
+    const registry = (service as unknown as { tools: SeriToolRegistry }).tools;
+    const request = { origin: 'DAC', destination: 'BKK', departureDate: '2027-01-22', tripType: 'ONE_WAY', adults: 2, children: 1, infants: 0, cabin: 'ECONOMY', currency: 'BDT' };
+    const result = await registry.execute('searchFlights', { customerId, conversationTripId: null, requestId, profile: user.profile, tripContext: null }, request);
+    expect(flights.search).toHaveBeenCalledWith(customerId, requestId, expect.objectContaining(request));
+    expect(result.payload?.searchRequest).toEqual(request);
+    expect(result.payload?.searchId).toBeTruthy();
+  });
 
   it('has no ticketing, refund, payment mutation, or arbitrary database tools', async () => {
     const { service } = setup();

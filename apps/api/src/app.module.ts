@@ -9,6 +9,7 @@ import { FlightModule } from './flight/flight.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { CommerceModule } from './commerce/commerce.module.js';
 import { SeriModule } from './seri/seri.module.js';
+import { HolidayModule } from './holiday/holiday.module.js';
 
-@Module({ imports: [InfrastructureModule, HealthModule, CustomerModule, TripModule, DocumentModule, VisaModule, FlightModule, CommerceModule, AdminModule, SeriModule] })
+@Module({ imports: [InfrastructureModule, HealthModule, CustomerModule, TripModule, DocumentModule, VisaModule, FlightModule, CommerceModule, AdminModule, SeriModule, HolidayModule] })
 export class AppModule {}

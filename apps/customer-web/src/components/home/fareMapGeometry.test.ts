@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WORLD_VIEW, latitudeAtY, layoutMapLabels, mercatorY, projectAirport, transformMap } from './fareMapGeometry';
+import { WORLD_VIEW, clampMapView, latitudeAtY, layoutMapLabels, mercatorY, projectAirport, transformMap, worldSize } from './fareMapGeometry';
 
 describe('flight map geography', () => {
   const viewport = { width: 1000, height: 500 };
@@ -28,6 +28,19 @@ describe('flight map geography', () => {
     expect(extreme.lon).toBeLessThan(180);
     expect(Math.abs(extreme.lat)).toBeLessThanOrEqual(85.052);
     expect(extreme.zoom).toBe(32);
+  });
+  it('keeps the north and south map edges covering the viewport during extreme pans and resizes', () => {
+    const north = transformMap(WORLD_VIEW, viewport, { x: 500, y: 250 }, { x: 500, y: 10000 });
+    const northWorld = worldSize(north, viewport);
+    expect(mercatorY(north.lat) * northWorld - viewport.height / 2).toBeCloseTo(0, 5);
+
+    const south = transformMap(WORLD_VIEW, viewport, { x: 500, y: 250 }, { x: 500, y: -10000 });
+    const southWorld = worldSize(south, viewport);
+    expect(southWorld - mercatorY(south.lat) * southWorld + viewport.height / 2).toBeCloseTo(viewport.height, 5);
+
+    const resized = clampMapView(north, { width: 420, height: 700 });
+    const resizedWorld = worldSize(resized, { width: 420, height: 700 });
+    expect(mercatorY(resized.lat) * resizedWorld - 700 / 2).toBeGreaterThanOrEqual(-0.001);
   });
   it('keeps crowded destination labels separate while retaining exact airport anchors', () => {
     const point = { x: 210, y: 180 };

@@ -1,0 +1,71 @@
+@media (min-width:1367px) {
+  .premium-home-main .premium-main {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;
+    gap:20px;
+  }
+  .premium-home-main .premium-main > * { grid-column:1/-1; min-width:0; margin-top:0; }
+  .premium-home-main .premium-main .premium-journey-grid { display:contents; }
+  .premium-home-main .premium-main #home-search-map > .explore-map { grid-column:1; grid-row:1; }
+  .premium-home-main .premium-main #home-search-ai > .premium-seri-chat,
+  .premium-home-main .premium-main #home-search-ai > .seri-inline-placeholder {
+    grid-column:2;
+    grid-row:1;
+    align-self:stretch;
+    min-width:0;
+    min-height:0;
+    height:598px;
+    overflow:hidden;
+    margin:0;
+    border-radius:22px;
+    border:1px solid #fff;
+    background:linear-gradient(145deg,#f8fcff,#effaf8);
+  }
+  .premium-home-main .premium-main #home-search-ai > .premium-seri-chat {
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:14px;
+    padding:20px 16px 16px;
+    height:598px;
+    max-height:100%;
+    box-sizing:border-box;
+  }
+  #home-search-ai .premium-seri-entry-heading { display:flex; align-items:center; gap:10px; flex:none; }
+  #home-search-ai .premium-seri-entry-heading h2 { font-size:15px; line-height:1.5; }
+  #home-search-ai .premium-seri-entry-heading p { font-size:11px; line-height:1.6; }
+  #home-search-ai .premium-seri-entry-icon { flex:none; }
+  #home-search-ai .premium-seri-chat .home-seri-transcript,
+  #home-search-ai .premium-seri-chat .home-seri-transcript.is-empty {
+    display:block;
+    flex:1 1 0;
+    min-height:0;
+    max-height:none;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    overflow-wrap:anywhere;
+    padding:12px 4px;
+    border:0;
+    background:transparent;
+  }
+  #home-search-ai .home-seri-welcome { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; height:100%; text-align:center; }
+  #home-search-ai .home-seri-welcome > span { display:grid; place-items:center; width:64px; height:64px; border-radius:22px; background:linear-gradient(135deg,#e1edff,#def7f0); color:#3289e8; font-size:32px; }
+  #home-search-ai .home-seri-welcome strong { color:#244366; font-size:18px; }
+  #home-search-ai .home-seri-welcome p { max-width:230px; margin:0; color:#718ba3; font-size:12px; line-height:1.7; }
+  #home-search-ai .premium-seri-chat > form { display:flex; flex-wrap:nowrap; flex:none; gap:6px; width:100%; box-sizing:border-box; padding:6px; border:1px solid #dbe9f7; border-radius:14px; background:#fff; }
+  #home-search-ai .premium-seri-chat > form input { flex:1; min-width:0; width:0; padding:10px 6px; border:0; background:transparent; font-size:12px; }
+  #home-search-ai .premium-seri-chat > form button { flex:none; width:auto; padding:10px; min-height:40px; font-size:11px; border-radius:10px; }
+  #home-search-ai .home-seri-sign-in { flex:none; text-align:center; font-size:10px; }
+  #home-search-ai .seri-inline-placeholder { flex-direction:column; justify-content:center; text-align:center; }
+  .premium-home-main .premium-main .premium-exclusive-offers { grid-column:1/-1; grid-row:2; align-self:start; min-height:0; }
+  .premium-exclusive-offers .premium-offers-preview { grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; padding:18px; }
+  .premium-exclusive-offers .premium-offers-demo-label,
+  .premium-exclusive-offers .premium-offers-preview-note { grid-column:1/-1; }
+  .premium-exclusive-offers .premium-offer-preview { min-height:88px; padding:16px; gap:14px; }
+  .premium-exclusive-offers .premium-offer-preview h3 { font-size:15px; }
+  .premium-exclusive-offers .premium-offer-preview > strong { font-size:16px; }
+  .premium-exclusive-offers .premium-offer-preview small,
+  .premium-exclusive-offers .premium-offer-preview p { font-size:10px; }
+  .premium-home-main #explore { display:none; }
+}

@@ -1,9 +1,13 @@
 import type { SeriMessage } from '@flyseri/types';
+import { useMemo } from 'react';
 import { displayDate } from '../trip/tripPresentation';
+import { chatFlights, SeriFlightResults, type ChatFlights } from './SeriFlightResults';
 
-export function SeriMessageDetails({ message }: { message: SeriMessage }) {
+export function SeriMessageDetails({ message, onFlightsUpdate }: { message: SeriMessage; onFlightsUpdate?: (data: ChatFlights) => void }) {
   const payload = message.payload;
+  const flights = useMemo(() => chatFlights(payload), [payload]);
   if (!payload) return null;
+  if (flights) return <SeriFlightResults data={flights} onUpdate={onFlightsUpdate} />;
   const trips = Array.isArray(payload.trips) ? payload.trips as Array<Record<string, unknown>> : [];
   const applications = Array.isArray(payload.applications) ? payload.applications as Array<Record<string, unknown>> : [];
   const payments = Array.isArray(payload.payments) ? payload.payments as Array<Record<string, unknown>> : [];
