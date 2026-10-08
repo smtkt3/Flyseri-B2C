@@ -582,8 +582,12 @@ export function ExploreFareMap() {
           className="explore-map-origin"
           style={{ left: origin.x, top: origin.y }}
         >
-          <span className="explore-map-pin">
-            <i />
+          <span className="explore-map-pin" aria-hidden="true">
+            <svg viewBox="0 0 36 44" fill="none">
+              <path d="M18 2C9.2 2 2 9.1 2 18c0 10.3 16 24 16 24s16-13.7 16-24C34 9.1 26.8 2 18 2Z" fill="currentColor" stroke="white" strokeWidth="2.5" strokeLinejoin="round" />
+              <circle cx="18" cy="17.5" r="6" fill="white" />
+              <circle cx="18" cy="17.5" r="2.5" fill="currentColor" />
+            </svg>
           </span>
           <strong>
             {originAirport.code}<small>{originAirport.city}</small>
@@ -753,12 +757,8 @@ export function ExploreFareMap() {
               </h3>
               <p>{selected.country}</p>
               <p className="explore-map-route-label">{originCode} → {selected.code}</p>
-              {selectedFare?.durationMinutes != null && Number.isFinite(selectedFare.durationMinutes) && selectedFare.durationMinutes > 0 ? <p className="explore-map-flight-duration">{Math.floor(selectedFare.durationMinutes / 60) > 0 ? `${Math.floor(selectedFare.durationMinutes / 60)}h ` : ''}{selectedFare.durationMinutes % 60 > 0 ? `${selectedFare.durationMinutes % 60}m` : ''}{selectedFare.stops != null && ` · ${selectedFare.stops === 0 ? 'Non-stop' : `${selectedFare.stops} stop${selectedFare.stops === 1 ? '' : 's'}`}`}</p> : <p className="explore-map-flight-duration is-unavailable">Search flights to see duration</p>}
-              <span title={selectedFare ? `One adult · Economy · One-way · ${selectedFare.currency} · Shopping fare, subject to recheck` : selected.name}>
-                {selectedFare
-                  ? `Travel ${selectedFare.departureDate} · Checked ${new Date(selectedFare.searchedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
-                  : selected.name}
-              </span>
+              {selectedFare?.durationMinutes != null && Number.isFinite(selectedFare.durationMinutes) && selectedFare.durationMinutes > 0 && <p className="explore-map-flight-duration">{Math.floor(selectedFare.durationMinutes / 60) > 0 ? `${Math.floor(selectedFare.durationMinutes / 60)}h ` : ''}{selectedFare.durationMinutes % 60 > 0 ? `${selectedFare.durationMinutes % 60}m` : ''}{selectedFare.stops != null && ` · ${selectedFare.stops === 0 ? 'Non-stop' : `${selectedFare.stops} stop${selectedFare.stops === 1 ? '' : 's'}`}`}</p>}
+              {selectedFare && <span title={`One adult · Economy · One-way · ${selectedFare.currency} · Checked ${new Date(selectedFare.searchedAt).toLocaleString('en-GB')} · Subject to recheck`}>Travel {selectedFare.departureDate}</span>}
             </div>
             <strong>{selectedFare && <small className="explore-map-cached-label">Cached fare</small>}{money(selectedFare)}</strong>
             <Link to={homeSearchUrl({ ...search, departure: departureDate || selectedFare?.departureDate || "" }, selected.code) + "&currency=" + currency}>

@@ -12,6 +12,16 @@ function setup(reduced = false) {
 }
 describe('holiday slideshow', () => {
   const active = () => document.querySelector('.holiday-slide.is-active')?.getAttribute('href');
+  it('lets touch users pause and resume without changing the 1.5 second rotation', () => {
+    vi.useFakeTimers(); setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause holiday slideshow' }));
+    act(() => vi.advanceTimersByTime(6000));
+    expect(active()).toBe('/holidays/preview-kuakata');
+    expect(screen.getByRole('button', { name: 'Resume holiday slideshow' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Resume holiday slideshow' }));
+    act(() => vi.advanceTimersByTime(1500));
+    expect(active()).toBe('/holidays/preview-sreemangal');
+  });
   it('supports keyboard and adjacent-card navigation without preview badges', () => {
     setup();
     expect(active()).toBe('/holidays/preview-kuakata');
@@ -41,5 +51,16 @@ describe('holiday slideshow', () => {
     expect(active()).toBe('/holidays/preview-kuakata');
     fireEvent.keyDown(screen.getByRole('region'), { key: 'ArrowLeft' });
     expect(active()).toBe('/holidays/preview-sylhet');
+  });
+  it('pauses for two seconds after manual selection then resumes normal rotation', () => {
+    vi.useFakeTimers(); setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Show Sreemangal' }));
+    expect(active()).toBe('/holidays/preview-sreemangal');
+    act(() => vi.advanceTimersByTime(1999));
+    expect(active()).toBe('/holidays/preview-sreemangal');
+    act(() => vi.advanceTimersByTime(1));
+    expect(active()).toBe('/holidays/preview-sundarbans');
+    act(() => vi.advanceTimersByTime(1500));
+    expect(active()).toBe('/holidays/preview-cox');
   });
 });

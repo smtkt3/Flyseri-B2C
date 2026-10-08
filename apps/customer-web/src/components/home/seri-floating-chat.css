@@ -11,3 +11,88 @@
 @keyframes seri-chat-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.seri-floating-launcher,.seri-floating-tooltip{transition:none}.seri-floating-panel{animation:none}}
 .seri-inline-placeholder{display:flex;align-items:center;justify-content:center;gap:16px;box-sizing:border-box;padding:22px;border:1px solid #ffffffdd;border-radius:20px;background:linear-gradient(115deg,#f5fbff,#effbf8);color:#264b70;font-family:Inter,system-ui,sans-serif}.seri-inline-placeholder>span{font-size:28px;color:#3289e8}.seri-inline-placeholder strong{font-size:14px}.seri-inline-placeholder p{margin:5px 0 0;color:#708ba5;font-size:12px}.seri-inline-placeholder button{padding:10px 14px;border:1px solid #d5e5f5;border-radius:12px;background:#fff;color:#287bd1;font-size:12px;font-weight:700;cursor:pointer}@media(max-width:600px){.seri-inline-placeholder{flex-direction:column;text-align:center;min-height:240px!important}}
+/* Roomier chat surface and a readable, easy-to-find launcher. */
+.seri-floating-launcher{display:flex;flex-direction:row-reverse;gap:12px;width:auto;min-width:184px;height:72px;box-sizing:border-box;padding:14px 20px;border-radius:24px;transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s;box-shadow:0 10px 30px #2179ca38,inset 0 1px 0 #ffffff80}
+.seri-floating-launcher svg{width:34px;height:34px;flex:none}
+.seri-launcher-label{display:flex;flex-direction:column;gap:4px;text-align:left;white-space:nowrap}
+.seri-launcher-label strong{font-size:14px;font-weight:750;line-height:1.2}
+.seri-launcher-label small{font-size:10px;font-weight:500;opacity:.88;line-height:1.2}
+.seri-floating-launcher.is-open{min-width:0;width:64px;height:64px;padding:16px;border-radius:22px}
+.seri-floating-panel{box-sizing:border-box;width:min(560px,calc(100vw - 48px));height:min(740px,calc(100dvh - 132px - env(safe-area-inset-bottom,0px)));bottom:calc(104px + env(safe-area-inset-bottom,0px));border-radius:28px;transform-origin:bottom right;animation:seri-chat-open .28s cubic-bezier(.2,.8,.2,1);outline:none}
+.seri-floating-panel.is-closing{animation:seri-chat-close .18s ease-in forwards;pointer-events:none}
+#seri-floating-chat .premium-seri-entry-heading{padding:20px 24px;gap:14px}
+#seri-floating-chat .premium-seri-entry-icon{width:48px;height:48px;border-radius:16px;font-size:29px}
+#seri-floating-chat .premium-seri-entry-heading h2{font-size:20px;letter-spacing:-.4px}
+#seri-floating-chat .premium-seri-entry-heading p{font-size:12px}
+#seri-floating-chat .seri-floating-close{width:44px;height:44px;border-radius:14px;flex:none}
+.seri-chat-team{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 24px;background:#fff;border-bottom:1px solid #e5eef6;flex:none;font-size:12px;color:#6a8098}
+.seri-chat-team a{padding:7px 10px;min-height:32px;box-sizing:border-box;border-radius:9px;background:#edf5ff;color:#2475d0;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap}
+#seri-floating-chat .home-seri-transcript,#seri-floating-chat .home-seri-transcript.is-empty{padding:24px}
+#seri-floating-chat .home-seri-message{max-width:90%;padding:15px 18px;margin-bottom:16px;border-radius:19px 19px 19px 5px}
+#seri-floating-chat .home-seri-message.is-user{border-radius:19px 19px 5px 19px}
+#seri-floating-chat .home-seri-message>p,#seri-floating-chat .seri-rich-text{font-size:14px;line-height:1.75}
+#seri-floating-chat .home-seri-message>small{font-size:11px;margin-bottom:7px}
+#seri-floating-chat .premium-seri-chat>form{margin:0 20px 20px;padding:7px;min-height:62px;border-radius:19px;box-shadow:0 4px 16px #264e7810}
+#seri-floating-chat form input{font-size:16px;padding:12px 10px}
+#seri-floating-chat form button{min-height:46px;font-size:13px;padding:12px 16px;border-radius:13px}
+#seri-floating-chat .home-seri-welcome.seri-welcome-design{padding:24px 12px;box-sizing:border-box}
+#seri-floating-chat .seri-welcome-design .seri-welcome-prompts>button{min-height:50px;padding:13px 16px;font-size:13px}
+#seri-floating-chat a:focus-visible{outline:3px solid #67b9ff;outline-offset:2px}
+@media(max-width:767px){
+ .seri-floating-launcher{right:16px;min-width:164px;height:64px;padding:12px 15px;border-radius:22px;gap:10px}
+ .seri-floating-launcher svg{width:31px;height:31px}
+ .seri-launcher-label strong{font-size:13px}.seri-launcher-label small{font-size:9px}
+ .seri-floating-launcher.is-open{width:60px;height:60px;padding:15px}
+ .seri-floating-panel{right:8px;width:calc(100vw - 16px);bottom:calc(88px + env(safe-area-inset-bottom,0px));height:calc(100dvh - 104px - env(safe-area-inset-bottom,0px));border-radius:24px}
+ #seri-floating-chat .premium-seri-entry-heading{padding:14px 16px;gap:10px}
+ #seri-floating-chat .premium-seri-entry-heading h2{font-size:18px}
+ #seri-floating-chat .premium-seri-entry-icon{width:42px;height:42px;font-size:26px}
+ .seri-chat-team{padding:8px 14px;font-size:11px;gap:8px}.seri-chat-team a{font-size:11px;min-height:36px;display:flex;align-items:center;gap:5px}
+ #seri-floating-chat .home-seri-transcript,#seri-floating-chat .home-seri-transcript.is-empty{padding:16px}
+ #seri-floating-chat .home-seri-message{max-width:94%;padding:13px 15px}
+ #seri-floating-chat .premium-seri-chat>form{margin:0 12px 12px;min-height:60px}
+ #seri-floating-chat form button{padding-inline:13px}
+ #seri-floating-chat .home-seri-welcome.seri-welcome-design{padding:14px 0}
+}
+@keyframes seri-chat-open{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes seri-chat-close{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(12px) scale(.98)}}
+@media(prefers-reduced-motion:reduce){.seri-floating-panel,.seri-floating-panel.is-closing{animation:none}.seri-floating-launcher{transition:none}}
+/* The aircraft itself is the visible button; the hit area stays generous. */
+.seri-floating-panel{bottom:calc(116px + env(safe-area-inset-bottom,0px));height:min(740px,calc(100dvh - 144px - env(safe-area-inset-bottom,0px)))}
+.seri-floating-launcher,.seri-floating-launcher.is-open{display:grid;place-items:center;width:88px;min-width:0;height:88px;padding:4px;gap:0;border:0;border-radius:50%;background:transparent;box-shadow:none}
+.seri-floating-launcher:hover{box-shadow:none;transform:translateY(-4px)}
+.seri-floating-launcher .seri-launcher-aircraft{width:80px;height:80px;filter:drop-shadow(0 5px 5px #1b64b542);transition:filter .24s ease,transform .24s ease}
+.seri-floating-launcher:hover .seri-launcher-aircraft{filter:drop-shadow(0 7px 7px #1b64b55c);transform:rotate(4deg)}
+.seri-floating-launcher:not(.is-open){display:flex;flex-direction:row;gap:0;width:208px}
+.seri-floating-launcher .seri-launcher-label{position:relative;right:auto;flex:1;padding:10px 12px;border:0;border-radius:14px;background:rgba(255,255,255,.2);color:#245078;box-shadow:none;opacity:1;pointer-events:none;transform:none;text-shadow:0 1px 3px #ffffffc9}
+.seri-floating-launcher .seri-launcher-label:after{content:none}
+.seri-floating-launcher:hover .seri-launcher-label,.seri-floating-launcher:focus-visible .seri-launcher-label{opacity:1;transform:translateX(0)}
+@media(max-width:767px){.seri-floating-launcher,.seri-floating-launcher.is-open{width:76px;height:76px;right:12px;padding:3px}.seri-floating-launcher:not(.is-open){width:188px;gap:0}.seri-floating-launcher .seri-launcher-aircraft{width:70px;height:70px}.seri-floating-launcher .seri-launcher-label{display:flex;padding:9px 10px}.seri-floating-panel{bottom:calc(100px + env(safe-area-inset-bottom,0px));height:calc(100dvh - 116px - env(safe-area-inset-bottom,0px))}}
+@media(prefers-reduced-motion:reduce){.seri-floating-launcher .seri-launcher-aircraft,.seri-floating-launcher .seri-launcher-label{transition:none}}
+/* A single stable anchor prevents scroll-driven jumps and sticky touch hover. */
+.seri-floating-launcher,.seri-floating-launcher.is-open{right:24px;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:none}
+.seri-floating-launcher:hover,.seri-floating-launcher:hover .seri-launcher-aircraft{transform:none}
+button.seri-floating-launcher[hidden]{display:none}
+@media(max-width:767px){.seri-floating-launcher,.seri-floating-launcher.is-open{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
+@media(hover:hover) and (pointer:fine){.seri-floating-launcher:hover .seri-launcher-aircraft{transform:rotate(4deg)}}
+/* Keep the invitation visually attached to the aircraft without a solid button shell. */
+.seri-floating-launcher:not(.is-open){width:230px}
+.seri-floating-launcher .seri-launcher-label{gap:5px;padding:11px 12px 11px 14px;margin-right:-8px;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.seri-floating-launcher .seri-launcher-label strong{font-size:15px;font-weight:800;letter-spacing:-.2px;line-height:1.2;color:#1c4268}
+.seri-floating-launcher .seri-launcher-label small{font-size:10px;font-weight:550;line-height:1.4;color:#3c6081;opacity:1}
+.seri-launcher-label small span{padding-inline:2px;color:#358dd6}
+.seri-floating-launcher .seri-launcher-aircraft{position:relative;width:84px;height:84px;filter:drop-shadow(0 4px 6px #28699b30)}
+@media(max-width:767px){
+ .seri-floating-launcher:not(.is-open){width:214px}
+ .seri-floating-launcher .seri-launcher-label{padding:10px 10px 10px 12px;margin-right:-8px;gap:4px}
+ .seri-floating-launcher .seri-launcher-label strong{font-size:14px}
+ .seri-floating-launcher .seri-launcher-label small{font-size:10px}
+ .seri-floating-launcher .seri-launcher-aircraft{width:76px;height:76px}
+}
+.seri-floating-launcher.is-compact:not(.is-open){width:88px}
+.seri-label-dismiss{position:fixed;z-index:901;right:110px;bottom:calc(80px + env(safe-area-inset-bottom,0px));display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #dceaf4;border-radius:50%;background:#ffffffdb;color:#527393;font:20px/1 Inter,system-ui,sans-serif;cursor:pointer}
+.seri-label-dismiss:focus-visible{outline:3px solid #67b9ff;outline-offset:3px}
+.home-seri-error>p{margin:0 0 10px}
+.home-seri-error>button{min-height:40px;padding:8px 14px;border:1px solid #e2b8be;border-radius:10px;background:#fff;color:#933747;font:600 13px Inter,system-ui,sans-serif;cursor:pointer}
+.home-seri-error>button:disabled{opacity:.5;cursor:default}
+@media(max-width:767px){.seri-floating-launcher.is-compact:not(.is-open){width:76px}.seri-label-dismiss{right:90px;bottom:calc(65px + env(safe-area-inset-bottom,0px))}}

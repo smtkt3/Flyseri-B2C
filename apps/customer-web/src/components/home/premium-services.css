@@ -584,3 +584,4 @@
  .premium-home-main .premium-search-route>.airport-picker:last-child{grid-column:1;grid-row:2}
  .premium-home-main .premium-search-route>.premium-swap{grid-column:2;grid-row:1/3;transform:rotate(90deg)}
 }
+@media(max-width:767px){.premium-home-main .premium-main{gap:16px;padding-top:16px;padding-bottom:18px}.premium-main>.premium-partners{padding-block:20px}.premium-partners h2{margin-bottom:16px}.premium-home-main .holiday-showcase{padding-top:24px}}

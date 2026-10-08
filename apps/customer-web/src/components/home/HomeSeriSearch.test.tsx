@@ -11,6 +11,72 @@ vi.mock('../../auth/AuthProvider', () => ({ useAuth: () => auth }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); auth.session = { user: { id: 'user-1' } }; });
 
 describe('homepage Seri conversation', () => {
+  it('dismisses the invitation for this tab while retaining the aircraft chat button', () => {
+    render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide chat invitation' }));
+    expect(screen.queryByText('AI & travel support')).toBeNull();
+    expect(sessionStorage.getItem('flyseri.chat-label-dismissed')).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Chat with us' }));
+    expect(screen.getByRole('dialog', { name: 'Seri' })).toBeTruthy();
+  });
+  it('keeps the draft offline and enables sending when connection returns', () => {
+    const connection = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    try {
+      render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
+      fireEvent.change(screen.getByLabelText('Ask Seri a travel question'), { target: { value: 'Plan a trip' } });
+      expect((screen.getByRole('button', { name: 'Ask Seri' }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText(/You’re offline/)).toBeTruthy();
+      connection.mockReturnValue(true);
+      fireEvent(window, new Event('online'));
+      expect((screen.getByRole('button', { name: 'Ask Seri' }) as HTMLButtonElement).disabled).toBe(false);
+      expect((screen.getByLabelText('Ask Seri a travel question') as HTMLInputElement).value).toBe('Plan a trip');
+    } finally { connection.mockRestore(); }
+  });
+  it('hides the closed launcher while the phone keyboard is open', () => {
+    vi.stubGlobal('visualViewport', { height: window.innerHeight - 250, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    try {
+      render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
+      expect(document.querySelector<HTMLButtonElement>('.seri-floating-launcher')?.hidden).toBe(true);
+      expect(screen.queryByRole('button', { name: 'Chat with us' })).toBeNull();
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it('fits the floating chat above the mobile keyboard', () => {
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('visualViewport', { height: 420, offsetTop: 8, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    try {
+      render(<MemoryRouter initialEntries={[{ pathname: '/', state: { resumeSeri: true } }]}><HomeSeriSearch /></MemoryRouter>);
+      const panel = screen.getByRole('dialog', { name: 'Seri' });
+      expect(panel.style.top).toBe('20px');
+      expect(panel.style.height).toBe('396px');
+      expect(panel.style.bottom).toBe('auto');
+      expect(screen.queryByRole('button', { name: 'Minimize Seri chat' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Close Seri chat' })).toBeTruthy();
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it('lets customers retry a failed reply without typing their question again', async () => {
+    auth.session = null;
+    api.guestSend.mockRejectedValueOnce(new Error('Connection lost')).mockResolvedValueOnce({ message: { id: 'retry-reply', role: 'ASSISTANT', content: 'Where would you like to go?', messageType: 'TEXT', payload: null } });
+    render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Ask Seri a travel question'), { target: { value: 'Find a flight' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ask Seri' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Where would you like to go?')).toBeTruthy();
+    expect(api.guestSend).toHaveBeenCalledTimes(2);
+    expect(api.guestSend.mock.calls[1]?.[0]).toBe('Find a flight');
+  });
+  it('offers team support in the floating chat and preserves a draft when minimized', async () => {
+    render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Chat with us' }));
+    expect(screen.getByRole('dialog', { name: 'Seri' })).toBeTruthy();
+    expect(screen.getByText('Your AI travel assistant')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Contact team' }).getAttribute('href')).toBe('/app/support');
+    fireEvent.change(screen.getByLabelText('Ask Seri a travel question'), { target: { value: 'Help with my booking' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Close Seri chat' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Seri' })).toBeNull());
+    expect((screen.getByLabelText('Ask Seri a travel question') as HTMLInputElement).value).toBe('Help with my booking');
+    fireEvent.click(screen.getByRole('button', { name: 'Chat with us' }));
+    expect((screen.getByLabelText('Ask Seri a travel question') as HTMLInputElement).value).toBe('Help with my booking');
+  });
   it('lets customers edit a welcome suggestion before sending it', () => {
     render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Plan a holiday' }));

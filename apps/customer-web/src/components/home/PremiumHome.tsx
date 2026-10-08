@@ -6,6 +6,7 @@ import { AirlineOfferDetails, type HomeAirlineOffer } from './AirlineOfferDetail
 import { useHomeSearchField } from './homeSearchDraft';
 import { ExploreFareMap } from './ExploreFareMap';
 import { HomeSeriSearch } from './HomeSeriSearch';
+import { useBackStepState } from '../useBackStepState';
 import { HeroDestinations } from './HeroDestinations';
 import { useAuth } from '../../auth/AuthProvider';
 import { customerService } from '../../services/customerService';
@@ -15,7 +16,8 @@ import { documentService } from '../../services/documentService';
 import { visaService } from '../../services/visaService';
 import { flightService } from '../../services/flightService';
 import { AirportPicker } from '../../flight/AirportPicker';
-import { CalendarDateField } from '../CalendarDateField';
+import { HistoryCalendarDateField as CalendarDateField } from '../CalendarDateField';
+import { homeSearchValidation } from './homeSearchValidation';
 import { useViewportPopover } from '../useViewportPopover';
 import { cabinOptions } from '../../flight/flightPresentation';
 import { PremiumNavbar } from '../PremiumNavbar';
@@ -33,6 +35,7 @@ import './service-sidebar.css';
 import './premium-footer.css';
 import './airline-offers-carousel.css';
 import './home-partners.css';
+import './home-refinements.css';
 
 type Overview = { profile: CustomerProfile | null; trips: TripSummary[]; orders: OrderSummary[]; payments: PaymentSummary[];
   documents: DocumentSummary[]; visas: VisaApplicationSummary[]; intent: FlightBookingIntent | null };
@@ -156,24 +159,26 @@ function SearchPanel({ active = true }: { active?: boolean }) {
   const [children, setChildren] = useHomeSearchField('children');
   const [infants, setInfants] = useHomeSearchField('infants');
   const [cabin, setCabin] = useHomeSearchField('cabin');
-  const [passengerPickerOpen, setPassengerPickerOpen] = useState(false);
-  useEffect(() => { if (!active) setPassengerPickerOpen(false); }, [active]);
+  const [passengerPickerOpen, setPassengerPickerOpen] = useBackStepState('home-passengers', false);
   const passengerPicker = useRef<HTMLDivElement>(null);
   const passengerTrigger = useRef<HTMLButtonElement>(null);
   const passengerPopover = useRef<HTMLElement>(null);
   const passengerPopoverStyle = useViewportPopover(passengerPickerOpen, passengerTrigger, { width: 380, height: 480, mobileSheet: true });
   const [error, setError] = useState('');
+  const [attempted, setAttempted] = useState(false);
   const today = new Date();
   const minimumDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const validation = homeSearchValidation({ mode, origin, destination, departure, returnDate, multiLegs }, minimumDate);
+  const fieldErrors = attempted ? validation : {};
   const code = (value: string) => value.trim().toUpperCase().match(/\(([A-Z]{3})\)$/)?.[1] ?? value.trim().toUpperCase();
   useEffect(() => {
-    if (!passengerPickerOpen) return;
+    if (!passengerPickerOpen || !active) return;
     const dismiss = (event: MouseEvent) => { if (!passengerPicker.current?.contains(event.target as Node) && !passengerPopover.current?.contains(event.target as Node)) setPassengerPickerOpen(false); };
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { setPassengerPickerOpen(false); passengerTrigger.current?.focus(); } };
     document.addEventListener('mousedown', dismiss);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', dismiss); document.removeEventListener('keydown', onKey); };
-  }, [passengerPickerOpen]);
+  }, [passengerPickerOpen, active]);
   const passengerLabel = `${adults} ${adults === 1 ? 'adult' : 'adults'}${children ? ` · ${children} ${children === 1 ? 'child' : 'children'}` : ''}${infants ? ` · ${infants} ${infants === 1 ? 'infant' : 'infants'}` : ''}`;
   function updatePassenger(kind: 'adults' | 'children' | 'infants', delta: number) {
     if (kind === 'adults') { const next = Math.max(1, Math.min(9 - children - infants, adults + delta)); setAdults(next); if (infants > next) setInfants(next); }
@@ -181,7 +186,12 @@ function SearchPanel({ active = true }: { active?: boolean }) {
     if (kind === 'infants') setInfants((count) => Math.max(0, Math.min(adults, count + delta, 9 - adults - children)));
   }
   function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setError('');
+    event.preventDefault(); setError(''); setAttempted(true);
+    if (Object.keys(validation).length) {
+      const form = event.currentTarget;
+      requestAnimationFrame(() => form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+      return;
+    }
     const from = code(origin), to = code(destination);
     if (mode === 'MULTI_CITY') {
       const legs = multiLegs.map((leg) => ({ origin: code(leg.origin), destination: code(leg.destination), departureDate: leg.departureDate }));
@@ -209,7 +219,7 @@ function SearchPanel({ active = true }: { active?: boolean }) {
           <button ref={passengerTrigger} type="button" className="premium-passenger-trigger" aria-label={`Passengers and cabin: ${passengerLabel}, ${cabinOptions.find(option => option.value === cabin)?.label ?? 'Economy'}`} aria-haspopup="dialog" aria-expanded={passengerPickerOpen} onClick={() => setPassengerPickerOpen((open) => !open)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 2.8-6 7-6s6.5 2 7 6"/></svg><span>{passengerLabel}</span><small className="premium-passenger-cabin-label">{cabinOptions.find(option => option.value === cabin)?.label}</small><span className="premium-passenger-arrow" aria-hidden="true">⌄</span>
           </button>
-          {passengerPickerOpen && createPortal(<section ref={passengerPopover} style={passengerPopoverStyle} className="premium-passenger-popover premium-passenger-portal" role="dialog" aria-label="Passengers and cabin">
+          {active && passengerPickerOpen && createPortal(<section ref={passengerPopover} style={passengerPopoverStyle} className="premium-passenger-popover premium-passenger-portal" role="dialog" aria-label="Passengers and cabin">
             <div className="premium-passenger-popover-head"><span aria-hidden="true">♟</span><strong>{passengerLabel}</strong></div>
 
             {[{ key: 'adults' as const, label: 'Adults', age: '12+ years old', count: adults, min: 1, max: 9 - children - infants },
@@ -224,16 +234,16 @@ function SearchPanel({ active = true }: { active?: boolean }) {
         </div>
       </div>
     </div>
-    <form key={String(active)} className={`premium-search-fields${mode === 'MULTI_CITY' ? ' is-multi-city' : ''}`} onSubmit={submit}>
-      {mode === 'MULTI_CITY' ? <div className="premium-multi-city-legs" role="group" aria-label="Multi-city flight legs">{multiLegs.map((leg,index) => <div className="premium-multi-city-row" key={index}><span className="premium-leg-number">{index + 1}</span><AirportPicker label="From" value={leg.origin} onChange={(value) => setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, origin: value } : item))} /><AirportPicker label="To" value={leg.destination} onChange={(value) => { const valueCode = code(value); setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, destination: value } : mode === 'MULTI_CITY' && i === index + 1 && valueCode.length === 3 ? { ...item, origin: valueCode } : item)); }} /><CalendarDateField label={`Flight ${index + 1} date`} className="premium-leg-date" minDate={index ? multiLegs[index - 1]!.departureDate || minimumDate : minimumDate} value={leg.departureDate} onChange={(departureDate) => setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, departureDate } : item))} />{multiLegs.length > 2 && <button className="premium-remove-leg" type="button" aria-label={`Remove flight ${index + 1}`} onClick={() => setMultiLegs((items) => items.filter((_,i) => i !== index))}>×</button>}</div>)}{multiLegs.length < 6 && <button type="button" className="premium-add-leg" onClick={() => setMultiLegs((items) => [...items, { origin: code(items.at(-1)!.destination), destination: '', departureDate: '' }])}>＋ Add another flight</button>}</div> : <>
+    <form noValidate key={String(active)} className={`premium-search-fields${mode === 'MULTI_CITY' ? ' is-multi-city' : ''}`} onSubmit={submit}>
+      {mode === 'MULTI_CITY' ? <div className="premium-multi-city-legs" role="group" aria-label="Multi-city flight legs">{multiLegs.map((leg,index) => <div className="premium-multi-city-row" key={index}><span className="premium-leg-number">{index + 1}</span><AirportPicker label="From" error={fieldErrors[`leg-${index}-origin`]} value={leg.origin} onChange={(value) => setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, origin: value } : item))} /><AirportPicker label="To" error={fieldErrors[`leg-${index}-destination`]} value={leg.destination} onChange={(value) => { const valueCode = code(value); setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, destination: value } : mode === 'MULTI_CITY' && i === index + 1 && valueCode.length === 3 ? { ...item, origin: valueCode } : item)); }} /><CalendarDateField active={active} label={`Flight ${index + 1} date`} error={fieldErrors[`leg-${index}-departure`]} className="premium-leg-date" minDate={index ? multiLegs[index - 1]!.departureDate || minimumDate : minimumDate} value={leg.departureDate} onChange={(departureDate) => setMultiLegs((items) => items.map((item,i) => i === index ? { ...item, departureDate } : item))} />{multiLegs.length > 2 && <button className="premium-remove-leg" type="button" aria-label={`Remove flight ${index + 1}`} onClick={() => setMultiLegs((items) => items.filter((_,i) => i !== index))}>×</button>}</div>)}{multiLegs.length < 6 && <button type="button" className="premium-add-leg" onClick={() => setMultiLegs((items) => [...items, { origin: code(items.at(-1)!.destination), destination: '', departureDate: '' }])}>＋ Add another flight</button>}</div> : <>
       <div className="premium-search-route" role="group" aria-label="Flight route">
-        <AirportPicker label="From" value={origin} onChange={setOrigin} />
+        <AirportPicker label="From" value={origin} onChange={setOrigin} error={fieldErrors.origin} />
         <button type="button" className="premium-swap" aria-label="Swap airports" onClick={() => { setOrigin(destination); setDestination(origin); }}>⇄</button>
-        <AirportPicker label="To" value={destination} onChange={setDestination} />
+        <AirportPicker label="To" value={destination} onChange={setDestination} error={fieldErrors.destination} />
       </div>
       <div className={`premium-search-dates${mode === 'ONE_WAY' ? ' one-way' : ''}`}>
-        <CalendarDateField label="Departure" className="premium-home-date-field" minDate={minimumDate} value={departure} onChange={(next) => { setDeparture(next); if (returnDate && returnDate < next) setReturnDate(''); }} />
-        {mode === 'ROUND_TRIP' && <CalendarDateField label="Return" className="premium-home-date-field" align="end" minDate={departure || minimumDate} value={returnDate} onChange={setReturnDate} />}
+        <CalendarDateField active={active} label="Departure" error={fieldErrors.departure} className="premium-home-date-field" minDate={minimumDate} value={departure} onChange={(next) => { setDeparture(next); if (returnDate && returnDate < next) setReturnDate(''); }} />
+        {mode === 'ROUND_TRIP' && <CalendarDateField active={active} label="Return" error={fieldErrors.returnDate} className="premium-home-date-field" align="end" minDate={departure || minimumDate} value={returnDate} onChange={setReturnDate} />}
       </div>
       </>}
       <button type="submit" className="premium-primary"><span aria-hidden="true">⌕</span> Search flights</button>
@@ -273,7 +283,7 @@ function ExclusiveAirlineOffers() {
 }
 export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
-  const [searchMode, setSearchMode] = useState<'flights' | 'map' | 'ai'>('flights');
+  const [searchMode, setSearchMode] = useBackStepState<'flights' | 'map' | 'ai'>('home-search', 'flights');
   const [compactSearch, setCompactSearch] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 1366px)').matches);
   const searchTabs = useRef<HTMLDivElement>(null);
   const [searchPanelHeight, setSearchPanelHeight] = useState(400);
@@ -322,7 +332,7 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
     className: 'premium-search-view',
     style: compactSearch ? { '--home-search-panel-height': `${searchPanelHeight}px` } as CSSProperties : undefined,
   });
-  const [servicesExpanded, setServicesExpanded] = useState(() =>
+  const [servicesExpanded, setServicesExpanded] = useBackStepState('home-services',
     typeof window !== 'undefined' && window.matchMedia('(min-width: 1367px)').matches,
   );
   useEffect(() => { if (compactSearch) setServicesExpanded(false); }, [compactSearch]);
@@ -375,7 +385,7 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
               { name: 'Batik Air', logo: '/airlines/OD.svg' },
             ].map(partner => <li key={partner.name}><img src={partner.logo} alt={partner.name} loading="lazy" /></li>)}
           </ul>
-        </section>        {session && <section className="premium-commerce"><Heading eyebrow="YOUR ACCOUNT" title="Orders & payments" action="View orders" to="/app/orders" /><Glass><div><strong>{loading ? 'Loading your account…' : `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}`}</strong><span>{loading ? 'Checking payment status…' : pending ? `${pending} payment${pending === 1 ? '' : 's'} awaiting an update` : 'No pending payment updates'}</span></div><Link className="premium-outline" to="/app/payments">View payments →</Link></Glass></section>}
+        </section>        {session && !loading && (data.orders.length > 0 || pending > 0) && <section className="premium-commerce"><Heading eyebrow="YOUR ACCOUNT" title="Orders & payments" action="View orders" to="/app/orders" /><Glass><div><strong>{loading ? 'Loading your account…' : `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}`}</strong><span>{loading ? 'Checking payment status…' : pending ? `${pending} payment${pending === 1 ? '' : 's'} awaiting an update` : 'No pending payment updates'}</span></div><Link className="premium-outline" to="/app/payments">View payments →</Link></Glass></section>}
 
       </div>
     </main>{!embedded && <footer className="premium-footer premium-footer-refined">

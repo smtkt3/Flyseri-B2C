@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { AuthProvider } from '../../auth/AuthProvider';
 import { PremiumHome } from './PremiumHome';
@@ -28,10 +28,11 @@ function SearchDestination() {
   const { search } = useLocation();
   return <div data-testid="search-destination">{search}</div>;
 }
+function BackControl() { const navigate = useNavigate(); return <button onClick={() => navigate(-1)}>Test Back</button>; }
 function renderHome(compact = false) {
   Object.defineProperty(window, 'scrollTo', { configurable: true, value: vi.fn() });
   Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn().mockImplementation((query: string) => ({ matches: compact && query === '(max-width: 1366px)', media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })) });
-  render(<MemoryRouter initialEntries={['/']}><AuthProvider><Routes>
+  render(<MemoryRouter initialEntries={['/']}><AuthProvider><BackControl /><Routes>
     <Route path="/" element={<PremiumHome />} />
     <Route path="/flights" element={<SearchDestination />} />
     <Route path="/app/seri" element={<SearchDestination />} />
@@ -57,6 +58,44 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('premium homepage', () => {
   beforeEach(() => { sessionStorage.clear(); updateHomeSearch(emptyHomeSearch); });
+  it('identifies missing fields individually and clears errors as they are corrected', async () => {
+    auth.restore.mockResolvedValue(null);
+    renderHome(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Search flights' }));
+    expect(screen.getByText('Choose a destination airport.')).toBeTruthy();
+    expect(screen.getByText('Choose a departure date.')).toBeTruthy();
+    expect(screen.getByText('Choose a return date.')).toBeTruthy();
+    const destination = screen.getByRole('combobox', { name: 'To airport' });
+    expect(destination.getAttribute('aria-invalid')).toBe('true');
+    await waitFor(() => expect(document.activeElement).toBe(destination));
+    fireEvent.change(destination, { target: { value: 'BKK' } });
+    expect(destination.getAttribute('aria-invalid')).toBe('false');
+    expect(screen.queryByText('Choose a destination airport.')).toBeNull();
+  });
+  it('uses one Back step to close calendars and passengers, keeping the current search view', async () => {
+    auth.restore.mockResolvedValue(null);
+    renderHome(true);
+    fireEvent.click(screen.getByRole('button', { name: /^Departure,/ }));
+    expect(screen.getByRole('dialog', { name: 'Choose a date for departure' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Test Back' }));
+    expect(screen.queryByRole('dialog', { name: 'Choose a date for departure' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Passengers and cabin/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add children' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Test Back' }));
+    expect(screen.queryByRole('dialog', { name: 'Passengers and cabin' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Passengers and cabin: 1 adult · 1 child/ })).toBeTruthy();
+    expect(screen.getByRole('tabpanel', { name: 'Flights' })).toBeTruthy();
+  });
+  it('omits the empty orders summary for signed-in customers', async () => {
+    auth.restore.mockResolvedValue({ user: { email: 'ain@example.com' } } as Session);
+    customer.me.mockResolvedValue({ displayName: 'Ain' });
+    trips.list.mockResolvedValue([]); orders.orders.mockResolvedValue([]); orders.payments.mockResolvedValue([]);
+    documents.list.mockResolvedValue([]); visas.list.mockResolvedValue([]);
+    renderHome();
+    expect(await screen.findByText('Ain')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Orders & payments' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'My orders' })).toBeTruthy();
+  });
   it('switches compact search modes without losing flight dates or AI drafts', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome(true);

@@ -7,7 +7,7 @@ export {loadAirportDetails} from '../services/airportService';
 
 type IndexedAirport = AirportDirectoryEntry;
 type AirportGroup = { city: string; country: string; airports: IndexedAirport[]; center?: { latitude: number; longitude: number }; allAirports?: boolean };
-type AirportPickerProps = { label: string; value: string; onChange: (value: string) => void };
+type AirportPickerProps = { label: string; value: string; onChange: (value: string) => void; error?: string };
 
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 function distanceFromCentre(airport: IndexedAirport, group: AirportGroup) {
@@ -20,7 +20,7 @@ function distanceFromCentre(airport: IndexedAirport, group: AirportGroup) {
   const a = Math.sin(latitudeDelta / 2) ** 2 + Math.cos(radians(centre.latitude)) * Math.cos(radians(airport.latitude)) * Math.sin(longitudeDelta / 2) ** 2;
   return Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
-export function AirportPicker({ label, value, onChange }: AirportPickerProps) {
+export function AirportPicker({ label, value, onChange, error }: AirportPickerProps) {
   const id = useId();
   const [airports, setAirports] = useState<IndexedAirport[] | null>(null);
   const [open, setOpen] = useState(false);
@@ -95,11 +95,12 @@ export function AirportPicker({ label, value, onChange }: AirportPickerProps) {
 
   return <div className="airport-picker">
     <label htmlFor={id}>{label}</label>
-    <input ref={input} id={id} aria-label={`${label} airport`} role="combobox" aria-autocomplete="list" aria-expanded={open}
+    <input ref={input} id={id} aria-label={`${label} airport`} aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined} role="combobox" aria-autocomplete="list" aria-expanded={open}
       aria-controls={`${id}-suggestions`} aria-activedescendant={open && suggestions.length ? `${id}-option-${Math.min(active, suggestions.length - 1)}` : undefined}
       autoComplete="off" placeholder="City, airport or code" value={value} required maxLength={120}
       onFocus={show} onBlur={() => setOpen(false)} onKeyDown={handleKeyDown}
       onChange={(event) => { setAirports(null);onChange(event.target.value); setActive(0); setOpen(true); }} />
+    {error && <span className="home-field-error" id={`${id}-error`}>{error}</span>}
     {open && createPortal(<div ref={list} id={`${id}-suggestions`} style={popoverStyle} className="airport-suggestions airport-suggestions-portal" role="listbox" aria-label={`${label} airport suggestions`}>
       {!airports && <p className="airport-suggestions-message">{loadError ? 'Airport suggestions are unavailable. Enter a three-letter airport code.' : 'Loading airports…'}</p>}
       {airports && suggestions.length === 0 && <p className="airport-suggestions-message">No matching airport. Try a city, airport name, or three-letter code.</p>}

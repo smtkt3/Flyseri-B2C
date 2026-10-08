@@ -15,4 +15,32 @@
 @media(max-width:600px){.holiday-slide{border-radius:20px}.holiday-slide-caption{left:20px;right:20px;bottom:22px}}
 @media(prefers-reduced-motion:reduce){.holiday-slide{transition:none}}
 .holiday-mobile-dots{display:none}
-@media(max-width:600px){.holiday-carousel-stage{height:250px;perspective:1000px}.holiday-slide{--slide-width:52%;height:210px;top:18px;border-radius:12px;transform:translateX(calc(-50% + var(--slide-offset) * 105%)) rotateY(calc(var(--slide-offset) * -9deg)) scale(var(--slide-scale))}.holiday-slide-caption{left:14px;right:12px;bottom:15px}.holiday-slide-caption h3{font-size:17px;margin:0 0 5px}.holiday-slide-caption>span,.holiday-slide-caption p{display:none}.holiday-slide-caption strong{font-size:11px}.holiday-slide-caption strong small{font-size:8px}.holiday-mobile-dots{display:flex;justify-content:center;gap:3px;margin:0 auto 12px}.holiday-mobile-dots button{width:23px;height:28px;padding:0;border:0;background:transparent;position:relative;cursor:pointer}.holiday-mobile-dots button:after{content:'';position:absolute;width:6px;height:6px;left:8px;top:11px;background:#bed9ef;border-radius:50%}.holiday-mobile-dots button[aria-pressed=true]:after{background:#2580f5;box-shadow:0 0 0 2px #fff,0 0 0 3px #65a8ff}}
+@media(max-width:767px){
+  .holiday-carousel-stage{height:336px;perspective:1000px}
+  .holiday-slide{--slide-width:52%;max-width:240px;height:300px;top:18px;border-radius:10px;box-shadow:none;transform:translateX(calc(-50% + var(--slide-offset) * 105%)) rotateY(var(--slide-rotation)) scale(var(--slide-scale))}
+  .holiday-slide.is-active{box-shadow:none}
+  .holiday-slide:after{background:linear-gradient(180deg,transparent 45%,#071c2d24 62%,#071c2dc9 100%)}
+  .holiday-slide-caption{display:flex;flex-direction:column;left:14px;right:10px;bottom:15px}
+  .holiday-slide-caption h3{order:0;font-size:13px;line-height:1.25;letter-spacing:-.2px;margin:0 0 3px}
+  .holiday-slide-caption>span{order:1;display:block;padding:0;border:0;border-radius:0;background:none;backdrop-filter:none;font-size:9px;line-height:1.4;letter-spacing:0;color:#eef5fa}
+  .holiday-slide-caption p,.holiday-slide-caption strong{display:none}
+  .holiday-mobile-dots{display:flex;justify-content:center;gap:3px;margin:0 auto 12px}
+  .holiday-mobile-dots button{width:23px;height:28px;padding:0;border:0;background:transparent;position:relative;cursor:pointer}
+  .holiday-mobile-dots button:after{content:'';position:absolute;width:6px;height:6px;left:8px;top:11px;background:#bed9ef;border-radius:50%}
+  .holiday-mobile-dots button[aria-pressed=true]:after{background:#2580f5;box-shadow:0 0 0 2px #fff,0 0 0 3px #65a8ff}
+}
+.holiday-loading{height:450px;display:flex;justify-content:center;align-items:center;gap:18px;overflow:hidden}
+.holiday-loading>div{width:25%;height:400px;flex:none;border-radius:22px;background:linear-gradient(110deg,#dcebf1 25%,#eef7fa 45%,#dcebf1 65%);background-size:220% 100%;animation:holiday-loading-shimmer 1.8s ease-in-out infinite}
+.holiday-loading>div:first-of-type{transform:perspective(1200px) rotateY(24deg) scale(.94)}
+.holiday-loading>div:last-of-type{transform:perspective(1200px) rotateY(-24deg) scale(.94)}
+.holiday-loading.is-grid{height:300px;gap:20px}
+.holiday-loading.is-grid>div{height:280px;transform:none;flex:1}
+@keyframes holiday-loading-shimmer{to{background-position:-220% 0}}
+@media(min-width:1600px){.holiday-loading:not(.is-grid){height:470px}.holiday-loading:not(.is-grid)>div{height:420px;width:23%}}
+@media(min-width:768px) and (max-width:1000px){.holiday-loading:not(.is-grid){height:405px}.holiday-loading:not(.is-grid)>div{height:360px;width:32%}}
+@media(max-width:767px){.holiday-loading:not(.is-grid){height:336px;gap:10px}.holiday-loading:not(.is-grid)>div{width:52%;max-width:240px;height:300px;border-radius:10px}.holiday-loading.is-grid>div:not(:first-of-type){display:none}.holiday-showcase{padding-bottom:10px}.holiday-showcase .holiday-section-heading{gap:8px;margin-bottom:16px}.holiday-showcase .holiday-tabs{margin-bottom:10px}.holiday-mobile-dots{margin-bottom:4px}}
+@media(prefers-reduced-motion:reduce){.holiday-loading>div{animation:none}}
+.holiday-playback{display:flex;justify-content:center;margin:0 0 8px}
+.holiday-playback button{display:flex;align-items:center;justify-content:center;gap:7px;min-width:84px;min-height:44px;padding:8px 14px;border:1px solid #c9dfed;border-radius:999px;background:#ffffffb3;color:#315b7b;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+.holiday-playback button:focus-visible{outline:3px solid #398beb;outline-offset:3px}
+.holiday-playback button span{font-size:13px}

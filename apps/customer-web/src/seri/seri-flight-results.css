@@ -8,6 +8,4 @@
 .seri-floating-panel .home-seri-message:has(.seri-flights){width:100%;max-width:100%;padding:12px 10px}.seri-destination-actions button{border:1px solid #d5e8fc;border-radius:9px;background:#eff7ff;padding:8px 10px;color:#2676ce;font:inherit;font-size:11px;cursor:pointer}
 .seri-flight-tools{flex-wrap:wrap;justify-content:flex-start}.seri-flight-fare{font-size:10px;color:#4f7396;background:#f0f7ff;border-radius:6px;padding:5px 7px;margin:-4px 0 12px;text-transform:capitalize;overflow-wrap:anywhere}.seri-message:has(.seri-flights){width:100%;max-width:620px}.seri-flights{white-space:normal}
 .premium-seri-chat .seri-flight-card footer button{width:auto;flex:none}.seri-flight-card footer>div{min-width:0;flex:1}.seri-flight-card footer strong{white-space:nowrap}
-.seri-floating-panel:has(.seri-flights){width:min(430px,calc(100vw - 24px));height:min(680px,calc(100dvh - 120px - env(safe-area-inset-bottom,0px)))}
 .seri-floating-panel .premium-seri-chat .home-seri-transcript{max-height:none;min-height:0;flex:1}
-@media(max-width:600px){.seri-floating-panel:has(.seri-flights){height:min(620px,calc(100dvh - 108px - env(safe-area-inset-bottom,0px)))}}

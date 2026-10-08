@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useViewportPopover } from './useViewportPopover';
+import { useBackStepState } from './useBackStepState';
 import './calendar-date-field.css';
 
 type CalendarDateFieldProps = {
@@ -10,6 +11,10 @@ type CalendarDateFieldProps = {
   onChange: (value: string) => void;
   className?: string;
   align?: 'start' | 'end';
+  error?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  active?: boolean;
 };
 
 const today = () => {
@@ -36,8 +41,16 @@ function formatDate(value: string) {
   return date ? new Intl.DateTimeFormat('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(date) : '';
 }
 
-export function CalendarDateField({ label, value, minDate, onChange, className = '', align = 'start' }: CalendarDateFieldProps) {
-  const [open, setOpen] = useState(false);
+export function HistoryCalendarDateField(props: CalendarDateFieldProps) {
+  const [open, setOpen] = useBackStepState(`home-date:${props.label}`, false);
+  return <CalendarDateField {...props} open={props.active === false ? false : open} onOpenChange={setOpen} />;
+}
+
+export function CalendarDateField({ label, value, minDate, onChange, className = '', align = 'start', error, open: controlledOpen, onOpenChange }: CalendarDateFieldProps) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = onOpenChange ?? setLocalOpen;
+  const errorId = useId();
   const [visibleMonth, setVisibleMonth] = useState(() => monthStart(parseDate(value) ?? parseDate(minDate) ?? today()));
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -76,10 +89,11 @@ export function CalendarDateField({ label, value, minDate, onChange, className =
   }
 
   return <div ref={root} className={`calendar-date-field${open ? ' is-open' : ''}${align === 'end' ? ' align-end' : ''} ${className}`}>
-    <button ref={trigger} type="button" className="calendar-date-trigger" aria-label={`${label}${value ? `, ${formatDate(value)}` : ', choose date'}`} aria-haspopup="dialog" aria-expanded={open} data-value={value} onClick={() => open ? setOpen(false) : showCalendar()}>
+    <button ref={trigger} type="button" className="calendar-date-trigger" aria-invalid={!!error} aria-describedby={error ? errorId : undefined} aria-label={`${label}${value ? `, ${formatDate(value)}` : ', choose date'}`} aria-haspopup="dialog" aria-expanded={open} data-value={value} onClick={() => open ? setOpen(false) : showCalendar()}>
       <span className="calendar-date-copy"><span className="calendar-date-label">{label}</span><span className={`calendar-date-value${value ? '' : ' is-empty'}`}>{value ? formatDate(value) : 'Choose date'}</span></span>
       <svg className="calendar-date-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5" /><path d="M7.5 3.5v4M16.5 3.5v4M4 9.5h16M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01" /></svg>
     </button>
+    {error && <span className="home-field-error" id={errorId}>{error}</span>}
     {open && createPortal(<section ref={popover} style={popoverStyle} className="calendar-popover calendar-popover-portal" role="dialog" aria-label={`Choose a date for ${label.toLowerCase()}`}>
       <header className="calendar-popover-header">
         <div><span className="calendar-popover-eyebrow">SELECT A DATE</span><h3>{monthLabel}</h3></div>

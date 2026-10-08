@@ -31,12 +31,14 @@ export function HolidayPackageSlideshow({ items }: { items: HolidayPackage[] }) 
   const [interacting, setInteracting] = useState(false);
   const [visible, setVisible] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [holdUntil, setHoldUntil] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const gesture = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
   const count = items.length;
   const selected = active % count;
-  const move = (direction: number) => setActive(index => (index + direction + count) % count);
+  const select = (index: number) => { setHoldUntil(Date.now() + 2000); setActive(index); };
+  const move = (direction: number) => { setHoldUntil(Date.now() + 2000); setActive(index => (index + direction + count) % count); };
   useEffect(() => {
     const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const update = () => setReduced(!!media?.matches);
@@ -48,12 +50,17 @@ export function HolidayPackageSlideshow({ items }: { items: HolidayPackage[] }) 
   }, []);
   useEffect(() => {
     if (paused || interacting || reduced || !visible || count < 2) return;
-    const timer = window.setInterval(() => { if (!document.hidden) setActive(index => (index + 1) % count); }, 1500);
-    return () => window.clearInterval(timer);
-  }, [active, count, paused, interacting, reduced, visible]);
+    let timer: number;
+    const advance = () => {
+      if (!document.hidden) setActive(index => (index + 1) % count);
+      timer = window.setTimeout(advance, 1500);
+    };
+    timer = window.setTimeout(advance, Math.max(1500, holdUntil - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [active, count, paused, interacting, reduced, visible, holdUntil]);
   return <div ref={root} className="holiday-carousel" role="region" aria-roledescription="carousel" aria-label="Holiday tour packages slideshow"
-    onMouseEnter={() => setInteracting(true)} onMouseLeave={() => setInteracting(false)} onFocusCapture={() => setInteracting(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setInteracting(false); }}
-    onKeyDown={event => { if (event.key === ' ') { event.preventDefault(); setPaused(value => !value); } if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); move(event.key === 'ArrowRight' ? 1 : -1); } }}>
+    onMouseEnter={() => setInteracting(true)} onMouseLeave={() => setInteracting(false)} onFocusCapture={event => { if (!(event.target as HTMLElement).closest('.holiday-playback')) setInteracting(true); }} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setInteracting(false); }}
+    onKeyDown={event => { if (event.key === ' ' && !(event.target as HTMLElement).closest('button')) { event.preventDefault(); setPaused(value => !value); } if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); move(event.key === 'ArrowRight' ? 1 : -1); } }}>
     <div className="holiday-carousel-stage" onPointerDown={event => { gesture.current = { x: event.clientX, y: event.clientY }; swiped.current = false; }} onPointerCancel={() => { gesture.current = null; }}
       onPointerUp={event => { const start = gesture.current; gesture.current = null; if (!start) return; const dx = event.clientX - start.x, dy = event.clientY - start.y; if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.2) { swiped.current = true; move(dx < 0 ? 1 : -1); } }}
       onClickCapture={event => { if (swiped.current) { event.preventDefault(); event.stopPropagation(); swiped.current = false; } }}>
@@ -63,10 +70,11 @@ export function HolidayPackageSlideshow({ items }: { items: HolidayPackage[] }) 
         const distance = Math.abs(offset);
         const style = { '--slide-offset': offset, '--slide-rotation': `${offset === 0 ? 0 : offset < 0 ? 24 : -24}deg`, '--slide-scale': distance === 0 ? 1 : distance === 1 ? .94 : .83, zIndex: 10 - distance } as CSSProperties;
         const content = <><img src={item.imageUrl} alt="" loading={distance <= 1 ? 'eager' : 'lazy'} draggable={false}/><div className="holiday-slide-caption"><span>{item.days} days · {item.nights} nights</span><h3>{item.location}</h3><p>{item.title}</p><strong>{holidayMoney(item.adultPrice)} <small>/ adult{item.preview ? ' · sample' : ''}</small></strong></div></>;
-        return <Link key={item.id} draggable={false} className={`holiday-slide${offset === 0 ? ' is-active' : ''}${distance > 2 ? ' is-hidden' : ''}`} style={style} to={`/holidays/${item.id}`} tabIndex={offset === 0 ? 0 : -1} aria-hidden={distance > 2} aria-label={offset === 0 ? `${item.title}, ${item.location}, view package` : `Preview ${item.location}`} onClick={event => { if (offset !== 0) { event.preventDefault(); setActive(index); } }}>{content}</Link>;
+        return <Link key={item.id} draggable={false} className={`holiday-slide${offset === 0 ? ' is-active' : ''}${distance > 2 ? ' is-hidden' : ''}`} style={style} to={`/holidays/${item.id}`} tabIndex={offset === 0 ? 0 : -1} aria-hidden={distance > 2} aria-label={offset === 0 ? `${item.title}, ${item.location}, view package` : `Preview ${item.location}`} onClick={event => { if (offset !== 0) { event.preventDefault(); select(index); } }}>{content}</Link>;
       })}
     </div>
-    <div className="holiday-mobile-dots" aria-label="Choose a holiday package">{items.map((item, index) => <button key={item.id} type="button" aria-label={`Show ${item.location}`} aria-pressed={selected === index} onClick={() => setActive(index)}/>)}</div>
+    <div className="holiday-playback"><button type="button" aria-label={paused ? 'Resume holiday slideshow' : 'Pause holiday slideshow'} aria-pressed={paused} onClick={() => setPaused(value => !value)}><span aria-hidden="true">{paused ? '▶' : 'Ⅱ'}</span>{paused ? 'Play' : 'Pause'}</button></div>
+    <div className="holiday-mobile-dots" aria-label="Choose a holiday package">{items.map((item, index) => <button key={item.id} type="button" aria-label={`Show ${item.location}`} aria-pressed={selected === index} onClick={() => select(index)}/>)}</div>
     <HolidayPhotoCredit id={items[selected]!.id}/>
   </div>;
 }
@@ -83,7 +91,7 @@ export function HolidayPackages({ full = false }: { full?: boolean }) {
     <div className="holiday-tabs" role="tablist" aria-label="Holiday destinations"><button id="holiday-domestic-tab" role="tab" aria-selected={category === 'DOMESTIC'} aria-controls="holiday-results" onClick={() => setCategory('DOMESTIC')}>Bangladesh</button><button id="holiday-international-tab" role="tab" aria-selected={category === 'INTERNATIONAL'} aria-controls="holiday-results" onClick={() => setCategory('INTERNATIONAL')}>International</button></div>
     {preview && <p className="holiday-preview-note">Sample packages · not bookable</p>}
     <div id="holiday-results" role="tabpanel" aria-labelledby={`holiday-${category.toLowerCase()}-tab`}>
-      {loading ? <p role="status">Finding your next getaway…</p> : items.length ? full ? <div className="holiday-grid">{items.map(item => <HolidayPackageCard item={item} key={item.id}/>)}</div> : <HolidayPackageSlideshow items={items} key={category}/> : <div className="holiday-empty"><h3>{failed ? 'Packages are temporarily unavailable' : 'New getaways are on the way'}</h3><p>{failed ? 'Please try again shortly.' : 'Our team is preparing holidays for you. Check back soon.'}</p>{failed && <button onClick={retry}>Try again</button>}</div>}
+      {loading ? <div className={`holiday-loading${full ? ' is-grid' : ''}`} role="status" aria-label="Loading holiday packages"><span className="sr-only">Finding your next getaway…</span>{[0, 1, 2].map(index => <div key={index} aria-hidden="true"/>)}</div> : items.length ? full ? <div className="holiday-grid">{items.map(item => <HolidayPackageCard item={item} key={item.id}/>)}</div> : <HolidayPackageSlideshow items={items} key={category}/> : <div className="holiday-empty"><h3>{failed ? 'Packages are temporarily unavailable' : 'New getaways are on the way'}</h3><p>{failed ? 'Please try again shortly.' : 'Our team is preparing holidays for you. Check back soon.'}</p>{failed && <button onClick={retry}>Try again</button>}</div>}
     </div>
     {full && preview && <HolidayPhotoCredit id="preview-dhaka"/>}
   </section>;

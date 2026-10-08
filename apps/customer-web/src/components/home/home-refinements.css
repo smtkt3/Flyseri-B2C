@@ -1,0 +1,20 @@
+/* Focused homepage refinements, preserving the existing mobile composition. */
+@media(min-width:1024px) and (max-width:1366px){
+ .premium-home-layout:not(.is-embedded) .premium-home-main .premium-hero{box-sizing:border-box;min-height:280px;padding:96px 40px 44px}
+ .premium-home-main .premium-hero h1{font-size:clamp(40px,4.1vw,54px)}
+ .premium-home-main .premium-hero .premium-hero-note{bottom:18px;right:3%}
+}
+@media(min-width:1024px) and (max-width:1366px) and (max-height:800px){
+ .premium-home-layout:not(.is-embedded) .premium-home-main .premium-hero{min-height:216px;padding-top:80px;padding-bottom:20px}
+ .premium-home-main .premium-hero h1{font-size:44px;margin:8px 0}
+}
+.premium-search-fields .home-field-error{display:block;font-size:12px;line-height:1.5;color:#a62e43;padding:6px 10px 2px;font-weight:550;text-align:left;white-space:normal}
+.premium-search-fields .airport-picker:has([aria-invalid=true]),.premium-search-fields .calendar-date-trigger[aria-invalid=true]{border-color:#c94b60;box-shadow:0 0 0 1px #c94b601c}
+.premium-search-fields .calendar-date-field:has(.home-field-error),.premium-search-fields .airport-picker:has(.home-field-error){height:auto;align-self:start}
+.premium-home-main .premium-main{row-gap:24px}
+.premium-home-main .premium-partners h2,.premium-home-main .holiday-section-heading h2,.premium-home-main .premium-offers-bar h2{letter-spacing:-.35px}
+.premium-home-main .premium-footer nav a,.premium-home-main .premium-footer-bottom small,.premium-home-main .premium-footer-brand-attribution{color:#526d88}
+.premium-home-main .premium-search-fields .airport-picker>label,.premium-home-main .calendar-date-label,.premium-home-main .premium-passenger-trigger small{color:#526d88}
+.premium-home-main .premium-offer-preview small,.premium-home-main .premium-offer-preview p{color:#526d88}
+.premium-home-main .holiday-tabs button{min-height:44px}
+@media(max-width:767px){.premium-home-main .premium-main{row-gap:18px}.premium-search-fields .home-field-error{font-size:12px}}

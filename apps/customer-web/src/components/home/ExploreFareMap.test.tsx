@@ -31,7 +31,7 @@ describe('interactive fare map', () => {
     vi.mocked(flightService.popularCachedFares).mockResolvedValueOnce([{ destination: 'BKK', currency: 'BDT', price: '12000', departureDate: '2026-11-12', searchedAt: '2026-10-08T00:00:00Z', expiresAt: '2026-10-08T00:05:00Z' }]);
     setup();
     expect(await screen.findByRole('button', { name: 'Select Bangkok, BDT 12,000' })).toBeTruthy();
-    expect(screen.getByText(/Travel 2026-11-12 · Checked/)).toBeTruthy();
+    expect(screen.getByText('Travel 2026-11-12').getAttribute('title')).toContain('Checked');
     fireEvent.click(screen.getByRole('button', { name: 'Choose map departure airport' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search map departure airports' }), { target: { value: 'KUL' } });
     fireEvent.click(screen.getByRole('button', { name: /Kuala Lumpur KUL.*Depart here/ }));
