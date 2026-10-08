@@ -18,7 +18,7 @@ CRM source changes are in `components/b2c/holiday-packages-panel.tsx`, `componen
 
 Apply migration `packages/database/drizzle/0028_holiday_packages.sql` with the normal Drizzle migration runner as database administrator and rerun the application role grants in `supabase/flyseri-api-role.sql`. Alternatively, the focused transaction `artifacts/holiday-admin/database-update.sql` creates the two tables, grants only their access to `flyseri_api`, and records the migration in the existing Drizzle database journal. Do not run both alternatives on the same database.
 
-The currently configured `flyseri_api` account cannot create tables. No production database was changed while implementing this feature. Until activation, the API returns a setup-pending 503 and the admin displays that message. Development-only examples appear with explicit preview labels and disabled booking buttons. Production builds include no sample catalogue fallback.
+The currently configured `flyseri_api` account cannot create tables. No production database was changed while implementing this feature. Until activation, the API returns a setup-pending 503 and the admin displays that message. When the catalogue is empty or unavailable, the customer site shows illustrative sample packages with explicit sample labels and disabled booking buttons, including in production. Published admin packages replace these samples automatically.
 
 ## Booking and purchasing boundary
 

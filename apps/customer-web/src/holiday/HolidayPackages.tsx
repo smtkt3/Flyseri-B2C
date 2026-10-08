@@ -16,7 +16,7 @@ export function useHolidayPackages() {
     holidayService.list(controller.signal).then(items => { if (!controller.signal.aborted) setPackages(items); }).catch(() => { if (!controller.signal.aborted) setFailed(true); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [attempt]);
-  const preview = import.meta.env.DEV && !loading && !packages.length;
+  const preview = !loading && !packages.length;
   return { packages: preview ? previewHolidayPackages : packages, loading, failed, preview, retry: () => retry(n => n + 1) };
 }
 export function HolidayPackageCard({ item }: { item: HolidayPackage }) {
@@ -81,7 +81,7 @@ export function HolidayPackages({ full = false }: { full?: boolean }) {
   return <section className={`holiday-section${full ? '' : ' holiday-showcase'}`} id="holidays" aria-labelledby="holiday-heading">
     <div className="holiday-section-heading"><div><h2 id="holiday-heading">Holiday tour packages</h2></div>{!full && <Link to="/holidays">Explore all packages <span aria-hidden="true">↗</span></Link>}</div>
     <div className="holiday-tabs" role="tablist" aria-label="Holiday destinations"><button id="holiday-domestic-tab" role="tab" aria-selected={category === 'DOMESTIC'} aria-controls="holiday-results" onClick={() => setCategory('DOMESTIC')}>Bangladesh</button><button id="holiday-international-tab" role="tab" aria-selected={category === 'INTERNATIONAL'} aria-controls="holiday-results" onClick={() => setCategory('INTERNATIONAL')}>International</button></div>
-    {preview && <p className="holiday-preview-note">Preview packages · not bookable</p>}
+    {preview && <p className="holiday-preview-note">Sample packages · not bookable</p>}
     <div id="holiday-results" role="tabpanel" aria-labelledby={`holiday-${category.toLowerCase()}-tab`}>
       {loading ? <p role="status">Finding your next getaway…</p> : items.length ? full ? <div className="holiday-grid">{items.map(item => <HolidayPackageCard item={item} key={item.id}/>)}</div> : <HolidayPackageSlideshow items={items} key={category}/> : <div className="holiday-empty"><h3>{failed ? 'Packages are temporarily unavailable' : 'New getaways are on the way'}</h3><p>{failed ? 'Please try again shortly.' : 'Our team is preparing holidays for you. Check back soon.'}</p>{failed && <button onClick={retry}>Try again</button>}</div>}
     </div>

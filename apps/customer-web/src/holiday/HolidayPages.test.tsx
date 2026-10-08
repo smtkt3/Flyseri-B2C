@@ -14,6 +14,20 @@ beforeEach(() => { window.scrollTo = vi.fn(); mocks.session = { user: { email: '
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 function detail(id = pkg.id) { render(<MemoryRouter initialEntries={[`/holidays/${id}`]}><Routes><Route path="/holidays/:id" element={<HolidayDetailPage/>}/><Route path="/sign-in" element={<p>Sign in destination</p>}/></Routes></MemoryRouter>); }
 describe('holiday customer flow', () => {
+  it('keeps sample holidays visible in production when the catalogue is unavailable', async () => {
+    vi.stubEnv('DEV', false);
+    mocks.list.mockRejectedValue(new Error('Setup pending'));
+    try {
+      render(<MemoryRouter><HolidayPackages/></MemoryRouter>);
+      expect(await screen.findByText('Sample packages · not bookable')).toBeTruthy();
+      expect(screen.getByRole('region', { name: 'Holiday tour packages slideshow' })).toBeTruthy();
+      expect(screen.queryByText('Packages are temporarily unavailable')).toBeNull();
+      cleanup();
+      detail(previewHolidayPackages[0]!.id);
+      expect(await screen.findByRole('button', { name: 'Preview only · not bookable' })).toHaveProperty('disabled', true);
+      expect(mocks.book).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
   it('switches between Bangladesh and international packages', async () => {
     render(<MemoryRouter><HolidayPackages/></MemoryRouter>);
     expect(await screen.findByText(pkg.title)).toBeTruthy();

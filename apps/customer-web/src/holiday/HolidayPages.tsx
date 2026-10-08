@@ -35,7 +35,7 @@ export function HolidayDetailPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
     const controller = new AbortController(); setLoading(true); setItem(null); setError(''); setBooking(null); setReview(false);
-    const preview = import.meta.env.DEV ? previewHolidayPackages.find(p => p.id === id) : undefined;
+    const preview = previewHolidayPackages.find(p => p.id === id);
     const request = preview ? Promise.resolve(preview) : holidayService.detail(id, controller.signal);
     request.then(p => { if (!controller.signal.aborted) setItem(p); }).catch(() => { if (!controller.signal.aborted) setError('This package could not be loaded. Please return to all packages and try again.'); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
