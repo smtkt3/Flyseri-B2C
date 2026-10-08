@@ -21,6 +21,15 @@
 /* Inline chat must allow scrolling to continue through the homepage at either edge. */
 #home-search-ai .premium-seri-chat .home-seri-transcript,
 #home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{overflow-y:auto;overscroll-behavior-y:auto;touch-action:pan-y;min-height:0;scrollbar-width:thin}
+#home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{overflow:visible;max-height:none}
+@media(min-width:1367px){
+ #home-search-ai .home-seri-welcome.seri-welcome-design{min-height:0;padding:12px 4px}
+ #home-search-ai .seri-welcome-design .seri-welcome-orbit{width:88px;height:88px;margin-bottom:18px}
+ #home-search-ai .seri-welcome-orbit>div{width:62px;height:62px}
+}
 @media(max-width:1366px){
+ .premium-home-main .premium-main #home-search-ai > .premium-seri-chat:has(.home-seri-transcript.is-empty){height:auto;min-height:var(--home-search-panel-height)}
+ #home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{flex:1 0 auto}
+ #home-search-ai .home-seri-welcome.seri-welcome-design{height:auto;min-height:350px}
  .premium-home-main .premium-main #home-search-ai:not([hidden]) + .premium-journey-grid{margin-top:20px}
 }
