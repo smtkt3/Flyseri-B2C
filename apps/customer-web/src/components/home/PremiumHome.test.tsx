@@ -113,6 +113,7 @@ describe('premium homepage', () => {
     expect(screen.queryByRole('button', { name: 'Search flights' })).toBeNull();
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Map Search' }), { key: 'ArrowRight' });
     expect(screen.getByRole('tab', { name: 'AI Search' }).getAttribute('aria-selected')).toBe('true');
+    expect(getComputedStyle(screen.getByRole('log', { name: 'Seri search conversation' })).overscrollBehaviorY).toBe('auto');
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'AI Search' }));
     fireEvent.change(screen.getByLabelText('Ask Seri a travel question'), { target: { value: 'Find a beach trip' } });
     fireEvent.click(screen.getByRole('tab', { name: 'Flights' }));

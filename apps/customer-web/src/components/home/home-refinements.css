@@ -18,3 +18,9 @@
 .premium-home-main .premium-offer-preview small,.premium-home-main .premium-offer-preview p{color:#526d88}
 .premium-home-main .holiday-tabs button{min-height:44px}
 @media(max-width:767px){.premium-home-main .premium-main{row-gap:18px}.premium-search-fields .home-field-error{font-size:12px}}
+/* Inline chat must allow scrolling to continue through the homepage at either edge. */
+#home-search-ai .premium-seri-chat .home-seri-transcript,
+#home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{overflow-y:auto;overscroll-behavior-y:auto;touch-action:pan-y;min-height:0;scrollbar-width:thin}
+@media(max-width:1366px){
+ .premium-home-main .premium-main #home-search-ai:not([hidden]) + .premium-journey-grid{margin-top:20px}
+}
