@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from 'vite
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
+import { readFileSync } from 'node:fs'
 
 import siteConfiguration from './.figma/make/site.json'
 
@@ -24,6 +25,13 @@ export default defineConfig(({ mode }) => {
 react(),
       tailwindcss(),
       figmaSiteConfiguration(siteConfiguration),
+      {
+        name: 'flyseri-first-paint',
+        transformIndexHtml: {
+          order: 'pre',
+          handler: (html) => html.replace('<!-- flyseri:loading-style -->', `<style>${readFileSync(path.resolve(__dirname, 'src/components/home/home-loading.css'), 'utf8')}</style>`),
+        },
+      },
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),

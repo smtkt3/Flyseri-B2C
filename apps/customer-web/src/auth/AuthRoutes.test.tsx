@@ -1,14 +1,18 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Link, MemoryRouter, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { AuthProvider } from './AuthProvider';
 import { AuthRoutes } from './AuthRoutes';
 
 const auth = vi.hoisted(() => ({ configured: true, restore: vi.fn(), onChange: vi.fn(() => () => undefined), signIn: vi.fn() }));
+const homeLoad = vi.hoisted(() => ({ pending: null as Promise<void> | null }));
 vi.mock('../services/authService', () => ({ authService: auth }));
-vi.mock('../App', () => ({ default: () => <div>Home behind sign in</div> }));
+vi.mock('../App', () => ({ default: () => {
+  if (homeLoad.pending) throw homeLoad.pending;
+  return <div>Home behind sign in</div>;
+} }));
 vi.mock('../flight/PublicFlightPage', () => ({ PublicFlightPage: () => <div>Flights behind sign in <Link to="/sign-in">Sign in</Link> <Link to="/app">My trips</Link></div> }));
 vi.mock('../flight/GuestFlightCheckoutPage', () => ({ GuestFlightCheckoutPage: () => {
   const location = useLocation();
@@ -17,9 +21,21 @@ vi.mock('../flight/GuestFlightCheckoutPage', () => ({ GuestFlightCheckoutPage: (
 vi.mock('../account/CustomerShell', () => ({ CustomerShell: () => <div>My Flyseri account</div> }));
 
 const session = { access_token: 'test-access-token' } as Session;
-afterEach(() => { cleanup(); vi.clearAllMocks(); document.body.style.overflow = ''; });
+afterEach(() => { cleanup(); homeLoad.pending = null; vi.clearAllMocks(); document.body.style.overflow = ''; });
 
 describe('sign-in overlay', () => {
+  it('shows the branded home loader until the homepage is ready, then removes it immediately', async () => {
+    auth.restore.mockResolvedValue(null);
+    let finish!: () => void;
+    homeLoad.pending = new Promise<void>(resolve => { finish = resolve; });
+    render(<MemoryRouter initialEntries={['/']}><AuthProvider><AuthRoutes /></AuthProvider></MemoryRouter>);
+    expect(screen.getByRole('status').textContent).toBe('Getting your travel search ready');
+    expect(screen.getByRole('img', { name: 'Flyseri' })).toBeTruthy();
+    expect(screen.queryByRole('button')).toBeNull();
+    await act(async () => { homeLoad.pending = null; finish(); });
+    expect(await screen.findByText('Home behind sign in')).toBeTruthy();
+    expect(screen.queryByText('Getting your travel search ready')).toBeNull();
+  });
   it('opens over the current page and returns there after signing in', async () => {
     auth.restore.mockResolvedValue(null);
     auth.signIn.mockResolvedValue(session);

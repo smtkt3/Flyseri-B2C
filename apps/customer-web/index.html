@@ -5,11 +5,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><!-- figma:title --></title>
+    <!-- flyseri:loading-style -->
+    <style>body { margin: 0; }</style>
     <!-- figma:head-end -->
   </head>
   <body>
     <!-- figma:body-start -->
-    <div id="root"></div>
+    <div id="root">
+      <!-- Keep this first-paint shell in sync with HomeLoadingScreen.tsx. React replaces it when ready. -->
+      <div class="home-loading">
+        <div class="home-loading-card">
+          <img class="home-loading-logo" src="/src/assets/flyseri-logo.png" alt="Flyseri" width="170" height="50" />
+          <div class="home-loading-journey" aria-hidden="true">
+            <span class="home-loading-point"></span><span class="home-loading-trail"></span>
+            <svg viewBox="0 0 24 24" fill="none"><path d="m21 3-6.5 18-3.8-7.7L3 9.5 21 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /><path d="m21 3-10.3 10.3" stroke="currentColor" stroke-width="1.6" /></svg>
+          </div>
+          <h1>Your next journey starts here</h1>
+          <p role="status">Getting your travel search ready<span class="home-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+          <div class="home-loading-search" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <noscript><p>Please enable JavaScript to use Flyseri’s travel search.</p></noscript>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- figma:body-end -->
   </body>

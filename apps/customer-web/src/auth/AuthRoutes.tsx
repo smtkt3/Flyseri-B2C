@@ -2,6 +2,7 @@ import { lazy, Suspense, useRef } from 'react';
 import { Route, Routes, useLocation, type Location } from 'react-router-dom';
 import { ProtectedRoute } from './AuthProvider';
 import { PremiumNavbar } from '../components/PremiumNavbar';
+import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 
 const App = lazy(() => import('../App'));
 const AuthPage = lazy(() => import('./AuthPage').then((module) => ({ default: module.AuthPage })));
@@ -33,7 +34,7 @@ export function AuthRoutes() {
 
   return <>
     <div className={overlay ? 'auth-background auth-background-blurred' : 'auth-background'} inert={overlay} aria-hidden={overlay}>
-      <Suspense fallback={<div className="account-center" role="status">Opening Flyseri…</div>}>
+      <Suspense fallback={background.pathname === '/' ? <HomeLoadingScreen /> : <div className="account-center" role="status">Opening Flyseri…</div>}>
         <Routes location={background}>
           <Route path="/" element={<App />} />
           <Route path="/reset-password" element={<div className="customer-site-shell"><PremiumNavbar/><AuthPage mode="reset-password" /></div>} />
