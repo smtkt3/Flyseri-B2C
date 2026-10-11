@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { HomeSeriSearch } from './HomeSeriSearch';
+import { DeferredHomeSeriSearch } from './DeferredHomeSeriSearch';
 
 const api = vi.hoisted(() => ({ createConversation: vi.fn(), send: vi.fn(), guestSend: vi.fn() }));
 const auth = vi.hoisted(() => ({ session: { user: { id: 'user-1' } } as { user: { id: string } } | null }));
@@ -11,6 +12,53 @@ vi.mock('../../auth/AuthProvider', () => ({ useAuth: () => auth }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); auth.session = { user: { id: 'user-1' } }; });
 
 describe('homepage Seri conversation', () => {
+  it.each([false,true])('closes on an outside click and preserves the draft (floatingOnly=%s)',async floatingOnly=>{
+    render(<MemoryRouter><HomeSeriSearch floatingOnly={floatingOnly}/></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button',{name:'Chat with us'}));
+    const input=screen.getByLabelText('Ask Seri a travel question');
+    fireEvent.change(input,{target:{value:'Find my next trip'}});
+    fireEvent.click(input);
+    expect(screen.getByRole('dialog',{name:'Seri'})).toBeTruthy();
+    fireEvent.click(screen.getByRole('button',{name:'Close Seri chat by clicking outside'}));
+    await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Seri'})).toBeNull());
+    expect(screen.queryByRole('button',{name:'Close Seri chat by clicking outside'})).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Chat with us'}));
+    expect((screen.getByLabelText('Ask Seri a travel question') as HTMLInputElement).value).toBe('Find my next trip');
+  });
+  it('loads the deferred chat when returning from checkout with a resume request',async()=>{
+    render(<MemoryRouter initialEntries={[{pathname:'/',state:{resumeSeri:true}}]}><DeferredHomeSeriSearch active={false}/></MemoryRouter>);
+    expect(await screen.findByRole('dialog',{name:'Seri'})).toBeTruthy();
+  });
+  it('keeps the composer focused through submission and the reply so typing can continue', async () => {
+    auth.session = null;
+    let resolveReply!: (value: unknown) => void;
+    api.guestSend.mockImplementationOnce(() => new Promise(resolve => { resolveReply = resolve; }));
+    render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
+    const input = screen.getByLabelText('Ask Seri a travel question') as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, {target:{value:'Dhaka to Bangkok'}});
+    fireEvent.submit(input.closest('form')!);
+    expect(document.activeElement).toBe(input);
+    expect(input.disabled).toBe(false);
+    expect(input.readOnly).toBe(true);
+    expect((screen.getByRole('button',{name:/Sending/}) as HTMLButtonElement).disabled).toBe(true);
+    resolveReply({message:{id:'focus-reply',role:'ASSISTANT',content:'What date would you like to travel?',messageType:'TEXT',payload:null}});
+    await screen.findByText('What date would you like to travel?');
+    expect(document.activeElement).toBe(input);
+    expect(input.readOnly).toBe(false);
+    fireEvent.change(input,{target:{value:'25 October 2026'}});
+    expect(input.value).toBe('25 October 2026');
+  });
+  it('opens and closes account chat without inserting an inline chat into the page',async()=>{
+    render(<MemoryRouter initialEntries={['/app/bookings']}><HomeSeriSearch floatingOnly/></MemoryRouter>);
+    expect(screen.queryByRole('heading',{name:'Plan your journey with Seri'})).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Chat with us'}));
+    expect(screen.getByRole('dialog',{name:'Seri'})).toBeTruthy();
+    expect(screen.queryByText('Your conversation with Seri is open')).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Close Seri chat'}));
+    await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Seri'})).toBeNull());
+    expect(screen.queryByRole('heading',{name:'Plan your journey with Seri'})).toBeNull();
+  });
   it('dismisses the invitation for this tab while retaining the aircraft chat button', () => {
     render(<MemoryRouter><HomeSeriSearch /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Hide chat invitation' }));
@@ -69,7 +117,8 @@ describe('homepage Seri conversation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Chat with us' }));
     expect(screen.getByRole('dialog', { name: 'Seri' })).toBeTruthy();
     expect(screen.getByText('Your AI travel assistant')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Contact team' }).getAttribute('href')).toBe('/app/support');
+    fireEvent.click(screen.getByRole('button', { name: /Talk to our team/ }));
+    expect(screen.getByText('Review handover')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Ask Seri a travel question'), { target: { value: 'Help with my booking' } });
     fireEvent.click(screen.getByRole('button', { name: 'Close Seri chat' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Seri' })).toBeNull());

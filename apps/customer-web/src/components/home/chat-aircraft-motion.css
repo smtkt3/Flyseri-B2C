@@ -1,0 +1,34 @@
+.seri-floating-launcher{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.seri-aircraft-motion{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:0;transform-origin:center;pointer-events:none}
+.seri-aircraft-motion svg{display:block;z-index:1}
+.seri-floating-launcher[data-flight="landing"] .seri-aircraft-motion{will-change:transform}
+.seri-floating-launcher[data-flight="landing"] .seri-launcher-aircraft{transform:none!important;transition:none!important}
+.seri-floating-launcher[data-flight="landing"] .seri-aircraft-exhaust,.seri-floating-launcher[data-flight="landing"] .seri-aircraft-flame{opacity:0;transition:opacity .22s ease-out}
+.seri-floating-launcher[data-flight="pulling"] .seri-aircraft-motion{transform:translate3d(0,var(--seri-pull,0px),0) rotate(-6deg);will-change:transform}
+.seri-floating-launcher[data-flight="shaking"] .seri-aircraft-motion,.seri-floating-launcher[data-flight="flying"] .seri-aircraft-motion{will-change:transform}
+.seri-floating-launcher[data-flight="flying"] .seri-launcher-label,.seri-floating-launcher[data-flight="shaking"] .seri-launcher-label{opacity:.4;transition:opacity .2s}
+.seri-floating-launcher[data-flight="flying"] .seri-launcher-aircraft,.seri-floating-launcher[data-flight="pulling"] .seri-launcher-aircraft,.seri-floating-launcher[data-flight="shaking"] .seri-launcher-aircraft{transform:none!important;transition:none!important}
+.seri-aircraft-exhaust{position:absolute;z-index:0;width:12%;height:13%;transform:rotate(30deg);pointer-events:none;opacity:0}
+.seri-aircraft-exhaust-left{left:28.6%;top:52%}.seri-aircraft-exhaust-right{left:59%;top:69.6%}
+.seri-aircraft-exhaust i{position:absolute;inset:0;display:block;border-radius:50%;background:radial-gradient(circle,#f5f8fc 8%,#c0cddae6 45%,#a3b6cb00 74%);opacity:0}
+.seri-floating-launcher[data-flight="shaking"] .seri-aircraft-exhaust,.seri-floating-launcher[data-flight="flying"] .seri-aircraft-exhaust{opacity:1}
+.seri-floating-launcher[data-flight="shaking"] .seri-aircraft-exhaust i,.seri-floating-launcher[data-flight="flying"] .seri-aircraft-exhaust i{animation:seri-engine-smoke .7s linear infinite}
+@keyframes seri-engine-smoke{0%{opacity:.8;transform:translate3d(0,0,0) scale(.5)}50%{opacity:.42}100%{opacity:0;transform:translate3d(-8px,55px,0) scale(3.4)}}
+.seri-floating-launcher[data-flight="pulling"] .seri-aircraft-exhaust{opacity:1}
+.seri-floating-launcher[data-flight="pulling"] .seri-aircraft-exhaust i{animation:seri-engine-smoke .85s linear infinite}
+.seri-aircraft-flame{position:absolute;z-index:0;width:7%;height:36%;opacity:0;transform:rotate(30deg);transform-origin:50% 0;border-radius:45% 45% 70% 70%;background:linear-gradient(to bottom,#f8fdff 0%,#8edcff 18%,#ffeb84 40%,#ff9636 65%,#f85c1700 100%);pointer-events:none}
+.seri-aircraft-flame-left{left:31%;top:52%}.seri-aircraft-flame-right{left:61.4%;top:69.6%}
+.seri-floating-launcher[data-boosted="true"] .seri-aircraft-flame{opacity:1;animation:seri-engine-flame .12s ease-in-out infinite alternate}
+.seri-floating-launcher[data-boosted="true"] .seri-aircraft-exhaust i{animation-duration:.45s}
+.seri-floating-launcher[data-boosted="true"][data-flight="pulling"] .seri-launcher-aircraft{animation:seri-charged-jet .12s linear infinite alternate}
+@keyframes seri-engine-flame{from{transform:rotate(30deg) scaleY(.8)}to{transform:rotate(30deg) scaleY(1.15)}}
+@keyframes seri-charged-jet{from{translate:-.6px .4px}to{translate:.6px -.4px}}
+@media(prefers-reduced-motion:reduce){.seri-aircraft-exhaust,.seri-aircraft-flame{display:none!important}.seri-aircraft-motion{transform:none!important}.seri-launcher-aircraft{animation:none!important}.seri-launcher-label{transition:none!important}}
+.seri-aircraft-hint-anchor{position:absolute;right:0;bottom:calc(100% + 12px);pointer-events:none}
+.seri-aircraft-hint{display:flex;flex-direction:column;gap:4px;width:max-content;max-width:min(220px,calc(100vw - 32px));box-sizing:border-box;padding:11px 15px;border:1px solid #d4e8f7;border-radius:15px;background:#f8fcfff2;color:#214566;box-shadow:0 5px 20px #254b7217;text-align:left;font-family:Inter,system-ui,sans-serif;white-space:normal;animation:seri-hint-appear .25s ease-out}
+.seri-aircraft-hint::after{content:'';position:absolute;right:24px;bottom:-5px;width:9px;height:9px;background:#f8fcff;border-right:1px solid #d4e8f7;border-bottom:1px solid #d4e8f7;transform:rotate(45deg)}
+.seri-aircraft-hint strong{font-size:12px;line-height:1.4;font-weight:700}.seri-aircraft-hint small{font-size:11px;line-height:1.4;color:#597796}
+.seri-floating-launcher[data-flight="idle"]:has(.seri-aircraft-hint.is-invitation) .seri-aircraft-motion{animation:seri-hint-pull 1.8s ease-in-out 2}
+@keyframes seri-hint-pull{0%,45%,100%{transform:translateY(0)}22%{transform:translateY(5px)}}
+@keyframes seri-hint-appear{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:reduce){.seri-aircraft-hint,.seri-floating-launcher[data-flight="idle"]:has(.seri-aircraft-hint.is-invitation) .seri-aircraft-motion{animation:none}}

@@ -1,4 +1,6 @@
-import { ChatAircraftIcon } from './ChatAircraftIcon';
+import { AircraftGestureHint } from './AircraftGestureHint';
+import { ChatAircraftMotion } from './ChatAircraftMotion';
+import { useAircraftLaunch } from './useAircraftLaunch';
 import { Translated } from '../../travel/language';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -19,7 +21,7 @@ import { SeriRichText } from './SeriRichText';
 
 const suggestions = ['Where shall we go?', 'Plan a relaxing beach getaway', 'Help me plan a Japan trip', 'Plan a weekend trip from Dhaka'];
 
-export function HomeSeriSearch() {
+export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) {
   const location = useLocation();
   const search = useHomeSearchDraft();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -48,7 +50,7 @@ export function HomeSeriSearch() {
     let fullHeight = window.innerHeight;
     const resize = () => {
       const editing = document.activeElement?.matches('input,textarea,[contenteditable="true"]');
-      if (!editing) fullHeight = Math.max(fullHeight, window.innerHeight);
+      if (!editing) fullHeight = window.innerHeight;
       const open = !!viewport && Math.max(fullHeight, window.innerHeight) - viewport.height > 120;
       setKeyboardOpen(open);
       setKeyboardViewport(viewport && window.innerWidth <= 767 ? { top: viewport.offsetTop || 0, height: viewport.height } : null);
@@ -123,6 +125,10 @@ export function HomeSeriSearch() {
     setClosing(true);
     closeTimer.current = window.setTimeout(finish, 180);
   }
+  const aircraft = useAircraftLaunch(launcher, () => {
+    setInlineHeight(chatSection.current?.getBoundingClientRect().height ?? 0);
+    setFloating(true);
+  }, closing || floating || keyboardOpen || editingElsewhere);
   useEffect(() => {
     window.clearTimeout(closeTimer.current);
     setClosing(false);
@@ -238,14 +244,15 @@ export function HomeSeriSearch() {
       {error && <div className="home-seri-error" role="alert"><p>{error}</p><button type="button" disabled={sending || !online || !question.trim()} onClick={() => void send()}><Translated text="Try again" /></button></div>}
     </div>
     {!session && <p className="home-seri-sign-in"><Link to="/sign-in"><Translated text="Sign in for your saved trips" /></Link></p>}
-    <form onSubmit={event => { void send(event); }}><label className="sr-only" htmlFor="home-seri-question">Ask Seri a travel question</label><input ref={chatInput} id="home-seri-question" value={question} maxLength={4000} onChange={event => setQuestion(event.target.value)} placeholder={suggestions[suggestion]} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} disabled={sending} /><button type="submit" disabled={sending || !online || !question.trim()}>{sending ? 'Sending…' : 'Ask Seri'} <span aria-hidden="true">↗</span></button></form>
+    <form onSubmit={event => { void send(event); }}><label className="sr-only" htmlFor="home-seri-question">Ask Seri a travel question</label><input ref={chatInput} id="home-seri-question" value={question} maxLength={4000} onChange={event => setQuestion(event.target.value)} placeholder={suggestions[suggestion]} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} readOnly={sending} /><button type="submit" disabled={sending || !online || !question.trim()}>{sending ? 'Sending…' : 'Ask Seri'} <span aria-hidden="true">↗</span></button></form>
   </section>;
-  return <>{floating ? <div className="seri-inline-placeholder" style={{ minHeight: inlineHeight }}><span aria-hidden="true">✦</span><div><strong>Your conversation with Seri is open</strong></div><button type="button" onClick={closeFloating}>Continue here ↗</button></div> : chat}{createPortal(<>
-    {floating && <div ref={floatingPanel} style={keyboardViewport ? { top: keyboardViewport.top + 12, bottom: 'auto', height: Math.max(180, keyboardViewport.height - 24) } : undefined} className={`seri-floating-panel${closing ? ' is-closing' : ''}`} id="seri-floating-chat" role="dialog" aria-labelledby="home-seri-title" tabIndex={-1}>{chat}</div>}
+  return <>{!floatingOnly&&(floating ? <div className="seri-inline-placeholder" style={{ minHeight: inlineHeight }}><span aria-hidden="true">✦</span><div><strong>Your conversation with Seri is open</strong></div><button type="button" onClick={closeFloating}>Continue here ↗</button></div> : chat)}{createPortal(<>
+    {floating && <button type="button" className="seri-chat-outside-dismiss" aria-label="Close Seri chat by clicking outside" tabIndex={-1} onClick={closeFloating} />}
+    {floating && <div ref={floatingPanel} style={keyboardViewport ? { top: keyboardViewport.top + 12, bottom: 'auto', height: floatingOnly && !keyboardOpen ? `min(650px, calc(${Math.max(180, keyboardViewport.height - 108)}px - env(safe-area-inset-bottom, 0px)))` : Math.max(180, keyboardViewport.height - 24) } : undefined} className={`seri-floating-panel${closing ? ' is-closing' : ''}`} id="seri-floating-chat" role="dialog" aria-labelledby="home-seri-title" tabIndex={-1}>{chat}</div>}
     {!floating && !labelDismissed && !launcherObstructed && !editingElsewhere && !keyboardOpen && <button type="button" className="seri-label-dismiss" aria-label="Hide chat invitation" onClick={() => { setLabelDismissed(true); try { sessionStorage.setItem('flyseri.chat-label-dismissed', '1'); } catch {} launcher.current?.focus({ preventScroll: true }); }}>×</button>}
-    <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${labelDismissed || launcherObstructed ? ' is-compact' : ''}`} aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-controls={floating ? 'seri-floating-chat' : undefined} onClick={() => { if (floating) closeFloating(); else { setInlineHeight(chatSection.current?.getBoundingClientRect().height ?? 0); setFloating(true); } }}>
+    <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${labelDismissed || launcherObstructed ? ' is-compact' : ''}`} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} title="Tap to chat. Pull down for smoke; hold to boost, then release to fly." aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-busy={aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} aria-controls={floating ? 'seri-floating-chat' : undefined} {...aircraft.handlers}>
       {!floating && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong><Translated text="Chat with us" /></strong><small><Translated text="AI & travel support" /></small></span>}
-      <ChatAircraftIcon />
+      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !launcherObstructed && !labelDismissed}/><ChatAircraftMotion />
     </button>
   </>, document.body)}</>;
 }
