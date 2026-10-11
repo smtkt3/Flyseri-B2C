@@ -1,0 +1,19 @@
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { PremiumNavbar } from '../components/PremiumNavbar';
+import './public-help.css';
+
+export function PublicHelpPage() {
+  const { hash } = useLocation();
+  useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({block:'start'}); }, [hash]);
+  return <div className="customer-site-shell"><PremiumNavbar/><main className="public-help-page">
+    <header><Link to="/">Back to homepage</Link><span className="public-help-eyebrow">FLYSERI HELP CENTRE</span><h1>Travel with a clear next step</h1><p>Booking guidance, payment help and information about Flyseri.</p></header>
+    <nav className="public-help-nav" aria-label="Help topics"><a href="#booking-information">Before you book</a><a href="#payment-help">Payment help</a><a href="#contact-support">Contact support</a><a href="#policies">Policies & privacy</a></nav>
+    <div className="public-help-grid">
+      <section id="booking-information"><h2>Before you book</h2><p>Check the route, dates, traveler names and total in the payment currency before continuing.</p><ul><li>Review baggage for each flight and traveler. Extra services may require separate airline confirmation.</li><li>Read the selected fare’s change, cancellation and refund conditions. Request clarification if a condition or charge is missing.</li><li>A booking reference confirms a reservation. Payment confirmation and an issued ticket are separate statuses; check each in My bookings.</li></ul><Link to="/app/bookings">Open My bookings</Link></section>
+      <section id="payment-help"><h2>Interrupted or pending payment?</h2><ol><li>Keep your booking or order page open.</li><li>Use “Check payment status” to retrieve the latest result before trying again.</li><li>If the result remains unclear, contact support with your booking or order reference.</li></ol><p>Never send card numbers, passwords or one-time security codes in a support request.</p><Link to="/app/orders">Check my orders</Link></section>
+      <section id="contact-support"><h2>Here to help</h2><p>Send a support request through your Flyseri account so the team can refer to your booking and reply in one place. Sign-in is required.</p><Link className="btn-primary" to="/app/support">Contact the support team</Link><p className="public-help-note">Public telephone, email and office details will appear here once verified.</p><h3>About Flyseri</h3><p>Flyseri is a brand of Seri Mechan Travel. Explore destinations, plan journeys and manage travel details through Flyseri.</p></section>
+      <section id="policies"><h2>Policies & privacy</h2><p>Full commercial privacy, booking, cancellation and refund policies are pending publication. The guidance on this page does not replace the conditions of your selected airline fare.</p><details id="demo-bookings"><summary>Special Flight Offers demo conditions</summary><p>Demo offers use illustrative prices, dates, baggage and availability. No airline seat is reserved, no valid ticket is issued and no money is collected.</p><p>A five-minute demo selection or payment window expires automatically. Returning to an existing hold does not extend it. Expired holds can be replaced by starting a new demo session.</p><p>Demo payment, cancellation and refund outcomes are simulated in your browser tab. They do not change airline or bank records.</p></details><details><summary>Privacy information for the demo</summary><p>Use sample names. The demo stores booking records and countdowns in this browser tab’s session; entered traveler names are not saved in demo booking records or sent to an airline or payment provider.</p><p>Real account, traveler and booking forms are separate from the demo. Avoid entering sensitive details while exploring demo screens.</p></details></section>
+    </div>
+  </main></div>;
+}

@@ -1,19 +1,56 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { OrdersPage } from './OrdersPage';
 import { OrderDetailPage } from './OrderDetailPage';
 import { PaymentsPage } from './PaymentsPage';
+import { clearPaymentAttempt } from './paymentRecovery';
 
 const commerce = vi.hoisted(() => ({ orders: vi.fn(), order: vi.fn(), payments: vi.fn(), receipt: vi.fn(),
   paymentCapabilities: vi.fn(), payment: vi.fn(), startPayment: vi.fn() }));
 vi.mock('../services/commerceService', () => ({ commerceService: commerce }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); clearPaymentAttempt('order-1'); vi.clearAllMocks(); });
 
 commerce.paymentCapabilities.mockResolvedValue({ checkoutAvailable: false });
 
 describe('customer commerce screens', () => {
+  it('requires a status check after an interrupted payment and reuses its attempt key after remount', async () => {
+    commerce.paymentCapabilities.mockResolvedValue({checkoutAvailable:true});
+    commerce.order.mockResolvedValue({id:'order-1',orderNumber:'RECOVERY-1',status:'PENDING_PAYMENT',totalAmount:'100',currency:'BDT',items:[],payment:null,expiresAt:null});
+    commerce.startPayment.mockRejectedValue(new Error('Connection interrupted'));
+    const mount = () => render(<MemoryRouter initialEntries={['/app/orders/order-1']}><Routes><Route path="/app/orders/:orderId" element={<OrderDetailPage/>}/></Routes></MemoryRouter>);
+    const first = mount();await screen.findByRole('checkbox');fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button',{name:/^Pay .*with Stripe/}));
+    await screen.findByText('Check your payment before continuing');
+    const attemptKey = commerce.startPayment.mock.calls[0]![1];
+    expect(screen.queryByRole('button',{name:/^Pay .*with Stripe/})).toBeNull();
+    first.unmount();mount();await screen.findByText('RECOVERY-1');
+    expect(screen.getByText('Check your payment before continuing')).toBeTruthy();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Check payment status'}));
+    await screen.findByRole('checkbox');fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button',{name:/^Pay .*with Stripe/}));
+    await screen.findByText('Check your payment before continuing');
+    expect(commerce.startPayment.mock.calls[1]![1]).toBe(attemptKey);
+    commerce.paymentCapabilities.mockResolvedValue({checkoutAvailable:false});
+  });
+  it('keeps the payment total in the order currency when display currency differs', async () => {
+    localStorage.setItem('flyseri.currency', 'MYR');
+    commerce.paymentCapabilities.mockResolvedValueOnce({ checkoutAvailable: true });
+    commerce.order.mockResolvedValue({ id: 'order-1', orderNumber: 'CURRENCY-1', status: 'PENDING_PAYMENT', totalAmount: '34997.00', currency: 'BDT', items: [], payment: null, expiresAt: null });
+    render(<MemoryRouter initialEntries={['/app/orders/order-1']}><Routes><Route path="/app/orders/:orderId" element={<OrderDetailPage/>}/></Routes></MemoryRouter>);
+    await screen.findByText('Payment total · BDT');
+    const bar = screen.getByLabelText('Continue payment');
+    expect(bar.textContent).toContain('34,997.00');
+    expect(bar.textContent).toContain('BDT');
+    const pay = within(bar).getByRole('button', { name: 'Continue payment' }) as HTMLButtonElement;
+    expect(pay.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(pay.disabled).toBe(false);
+    expect(commerce.startPayment).not.toHaveBeenCalled();
+    localStorage.clear();
+  });
   it('shows loading and a truthful empty order state', async () => {
     let resolve!: (value: unknown[]) => void;
     commerce.orders.mockReturnValue(new Promise((done) => { resolve = done; }));

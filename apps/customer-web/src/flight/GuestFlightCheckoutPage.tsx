@@ -23,6 +23,8 @@ import { useCheckoutShoppingFare } from './useCheckoutShoppingFare';
 import { clearCheckoutDraft, keepCheckoutDraft, readCheckoutDraft } from './checkoutDrafts';
 import { flightBrowseReturn, flightBrowseSearchQuery, type FlightBrowseReturn } from './flightSearchBrowsing';
 import { seriReturnPath } from '../seri/seriFlightReturn';
+import { useDialogFocus } from '../components/useDialogFocus';
+import { contactFieldErrors, passengerFieldErrors } from './checkoutFieldErrors';
 
 interface GuestCheckoutState {
   offer: FlightOffer;
@@ -94,7 +96,21 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   const [contact, setContact] = useState<Contact>(draft?.contact ?? { name: '', email: '', dialCode: '+60', phone: '' });
   const [contactNameManuallyEdited, setContactNameManuallyEdited] = useState(draft?.contactNameManuallyEdited ?? false);
   const [checkoutNotice, setCheckoutNotice] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const controlId = (key: string) => `checkout-field-${key.replace(/\./g, '-')}`;
+  const fieldLabels: Record<string,string> = {givenNames:'First / given names *',surname:'Last name (surname) *',birthDate:'Date of birth *',idNumber:'Document number',idExpiryDate:'Expiry date','contact.name':'Contact name *','contact.email':'Email *','contact.phone':'Mobile phone number'};
+  const fieldProps = (key: string) => ({ id: controlId(key), 'aria-label':fieldLabels[key]??fieldLabels[key.split('.')[1]??''], 'aria-invalid': fieldErrors[key] ? true : undefined, 'aria-describedby': fieldErrors[key] ? `${controlId(key)}-error` : undefined });
+  const selectProps = (key: string) => ({ controlId: controlId(key), invalid: !!fieldErrors[key], describedBy: fieldErrors[key] ? `${controlId(key)}-error` : undefined });
+  const fieldError = (key: string) => fieldErrors[key] ? <small className="checkout-field-error" id={`${controlId(key)}-error`}>{fieldErrors[key]}</small> : null;
+  function showFieldErrors(errors: Record<string, string>) {
+    setFieldErrors(errors);
+    const first = Object.keys(errors)[0];
+    if (first) window.setTimeout(() => document.getElementById(controlId(first))?.focus(), 0);
+  }
   const [mobilePriceDetailsOpen, setMobilePriceDetailsOpen] = useState(false);
+  const priceDialog = useRef<HTMLElement>(null);
+  const closePriceDetails = useCallback(() => setMobilePriceDetailsOpen(false), []);
+  useDialogFocus(mobilePriceDetailsOpen, priceDialog, closePriceDetails);
   const [submitting, setSubmitting] = useState(false);
   const [submittedAttemptId, setSubmittedAttemptId] = useState<string | null>(draft?.submittedAttemptId ?? null);
   const submissionKey = useRef(draft?.submissionKey ?? randomUUID());
@@ -121,12 +137,6 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   const pricedOffer = latestSelection?.offer ?? offer;
   const priceChanged=!!latestSelection&&(latestSelection.offer.currency!==offer.currency||Number(latestSelection.offer.totalAmount)!==Number(offer.totalAmount));
   const travelers = passengers.length;
-  useEffect(() => {
-    if (!mobilePriceDetailsOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobilePriceDetailsOpen(false); };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [mobilePriceDetailsOpen]);
   const tripDescription = searchRequest.tripType === 'ROUND_TRIP' ? 'Round trip' : searchRequest.tripType === 'MULTI_CITY' ? 'Multi-city' : 'One way';
   function markDetailsChanged() {
     submissionKey.current = randomUUID();
@@ -136,6 +146,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   function editPassenger(index: number, update: Partial<Passenger>, keepSavedSelection = false) {
     if (sending.current) return;
     markDetailsChanged();
+    setFieldErrors(current => Object.fromEntries(Object.entries(current).filter(([key]) => !Object.keys(update).some(field => key === `${index}.${field}`))));
     createdPeople.current.delete(index);
     profileRequest.current++;
     if (!keepSavedSelection) setSavedSelections(current => { const next={...current};delete next[index];return next; });
@@ -145,10 +156,8 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     event.preventDefault();
     const passenger = passengers[index];
     if (!passenger) return;
-    const error = checkoutPassengerError(passenger, searchRequest.departureDate, lastTravelDate);
-    if (error) { setCheckoutNotice(error); return; }
-    const passportError=checkoutPassportError(passenger,lastTravelDate);
-    if(passportError){setCheckoutNotice(passportError);return;}
+    const errors = passengerFieldErrors(passenger, searchRequest.departureDate, lastTravelDate);
+    if (Object.keys(errors).length) { showFieldErrors(Object.fromEntries(Object.entries(errors).map(([field, message]) => [`${index}.${field}`, message]))); setCheckoutNotice('Check the highlighted traveler details.'); return; }
     editPassenger(index, { confirmed: true });
     if (index === 0 && !contactNameManuallyEdited) setContact((current) => ({ ...current, name: `${passenger.givenNames.trim()} ${passenger.surname.trim()}` }));
   }
@@ -174,6 +183,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   function updateContact(update: Partial<Contact>) {
     if (sending.current) return;
     markDetailsChanged();
+    setFieldErrors(current => Object.fromEntries(Object.entries(current).filter(([key]) => !Object.keys(update).some(field => key === `contact.${field}`))));
     if (update.name !== undefined) setContactNameManuallyEdited(true);
     setContact((current) => ({ ...current, ...update }));
   }
@@ -181,10 +191,16 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     if (sending.current) return;
     if (submittedAttemptId) { navigate(`/app/flights/booking-intents/${submittedAttemptId}/extras`, {state:{returnTo,passportsCaptured:true,bookingContact:{contactEmail:contact.email.trim(),contactPhone:`${contact.dialCode}${contact.phone.replace(/\D/g,'').replace(/^0/,'')}`}}}); return; }
     if (passengers.some((passenger) => !passenger.confirmed || !validPassenger(passenger, searchRequest.departureDate, lastTravelDate) || checkoutPassportError(passenger,lastTravelDate))) {
+      const index = passengers.findIndex(person => !person.confirmed || !validPassenger(person, searchRequest.departureDate, lastTravelDate) || checkoutPassportError(person,lastTravelDate));
+      const errors = passengerFieldErrors(passengers[index]!, searchRequest.departureDate, lastTravelDate);
+      setPassengers(current => current.map((person, at) => at === index ? {...person, confirmed: false} : person));
+      if (Object.keys(errors).length) showFieldErrors(Object.fromEntries(Object.entries(errors).map(([field, message]) => [`${index}.${field}`, message])));
+      else window.setTimeout(() => document.getElementById(`confirm-passenger-${index}`)?.focus(), 0);
       setCheckoutNotice('Confirm every passenger before continuing.');
       return;
     }
     if (!contact.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim()) || contact.phone.replace(/\D/g, '').length < 6) {
+      showFieldErrors(Object.fromEntries(Object.entries(contactFieldErrors(contact)).map(([field, message]) => [`contact.${field}`, message])));
       setCheckoutNotice('Enter a contact name, valid email address, and mobile phone number before continuing.');
       return;
     }
@@ -258,7 +274,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
             {passengers.map((passenger, index) => <section className="guest-checkout-person" key={index} aria-label={`Passenger ${index + 1}`}>
               <div className="guest-checkout-person-heading"><div><strong>Passenger {index + 1}: {passenger.confirmed ? `${passenger.givenNames.trim()} ${passenger.surname.trim()}` : passenger.kind}</strong>{passenger.confirmed && <small>{passenger.kind} &nbsp;|&nbsp; {passenger.gender} &nbsp;|&nbsp; {passenger.nationality.trim()}</small>}</div><button type="button" className={passenger.confirmed ? 'guest-checkout-status done' : 'guest-checkout-status'} onClick={() => passenger.confirmed && editPassenger(index, { confirmed: false })}>{passenger.confirmed ? '✓ Completed · Edit' : 'Not completed'}</button></div>
               {passenger.confirmed && <p className="guest-checkout-note">{passenger.idNumber ? `${documentTypes.find(type=>type.value===passenger.idType)?.label??'Travel document'} ending ${passenger.idNumber.slice(-4)} · Expires ${passenger.idExpiryDate} · ` : ''}{passenger.saveForFuture ? 'Traveler saved to my account' : 'For this booking only'}</p>}
-              {!passenger.confirmed && <form onSubmit={(event) => confirmPassenger(event, index)}>
+              {!passenger.confirmed && <form noValidate onSubmit={(event) => confirmPassenger(event, index)}>
                 {savedPeople.length>0&&<details className="guest-checkout-saved-picker">
                   <summary><span><small>Saved travelers</small><strong>{savedPeople.find(person=>person.id===savedSelections[index]) ? [savedPeople.find(person=>person.id===savedSelections[index])?.legalFirstName,savedPeople.find(person=>person.id===savedSelections[index])?.legalMiddleName,savedPeople.find(person=>person.id===savedSelections[index])?.legalLastName].filter(Boolean).join(' ') : 'Choose a saved traveler'}</strong></span><span className="guest-checkout-saved-count">{savedPeople.length} saved</span></summary>
                   <div className="guest-checkout-saved-list">{savedPeople.map((person,personIndex)=>{
@@ -276,17 +292,17 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
                     </article>;
                   })}</div>
                 </details>}
-                <div className="guest-checkout-fields two"><label>First / given names <span>*</span><input required autoComplete="given-name" value={passenger.givenNames} onChange={(event) => editPassenger(index, { givenNames: event.target.value })} /></label><label>Last name (surname) <span>*</span><input required autoComplete="family-name" value={passenger.surname} onChange={(event) => editPassenger(index, { surname: event.target.value })} /></label></div>
-                <div className="guest-checkout-fields three"><label>Gender on ID <span>*</span><BoundedSelect required ariaLabel={`Passenger ${index+1} gender`} value={passenger.gender} placeholder="Select gender" options={[{value:'FEMALE',label:'Female'},{value:'MALE',label:'Male'},{value:'X',label:'Other'}]} onChange={gender=>editPassenger(index,{gender})}/></label><label>Date of birth <span>*</span><input required type="date" max={new Date().toISOString().slice(0, 10)} value={passenger.birthDate} onChange={(event) => editPassenger(index, { birthDate: event.target.value })} /></label><label>Nationality (country/region) <span>*</span><BoundedSelect required searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} nationality`} value={passenger.nationality} placeholder="Select nationality" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={nationality=>editPassenger(index,{nationality})}/></label></div>
-                <div className="guest-checkout-passport"><h3>Travel document details</h3><div className="guest-checkout-fields three"><label>Document type<BoundedSelect ariaLabel={`Passenger ${index+1} document type`} value={passenger.idType} placeholder="Select document type" options={documentTypes} onChange={idType=>editPassenger(index,{idType:idType as FlightIdentityDocumentType,idNumber:'',idExpiryDate:'',issuingCountryCode:''})}/></label><label>Document number<input autoComplete="off" maxLength={30} pattern="[A-Z0-9]{3,30}" value={passenger.idNumber} onChange={event=>editPassenger(index,{idNumber:event.target.value.toUpperCase().replace(/\s/g,'')})}/></label><label>Expiry date<input type="date" autoComplete="off" min={lastTravelDate} value={passenger.idExpiryDate} onChange={event=>editPassenger(index,{idExpiryDate:event.target.value})}/></label><label>Issuing country<BoundedSelect searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} document issuing country`} value={passenger.issuingCountryCode} placeholder="Select issuing country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={issuingCountryCode=>editPassenger(index,{issuingCountryCode})}/></label></div></div>
+                <div className="guest-checkout-fields two"><label>First / given names <span>*</span><input {...fieldProps(`${index}.givenNames`)} required autoComplete="given-name" value={passenger.givenNames} onChange={(event) => editPassenger(index, { givenNames: event.target.value })} />{fieldError(`${index}.givenNames`)}</label><label>Last name (surname) <span>*</span><input {...fieldProps(`${index}.surname`)} required autoComplete="family-name" value={passenger.surname} onChange={(event) => editPassenger(index, { surname: event.target.value })} />{fieldError(`${index}.surname`)}</label></div>
+                <div className="guest-checkout-fields three"><label>Gender on ID <span>*</span><BoundedSelect {...selectProps(`${index}.gender`)} required ariaLabel={`Passenger ${index+1} gender`} value={passenger.gender} placeholder="Select gender" options={[{value:'FEMALE',label:'Female'},{value:'MALE',label:'Male'},{value:'X',label:'Other'}]} onChange={gender=>editPassenger(index,{gender})}/>{fieldError(`${index}.gender`)}</label><label>Date of birth <span>*</span><input {...fieldProps(`${index}.birthDate`)} required type="date" max={new Date().toISOString().slice(0, 10)} value={passenger.birthDate} onChange={(event) => editPassenger(index, { birthDate: event.target.value })} />{fieldError(`${index}.birthDate`)}</label><label>Nationality (country/region) <span>*</span><BoundedSelect {...selectProps(`${index}.nationality`)} required searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} nationality`} value={passenger.nationality} placeholder="Select nationality" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={nationality=>editPassenger(index,{nationality})}/>{fieldError(`${index}.nationality`)}</label></div>
+                <div className="guest-checkout-passport"><h3>Travel document details</h3><div className="guest-checkout-fields three"><label>Document type<BoundedSelect ariaLabel={`Passenger ${index+1} document type`} value={passenger.idType} placeholder="Select document type" options={documentTypes} onChange={idType=>editPassenger(index,{idType:idType as FlightIdentityDocumentType,idNumber:'',idExpiryDate:'',issuingCountryCode:''})}/></label><label>Document number<input {...fieldProps(`${index}.idNumber`)} autoComplete="off" maxLength={30} pattern="[A-Z0-9]{3,30}" value={passenger.idNumber} onChange={event=>editPassenger(index,{idNumber:event.target.value.toUpperCase().replace(/\s/g,'')})}/>{fieldError(`${index}.idNumber`)}</label><label>Expiry date<input {...fieldProps(`${index}.idExpiryDate`)} type="date" autoComplete="off" min={lastTravelDate} value={passenger.idExpiryDate} onChange={event=>editPassenger(index,{idExpiryDate:event.target.value})}/>{fieldError(`${index}.idExpiryDate`)}</label><label>Issuing country<BoundedSelect {...selectProps(`${index}.issuingCountryCode`)} searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} document issuing country`} value={passenger.issuingCountryCode} placeholder="Select issuing country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={issuingCountryCode=>editPassenger(index,{issuingCountryCode})}/>{fieldError(`${index}.issuingCountryCode`)}</label></div></div>
                 <label className="guest-checkout-save-choice"><input type="checkbox" checked={passenger.saveForFuture} onChange={event=>editPassenger(index,{saveForFuture:event.target.checked})}/><span>Save this traveler to my account for future bookings.</span></label>
-                <button className="guest-checkout-confirm" type="submit">Confirm passenger</button>
+                <button id={`confirm-passenger-${index}`} className="guest-checkout-confirm" type="submit">Confirm passenger</button>
               </form>}
             </section>)}
           </section>
 
           <section className="guest-checkout-card guest-checkout-contact"><div className="guest-checkout-card-heading"><div><span className="guest-checkout-eyebrow">BOOKING CONTACT</span><h2>Contact details</h2></div></div><p className="guest-checkout-note">We use these details for booking updates. Each traveler’s save option controls whether their details are available for future bookings.</p>
-            <div className="guest-checkout-fields three"><label>Contact name <span>*</span><input required autoComplete="name" value={contact.name} onChange={(event) => updateContact({ name: event.target.value })} /></label><label>Email <span>*</span><input required type="email" autoComplete="email" value={contact.email} onChange={(event) => updateContact({ email: event.target.value })} /></label><label>Mobile phone <span>*</span><div className="guest-checkout-phone"><BoundedSelect ariaLabel="Country calling code" value={contact.dialCode} placeholder="+60" options={['+60','+65','+880','+1','+44'].map(code=>({value:code,label:code}))} onChange={dialCode=>updateContact({dialCode})}/><input required aria-label="Mobile phone number" type="tel" autoComplete="tel-national" value={contact.phone} onChange={(event) => updateContact({ phone: event.target.value })} /></div></label></div>
+            <div className="guest-checkout-fields three"><label>Contact name <span>*</span><input {...fieldProps(`contact.name`)} required autoComplete="name" value={contact.name} onChange={(event) => updateContact({ name: event.target.value })} />{fieldError(`contact.name`)}</label><label>Email <span>*</span><input {...fieldProps(`contact.email`)} autoCapitalize="none" inputMode="email" required type="email" autoComplete="email" value={contact.email} onChange={(event) => updateContact({ email: event.target.value })} />{fieldError(`contact.email`)}</label><label>Mobile phone <span>*</span><div className="guest-checkout-phone"><BoundedSelect ariaLabel="Country calling code" value={contact.dialCode} placeholder="+60" options={['+60','+65','+880','+1','+44'].map(code=>({value:code,label:code}))} onChange={dialCode=>updateContact({dialCode})}/><input {...fieldProps(`contact.phone`)} inputMode="tel" required aria-label="Mobile phone number" type="tel" autoComplete="tel-national" value={contact.phone} onChange={(event) => updateContact({ phone: event.target.value })} /></div>{fieldError(`contact.phone`)}</label></div>
           </section>
 
           <section className="guest-checkout-card guest-checkout-baggage">
@@ -331,7 +347,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
       </div>
       {mobilePriceDetailsOpen && <div className="checkout-mobile-price-layer">
         <button type="button" className="checkout-mobile-price-scrim" aria-label="Close price details" onClick={() => setMobilePriceDetailsOpen(false)} />
-        <section className="checkout-mobile-price-sheet" role="dialog" aria-modal="true" aria-label="Price details">
+        <section ref={priceDialog} tabIndex={-1} className="checkout-mobile-price-sheet" role="dialog" aria-modal="true" aria-label="Price details">
           <FlightPriceDetails offer={pricedOffer} search={searchRequest} requests={servicePreferences} selectedExtras={selectedExtras} onClose={() => setMobilePriceDetailsOpen(false)} onEstimatedTripTotal={reportAncillaryTotal} />
         </section>
       </div>}

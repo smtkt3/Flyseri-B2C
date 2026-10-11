@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { createDemoBooking } from '../../services/demo/demoBookingService';
 import type { GroupFare } from './groupFares';
@@ -11,7 +11,10 @@ export function DemoOfferCheckout({ code, city, fare, departure, travellers, onB
   const [now, setNow] = useState(Date.now);
   const [names, setNames] = useState(() => Array.from({ length: travellers }, () => ''));
   const [error, setError] = useState('');
+  const [nameErrors, setNameErrors] = useState<number[]>([]);
+  const heading = useRef<HTMLHeadingElement>(null);
   const remaining = demoHoldRemaining(hold, now);
+  useEffect(() => { heading.current?.focus(); }, [hold.completedAt]);
   useEffect(() => {
     const update = () => setNow(Date.now());
     const timer = window.setInterval(update, 1000);
@@ -21,7 +24,8 @@ export function DemoOfferCheckout({ code, city, fare, departure, travellers, onB
   function complete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (hold.completedAt) return;
-    if (names.some(name => !name.trim())) { setError('Enter a name for each traveller.'); return; }
+    const missing = names.flatMap((name,index) => name.trim() ? [] : [index]);
+    if (missing.length) { setNameErrors(missing); setError('Enter a name for each traveller.'); document.getElementById(`demo-name-${missing[0]}`)?.focus(); return; }
     const submittedAt = Date.now();
     if (submittedAt >= hold.expiresAt) { setNow(submittedAt);setError('This demo hold has expired. Please start a new demo session.');return; }
     let booking;
@@ -33,12 +37,14 @@ export function DemoOfferCheckout({ code, city, fare, departure, travellers, onB
     try {holdStorage()?.setItem(key,JSON.stringify(saved));} catch { /* The saved demo remains available in this session. */ }
     setHold(saved); setError('');
   }
-  if (hold.completedAt) return <div className="demo-offer-result" role="status"><span aria-hidden="true">✓</span><h3>Demo reservation saved</h3><p>{travellers} traveller{travellers === 1 ? '' : 's'} · Dhaka → {city} · {departure}</p><strong>{groupFareMoney({ ...fare, amountPerPerson: fare.amountPerPerson * travellers })}</strong><p>No airline seats were reserved, no ticket was issued, and no payment was taken.</p><Link className="home-offer-search" to={hold.bookingId ? '/demo/bookings/'+hold.bookingId : '/demo/bookings'}>Continue to demo payment</Link><button type="button" className="account-outline-button" onClick={onBack}>Back to offer details</button></div>;
+  if (hold.completedAt) return <div className="demo-offer-result" role="status"><span aria-hidden="true">✓</span><h3 ref={heading} tabIndex={-1}>Demo reservation saved</h3><p>{travellers} traveller{travellers === 1 ? '' : 's'} · Dhaka → {city} · {departure}</p><strong>{groupFareMoney({ ...fare, amountPerPerson: fare.amountPerPerson * travellers })}</strong><p>No airline seats were reserved, no ticket was issued, and no payment was taken.</p><Link className="home-offer-search" to={hold.bookingId ? '/demo/bookings/'+hold.bookingId : '/demo/bookings'}>Continue to demo payment</Link><button type="button" className="account-outline-button" onClick={onBack}>Back to offer details</button></div>;
   return <div className="demo-offer-checkout">
     <p className="special-offer-demo-label">Demo checkout · no real reservation or payment</p>
+    <h3 ref={heading} tabIndex={-1}>Traveler details</h3>
     <div className={`demo-hold-timer${remaining <= 60 ? ' is-urgent' : ''}`}><div><strong>{remaining ? 'Demo selection held' : 'Demo hold expired'}</strong><span>{remaining ? 'Complete this demo within five minutes.' : 'Start a new demo session to continue.'}</span></div><time aria-label={remaining ? 'Time remaining' : 'Hold expired'}>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</time></div>
     <div className="demo-offer-summary"><span>DAC → {code} · {departure} · {travellers} traveller{travellers === 1 ? '' : 's'}</span><strong>{groupFareMoney({ ...fare, amountPerPerson: fare.amountPerPerson * travellers })}<small>Total · demo fare</small></strong></div>
-    {remaining > 0 ? <form onSubmit={complete}><p className="group-fare-hint">Use sample names while trying the demo.</p>{names.map((name, index) => <label key={index}>Traveller {index + 1} · full name<input required maxLength={120} autoComplete="off" value={name} onChange={event => setNames(values => values.map((value, position) => position === index ? event.target.value : value))}/></label>)}<button className="home-offer-search" type="submit">Save demo reservation</button></form> : <button type="button" className="home-offer-search" onClick={() => { try { holdStorage()?.removeItem(key); } catch {} setHold(readOrCreateDemoHold(holdStorage(), key)); setNow(Date.now()); setError(''); }}>Start a new demo session</button>}
+    <p role="status" className="demo-hold-announcement">{remaining === 0 ? 'The demo hold expired. Start a new session to continue.' : remaining <= 60 ? 'One minute or less remains in this demo hold.' : ''}</p>
+    {remaining > 0 ? <form noValidate onSubmit={complete}><p className="group-fare-hint">Use sample names while trying the demo.</p>{names.map((name, index) => <label key={index}>Traveller {index + 1} · full name<input id={`demo-name-${index}`} aria-invalid={nameErrors.includes(index)} aria-describedby={nameErrors.includes(index)?`demo-name-${index}-error`:undefined} required maxLength={120} autoComplete="off" value={name} onChange={event => {setNameErrors(current=>current.filter(value=>value!==index));setError('');setNames(values => values.map((value, position) => position === index ? event.target.value : value));}}/>{nameErrors.includes(index)&&<small id={`demo-name-${index}-error`} className="checkout-field-error">Enter a sample traveler’s full name.</small>}</label>)}<button className="home-offer-search" type="submit">Save demo reservation</button></form> : <button type="button" className="home-offer-search" onClick={() => { try { holdStorage()?.removeItem(key); } catch {} setHold(readOrCreateDemoHold(holdStorage(), key)); setNow(Date.now()); setError('');setNameErrors([]); }}>Start a new demo session</button>}
     {error && <p role="alert" className="home-offer-sample">{error}</p>}
     <button className="demo-back-link" type="button" onClick={onBack}>Back to offer details</button>
   </div>;

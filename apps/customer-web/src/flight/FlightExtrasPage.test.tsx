@@ -15,6 +15,11 @@ function mount(state:Record<string,unknown>|null=null){return render(<MemoryRout
 beforeEach(()=>{vi.resetAllMocks();api.intent.mockResolvedValue(selection());api.bookingForIntent.mockResolvedValue(null);api.validateIntent.mockResolvedValue(selection());});
 afterEach(()=>cleanup());
 describe('dedicated airline extras step',()=>{
+ it('recovers a failed load without saving or changing extras',async()=>{
+  api.intent.mockRejectedValueOnce(new Error('Connection interrupted'));mount();
+  await screen.findByRole('alert');fireEvent.click(screen.getByRole('button',{name:'Retry loading extras'}));
+  await screen.findByText('Available airline choices');expect(api.intent).toHaveBeenCalledTimes(2);expect(api.saveAncillarySelections).not.toHaveBeenCalled();
+ });
  it('continues without clearing saved extras and preserves reservation contact state',async()=>{
   api.intent.mockResolvedValue({...selection(),ancillaryRequests:[{id:'bag'}]});mount({bookingContact:{contactEmail:'test@example.invalid',contactPhone:'+8801000000000'},passportsCaptured:true});
   await screen.findByText('Available airline choices');fireEvent.click(screen.getByRole('button',{name:/Continue to review/}));

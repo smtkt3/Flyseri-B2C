@@ -18,7 +18,7 @@ beforeEach(() => {
     constructor(type: string, options: PointerEventInit = {}) { super(type, options); this.pointerId = options.pointerId ?? 1; }
   });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); });
 function setup() {
   render(<MemoryRouter><ExploreFareMap /></MemoryRouter>);
   const map = screen.getByRole('group', { name: 'Interactive world destination map' });
@@ -27,6 +27,29 @@ function setup() {
   return { map, origin };
 }
 describe('interactive fare map', () => {
+  it('skips offline or hidden polling and avoids overlapping requests', async () => {
+    vi.useFakeTimers();
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const fetch = vi.mocked(flightService.popularCachedFares);
+    fetch.mockClear();
+    let finish!: (value: []) => void;
+    fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    setup();
+    act(() => vi.advanceTimersByTime(90000));
+    expect(fetch).not.toHaveBeenCalled();
+    online.mockReturnValue(true); fireEvent(window, new Event('online'));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    act(() => vi.advanceTimersByTime(90000));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => { finish([]); });
+    hidden.mockReturnValue(true);
+    act(() => vi.advanceTimersByTime(90000));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    hidden.mockReturnValue(false);
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it('fetches fares only while its search panel is active', async () => {
     const view = render(<MemoryRouter><ExploreFareMap active={false}/></MemoryRouter>);
     expect(flightService.popularCachedFares).not.toHaveBeenCalled();

@@ -138,7 +138,10 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
   useEffect(() => {
     if (!panelActive) return
     let mounted = true
-    const refresh = () =>
+    let pending = false
+    const refresh = () => {
+      if (pending || document.hidden || navigator.onLine === false) return
+      pending = true
       void flightService
         .popularCachedFares(originCode, currency)
         .then((items) => {
@@ -152,11 +155,17 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
         .catch(() => {
           if (mounted) setFares([])
         })
+        .finally(() => { pending = false })
+    }
     refresh()
     const timer = window.setInterval(refresh, 45000)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('online', refresh)
     return () => {
       mounted = false
       window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('online', refresh)
     }
   }, [originCode, currency, departureDate, places, panelActive])
   useEffect(() => {

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { Session } from '@supabase/supabase-js';
 import { Navigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { PageLoading } from '../components/PageLoading';
 
 interface AuthState { session: Session | null; resolving: boolean; error: string | null; acceptSession: (session: Session) => void }
 type AuthSnapshot = Omit<AuthState, 'acceptSession'>;
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, resolving, error } = useAuth();
   const location = useLocation();
-  if (resolving) return <div role="status" className="account-center">Checking your session…</div>;
+  if (resolving) return <PageLoading label="Checking your session…" />;
   if (error) return <div role="alert" className="account-center">{error}</div>;
   if (!session) return <Navigate to="/sign-in" replace state={{ from: `${location.pathname}${location.search}` }} />;
   return <>{children}</>;

@@ -106,6 +106,9 @@ describe('live flight search screen', () => {
     expect(within(checkoutTotal).getByText(/1,200\.00/)).toBeTruthy();
     fireEvent.click(within(checkoutTotal).getByRole('button', { name: 'Sign in to continue' }));
     expect(screen.getByText('Confirm every passenger before continuing.')).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/First \/ given names/)));
+    expect(screen.getByLabelText(/First \/ given names/).getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(screen.getByLabelText(/First \/ given names/).getAttribute('aria-describedby')!)?.textContent).toContain('travel document');
     expect(screen.queryByRole('button', { name: 'Send verification code' })).toBeNull();
     fireEvent.change(screen.getByLabelText(/First \/ given names/), { target: { value: 'Test' } });
     fireEvent.change(screen.getByLabelText(/Last name \(surname\)/), { target: { value: 'Flyer' } });
@@ -115,6 +118,10 @@ describe('live flight search screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm passenger' }));
     expect(screen.getByText('Passenger 1: Test Flyer')).toBeTruthy();
     expect((screen.getByLabelText(/Contact name/) as HTMLInputElement).value).toBe('Test Flyer');
+    fireEvent.click(within(checkoutTotal).getByRole('button', { name: 'Sign in to continue' }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/Email/)));
+    expect(screen.getByLabelText(/Email/).getAttribute('aria-invalid')).toBe('true');
+    expect(flightApi.createIntent).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /Completed · Edit/ }));
     expect(screen.getByLabelText(/First \/ given names/)).toBeTruthy();
   });

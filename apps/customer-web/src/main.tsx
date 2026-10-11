@@ -10,12 +10,15 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { AuthRoutes } from './auth/AuthRoutes'
 import { LanguageProvider } from './travel/language'
+import { NetworkStatus } from './components/NetworkStatus'
+import './components/frontend-refinements.css'
 import './travel/travel-tools.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <LanguageProvider><AuthProvider>
+        <NetworkStatus />
         <AuthRoutes />
       </AuthProvider></LanguageProvider>
     </BrowserRouter>

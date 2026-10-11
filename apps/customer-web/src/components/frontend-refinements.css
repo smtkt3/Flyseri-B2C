@@ -1,0 +1,35 @@
+.network-status{position:relative;padding:14px max(20px,env(safe-area-inset-right)) 14px max(20px,env(safe-area-inset-left));background:#fff7e6;border-bottom:1px solid #ead7ad;color:#604b27;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.flight-extras-recovery{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:12px}
+.checkout-charge-amount{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px;background:#f2f7fd;border:1px solid #d9e7f5;border-radius:12px;color:#284b70}
+.checkout-charge-amount strong{overflow-wrap:anywhere}
+body :is(.customer-site-shell,.guest-checkout-shell,.premium-home-main) :is(button,a,input,select,textarea,summary):focus-visible{outline:3px solid #1769b8;outline-offset:3px}
+.premium-home-main .journey-section-note,.premium-home-main .journey-airline,.premium-home-main .journey-route small{color:#49647f}
+@media(max-width:760px){
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar{padding-inline:max(14px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-right));box-sizing:border-box}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar>div,body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar>button{min-width:0}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar .btn-primary{white-space:normal;line-height:1.4;overflow-wrap:anywhere;min-height:48px}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar small{font-size:12px;color:#49647f}
+  .checkout-mobile-price-sheet .guest-price-scroll{overscroll-behavior-y:contain;scroll-padding-block:16px}
+  body:has(.guest-checkout-shell :is(input:not([type=checkbox]):not([type=radio]),textarea):focus) .guest-checkout-shell .checkout-mobile-bar,
+  body:has(.checkout-with-mobile-actions :is(input:not([type=checkbox]):not([type=radio]),textarea):focus) .checkout-with-mobile-actions .checkout-mobile-bar{display:none}
+}
+@media(max-width:480px){
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(125px,1fr);gap:12px}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar .checkout-mobile-total{grid-template-columns:minmax(0,1fr);grid-template-areas:"caption" "amount" "details";gap:4px}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar .checkout-mobile-total strong,body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar>div>strong{font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar .checkout-mobile-total>span{white-space:normal}
+  body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar .btn-primary{padding:12px 10px}
+  body .guest-checkout-shell{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){.booking-loading span,.flight-search-progress-spinner{animation:none!important}}
+
+.checkout-field-error{display:block;color:#a52b38;font-size:13px!important;line-height:1.6;font-weight:500;letter-spacing:normal;margin-top:6px;overflow-wrap:anywhere}
+body .guest-checkout-shell [aria-invalid=true],body .home-offer-dialog [aria-invalid=true]{border-color:#b83442;box-shadow:0 0 0 1px #b8344233}
+.special-offer-total{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px;margin:16px 0;border:1px solid #d6e5f6;border-radius:14px;background:#f3f8ff;color:#234d77}
+.special-offer-total span{display:grid;gap:5px;font-weight:650}.special-offer-total small{font-size:13px;font-weight:400;line-height:1.5}.special-offer-total strong{font-size:22px;overflow-wrap:anywhere}
+.checkout-recovery-card{border:1px solid #e5d5b5;border-radius:16px;background:#fff9ee;padding:24px;margin:20px 0;color:#5f4a28}.checkout-recovery-card h2{font-size:22px;line-height:1.4;margin:0 0 12px}.checkout-recovery-card p{line-height:1.7;font-size:15px}.checkout-recovery-card a{display:inline-flex;align-items:center;min-height:44px;margin-inline-start:16px;color:#1766b1}
+.demo-hold-announcement{font-size:14px;color:#8c4225;line-height:1.6}.demo-hold-announcement:empty{display:none}
+body .premium-footer-bottom nav{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}body .premium-footer-bottom nav a{display:inline-flex;min-height:44px;align-items:center;color:#315d88;font-size:13px}
+@media(max-width:680px){body .home-offer-dialog{box-sizing:border-box;width:calc(100vw - 24px);max-width:600px;max-height:calc(100dvh - 24px);padding:20px 16px;overscroll-behavior:contain;scroll-padding-block:20px}body .home-offer-dialog :is(input,select){font-size:16px;min-height:48px;max-width:100%;box-sizing:border-box}body .home-offer-dialog .home-offer-heading{align-items:flex-start;gap:10px}body .home-offer-dialog .home-offer-heading h2{font-size:20px;line-height:1.4;overflow-wrap:anywhere}body .home-offer-dialog .home-offer-heading>div{min-width:0}body .home-offer-dialog .home-offer-heading>button{min-width:44px;min-height:44px;flex-shrink:0}body .home-offer-dialog .group-fare-fields{grid-template-columns:minmax(0,1fr)}body .home-offer-dialog .home-offer-search{min-height:48px;white-space:normal;box-sizing:border-box;line-height:1.5;text-align:center}body .demo-hold-timer{gap:12px}body .demo-hold-timer time{flex-shrink:0}.checkout-recovery-card{padding:20px 16px}.checkout-recovery-card button{min-height:48px;white-space:normal}body .premium-footer-bottom{align-items:flex-start;flex-direction:column;gap:12px}body .premium-footer-bottom nav{display:grid;grid-template-columns:minmax(0,1fr);gap:0}body .premium-footer-bottom nav a{font-size:14px}}
+body .bounded-select-option{min-height:44px}
+@media(max-width:680px){body .home-offer-dialog .home-offer-heading{position:sticky;top:-20px;background:#fff;z-index:2;padding-block:8px;border-bottom:1px solid #e1ebf5}}

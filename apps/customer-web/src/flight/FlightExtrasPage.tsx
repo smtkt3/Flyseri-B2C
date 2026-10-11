@@ -22,6 +22,7 @@ export function FlightExtrasPage() {
   const [intent, setIntent] = useState<FlightBookingIntent | null>(null);
   const [people, setPeople] = useState<TravellerProfile[]>([]);
   const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const lock = useRef(false), active = useRef(true);
   const expiry = useFareExpiry(intent?.expiresAt);
   const review = `/app/flights/booking-intents/${intentId}`;
@@ -49,7 +50,7 @@ export function FlightExtrasPage() {
       finally { if (current) setLoading(false); }
     }
     void load(); return () => { current = false; active.current = false; };
-  }, [intentId]);
+  }, [intentId, loadAttempt]);
   async function continueToReview(skip = false) {
     if (!intent || lock.current || saving || Date.parse(intent.expiresAt ?? '') <= Date.now()) return;
     lock.current = true; setSaving(true); setError('');
@@ -66,7 +67,7 @@ export function FlightExtrasPage() {
     <CheckoutPageHeader title={t('Customize your flight')} description="Choose only what you need. Airline extras are optional." back={<button type="button" disabled={saving} onClick={() => state.current ? navigate(-1) : navigate(review)}>← {t('Back')}</button>}/>
     <BookingProgress current={2} stage={1} />
     {loading && <BookingLoading label="Checking your flight and available extras…" />}
-    {error && <p role="alert" className="account-error">{error} {!intent && <Link to={review} state={nextState()}>Return to your selection</Link>}</p>}
+    {error && <div role="alert" className="account-error"><p>{error}</p>{!intent && <div className="flight-extras-recovery"><button type="button" className="account-outline-button" disabled={loading} onClick={() => setLoadAttempt(attempt => attempt + 1)}>Retry loading extras</button><Link to={review} state={nextState()}>Return to your selection</Link></div>}</div>}
     {intent && !loading && <div className="flight-extras-layout"><section className="flight-extras-options">
       <div className="account-panel flight-extras-route"><AirlineIdentity codes={intent.selectedOffer.airlineCodes}/><strong>{(intent.selectedOffer.multiCityLegs ?? [intent.selectedOffer.outbound,...(intent.selectedOffer.inbound?[intent.selectedOffer.inbound]:[])]).map(leg=>`${leg.segments[0]?.origin} → ${leg.segments.at(-1)?.destination}`).join(' · ')}</strong><span>{intent.travellerIds.length} travelers</span></div>
       {expiry.expired ? <div className="account-panel"><p role="status">Your fare check expired. Refresh it before choosing extras.</p><Link className="btn-primary" to={review} state={nextState()}>Check latest fare</Link></div> : <FlightAirlineServices key={intent.validatedAt} intentId={intent.id} ready={!!ready} requireNames={!!intent.selectedOffer.ndcContext} passengers={people.map(person=>({givenName:[person.legalFirstName,person.legalMiddleName].filter(Boolean).join(' '),surname:person.legalLastName}))} selectedExtras={intent.ancillaryRequests ?? []} onSaved={setIntent} onSavingChange={setSaving} disabled={lock.current} showSummary={false}/>}

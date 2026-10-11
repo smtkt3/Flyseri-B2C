@@ -7,6 +7,7 @@ import { CustomerDashboard } from './CustomerDashboard';
 import { SupportPage } from './SupportPage';
 import { PremiumNavbar } from '../components/PremiumNavbar';
 import { PageRecovery, PageRecoveryBoundary } from './PageRecovery';
+import { PageLoading } from '../components/PageLoading';
 
 const FareWatchesPage = lazy(() => import('../travel/FareWatches').then(module => ({ default: module.FareWatchesPage })));
 const ProfilePage = lazy(() => import('./ProfilePage').then((module) => ({ default: module.ProfilePage })));
@@ -67,7 +68,7 @@ export function CustomerShell() {
     <div className="account-shell">
     <div className="account-content"><div className="account-page-menu"><button type="button" aria-expanded={menuOpen} aria-controls="account-mobile-menu" onClick={() => setMenuOpen(value=>!value)}>{menuOpen ? "Close account menu" : "Account menu"}</button></div>
       {menuOpen && <nav id="account-mobile-menu" className="account-mobile-menu" aria-label="All customer pages">{sections.map((section) => <NavLink key={section.to} to={section.to} end={section.to === '/app'}>{section.label}</NavLink>)}<button type="button" onClick={() => { void signOut(); }}><Translated text="Sign out" /></button>{signOutError && <span role="alert">{signOutError}</span>}</nav>}
-      <PageRecoveryBoundary key={location.pathname}><Suspense fallback={<div className="account-page" role="status">Opening your page…</div>}><Routes>
+      <PageRecoveryBoundary key={location.pathname}><Suspense fallback={<PageLoading />}><Routes>
       <Route index element={<CustomerDashboard />} />
       <Route path="profile" element={<ProfilePage />} />
       <Route path="travellers" element={<TravellersPage />} />

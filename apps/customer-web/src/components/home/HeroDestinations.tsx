@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDataSaving } from './useDataSaving';
 
 const slides = [
   { name: 'Santorini, Greece', image: 'photo-1570077188670-e3a8d69ac5ff', position: 'center 57%' },
@@ -12,7 +13,7 @@ export function HeroDestinations() {
   const [active, setActive] = useState(0);
   const [loaded, setLoaded] = useState<number[]>([]);
   const [requested, setRequested] = useState(1);
-  const paused = false;
+  const paused = useDataSaving();
   const [visible, setVisible] = useState(() => !document.hidden);
   const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
