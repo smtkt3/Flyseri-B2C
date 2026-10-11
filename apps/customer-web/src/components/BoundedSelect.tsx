@@ -1,3 +1,4 @@
+import { Chevron } from './Chevron';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -10,11 +11,12 @@ interface BoundedSelectProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   ariaLabel?: string;
+  menuMinWidth?: number;
   required?: boolean;
   disabled?: boolean;
 }
 
-export function BoundedSelect({value,options,placeholder,onChange,searchable=false,searchPlaceholder='Search…',ariaLabel,required=false,disabled=false}:BoundedSelectProps) {
+export function BoundedSelect({value,options,placeholder,onChange,searchable=false,searchPlaceholder='Search…',ariaLabel,menuMinWidth=0,required=false,disabled=false}:BoundedSelectProps) {
   const id=useId();
   const trigger=useRef<HTMLButtonElement>(null);
   const panel=useRef<HTMLDivElement>(null);
@@ -35,7 +37,7 @@ export function BoundedSelect({value,options,placeholder,onChange,searchable=fal
       const below=window.innerHeight-rect.bottom-gap-gutter,above=rect.top-gap-gutter;
       const flip=below<Math.min(210,maxHeight)&&above>below;
       const height=Math.max(100,Math.min(maxHeight,flip?above:below));
-      const width=Math.min(rect.width,window.innerWidth-gutter*2);
+      const width=Math.min(Math.max(rect.width,menuMinWidth),window.innerWidth-gutter*2);
       setPosition({top:flip?Math.max(gutter,rect.top-gap-height):Math.min(window.innerHeight-gutter-height,rect.bottom+gap),left:Math.max(gutter,Math.min(rect.left,window.innerWidth-gutter-width)),width,maxHeight:height});
     };
     place();
@@ -66,7 +68,7 @@ export function BoundedSelect({value,options,placeholder,onChange,searchable=fal
 
   return <>
     <button ref={trigger} id={id} type="button" className="bounded-select-trigger" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} aria-required={required} disabled={disabled} onClick={()=>setOpen(state=>!state)}>
-      <span className={selected?'':'bounded-select-placeholder'}>{selected?.label??placeholder}</span><span className="bounded-select-chevron" aria-hidden="true">⌄</span>
+      <span className={selected?'':'bounded-select-placeholder'}>{selected?.label??placeholder}</span><span className="bounded-select-chevron" aria-hidden="true"><Chevron/></span>
     </button>
     {menu}
   </>;

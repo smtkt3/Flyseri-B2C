@@ -1,3 +1,7 @@
+import { CheckoutPageHeader } from './CheckoutPageHeader';
+import './checkout-step-style.css';
+import { ApiClientError } from '../lib/api/client';
+import { Translated } from '../travel/language';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { FlightBooking } from '@flyseri/types';
@@ -16,9 +20,18 @@ export function FlightPaymentPreparation({ booking: initial }: { booking: Flight
   const [error, setError] = useState('');
   const task = useRef<Promise<{ booking: FlightBooking; orderId?: string }> | null>(null);
   const sending = useRef(false);
+  async function verifiedCheckout(value: FlightBooking) {
+    try { return await flightService.refreshCheckout(value.id); }
+    catch (cause) {
+      if (cause instanceof ApiClientError && cause.code === 'CONFLICT') {
+        navigate('/app/bookings/' + value.id, { replace:true, state:{checkoutBlocked: cause.message} });
+      }
+      throw cause;
+    }
+  }
   async function prepare(value: FlightBooking, automaticallyConfirm: boolean, refresh = true) {
     if (value.order) return { booking: value, orderId: value.order.id };
-    if (refresh) value = await flightService.refreshCheckout(value.id);
+    if (refresh) value = await verifiedCheckout(value);
     let purchase = value.ancillaryPurchase;
     if (value.ancillaryRequests?.length && !purchase) purchase = await flightService.reviewExtras(value.id);
     // Only the exact selected airline prices may be accepted automatically.
@@ -55,7 +68,8 @@ export function FlightPaymentPreparation({ booking: initial }: { booking: Flight
     sending.current = true; setBusy(true); setError('');
     try {
       let current = await flightService.booking(booking.id);
-      if (!current.order) current = await flightService.refreshCheckout(current.id);
+      if (current.order) { navigate('/app/orders/' + current.order.id, {replace:true}); return; }
+      current = await verifiedCheckout(current);
       if (action === 'confirm' && current.ancillaryPurchase) current = { ...current, ancillaryPurchase: await flightService.confirmExtras(current.id, current.ancillaryPurchase.id) };
       if (action === 'skip') current = { ...current, ancillaryPurchase: await flightService.skipExtras(current.id) };
       if (action === 'reconcile') current = { ...current, ancillaryPurchase: await flightService.reconcileExtras(current.id) };
@@ -69,7 +83,7 @@ export function FlightPaymentPreparation({ booking: initial }: { booking: Flight
     } finally { sending.current = false; setBusy(false); }
   }
   const status = booking.ancillaryPurchase?.status;
-  return <div className="account-page flight-page"><p className="account-eyebrow">SECURE CHECKOUT</p><h1>{busy ? 'Preparing your payment' : 'Review your extras'}</h1><BookingProgress current={3} />
+  return <div className="account-page flight-page checkout-step-page"><CheckoutPageHeader title={busy ? 'Preparing your payment' : 'Review your extras'} description="Review your selected services before secure payment."/><BookingProgress current={3} />
     {busy && <BookingLoading label="Checking your selection and preparing the total…" />}
     {error && <p className="account-error" role="alert">{error}</p>}
     {!busy && <section className="account-panel flight-intent-card"><p>{status === 'UNAVAILABLE' ? 'These extras could not be added. You can continue with your flight only, or contact us for help.' : 'Review the latest total before continuing to payment.'}</p>
@@ -79,7 +93,7 @@ export function FlightPaymentPreparation({ booking: initial }: { booking: Flight
         {status && ['PREPARED', 'PRICE_CHANGED'].includes(status) && <button className="btn-primary" onClick={() => void continueCheckout('confirm')}>Accept total &amp; continue to payment</button>}
         {status && ['ADDING', 'UNKNOWN'].includes(status) ? <button className="btn-primary" onClick={() => void continueCheckout('reconcile')}>Check selected extras</button> : <>
           {(!status || ['PREPARED', 'UNAVAILABLE'].includes(status)) && !!booking.ancillaryRequests?.length && <button className="account-outline-button" onClick={() => void continueCheckout('skip')}>Continue without extras</button>}
-          <button className="account-outline-button" onClick={() => void continueCheckout('retry')}>Try again</button>
+          <button className="account-outline-button" onClick={() => void continueCheckout('retry')}><Translated text="Try again" /></button>
         </>}
       </div><Link className="account-link" to={`/app/support?bookingId=${encodeURIComponent(booking.id)}`}>Contact Flyseri</Link>
     </section>}

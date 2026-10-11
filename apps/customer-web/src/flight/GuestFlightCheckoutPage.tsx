@@ -1,10 +1,11 @@
+import { CheckoutPageHeader } from './CheckoutPageHeader';
+import './checkout-step-style.css';
 import { FlightBaggageDetails, FlightServiceDetails } from './FlightFareInformation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { FlightOffer, FlightSearchRequest, TravellerProfile, FlightAncillaryRequest, FlightIdentityDocumentType } from '@flyseri/types';
 import {keepCheckoutPassports} from './checkoutPassportDraft';
 import { emptyServicePreferences, FlightServiceRequestFields, hasServiceRequest } from './FlightServiceRequests';
-import { FlightAirlineServices } from './FlightAirlineServices';
 import { refreshAncillarySelections } from './flightAncillarySelections';
 import { PremiumNavbar } from '../components/PremiumNavbar';
 import { useAuth } from '../auth/AuthProvider';
@@ -177,7 +178,8 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     setContact((current) => ({ ...current, ...update }));
   }
   async function handleNext() {
-    if (sending.current || submittedAttemptId) return;
+    if (sending.current) return;
+    if (submittedAttemptId) { navigate(`/app/flights/booking-intents/${submittedAttemptId}/extras`, {state:{returnTo,passportsCaptured:true,bookingContact:{contactEmail:contact.email.trim(),contactPhone:`${contact.dialCode}${contact.phone.replace(/\D/g,'').replace(/^0/,'')}`}}}); return; }
     if (passengers.some((passenger) => !passenger.confirmed || !validPassenger(passenger, searchRequest.departureDate, lastTravelDate) || checkoutPassportError(passenger,lastTravelDate))) {
       setCheckoutNotice('Confirm every passenger before continuing.');
       return;
@@ -217,8 +219,9 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
         tripId: searchRequest.tripId, travellerIds, idempotencyKey: submissionKey.current,
         serviceRequests: servicePreferences.flatMap((value, index) => hasServiceRequest(value) ? [{ ...value, note: value.note.trim(), travellerId: travellerIds[index]! }] : []) });
       setSubmittedAttemptId(intent.id);
+      keepCheckoutDraft(draftKey,session.user.id,{passengers,contact,servicePreferences,selectedExtras,contactNameManuallyEdited,submissionKey:submissionKey.current,submittedAttemptId:intent.id});
       keepCheckoutPassports(intent.id,session.user.id,passengers.flatMap((person,index)=>person.idNumber?[{travellerId:travellerIds[index]!,documentType:person.idType,documentNumber:person.idNumber,expiryDate:person.idExpiryDate,issuingCountryCode:person.issuingCountryCode}]:[]));
-      navigate(`/app/flights/booking-intents/${intent.id}`, { state: { checkLatestFare: true, returnTo,
+      navigate(`/app/flights/booking-intents/${intent.id}/extras`, { state: { checkLatestFare: true, returnTo,
         passportsCaptured:true, bookingContact: { contactEmail: contact.email.trim(), contactPhone: `${contact.dialCode}${contact.phone.replace(/\D/g, '').replace(/^0/, '')}` } } });
     } catch (error) {
       if (error instanceof ApiClientError && ['OFFER_EXPIRED', 'NOT_FOUND'].includes(error.code)) clearShoppingFare();
@@ -228,10 +231,9 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
 
   return <div className="guest-checkout-shell">
     <PremiumNavbar />
-    <Link className="guest-checkout-back" to={seriReturnTo ?? (returnTo?.pathname ?? '/flights') + flightBrowseSearchQuery(checkout.searchRequest)}
-      state={seriReturnTo ? { resumeSeri: true } : { flightBrowseKey: returnTo?.key, flightBrowseSearchId: checkout.searchId }}>← {seriReturnTo ? 'Back to Seri' : 'Back to results'}</Link>
+
     <main className="guest-checkout-content">
-      <BookingProgress current={1} stage={latestSelection ? 2 : passengers.every(person => person.confirmed) ? 1 : 0} />
+      <BookingProgress current={1} stage={0} />
       <h1>Complete your traveler details</h1>
       <p className="guest-checkout-intro">Enter your details, then sign in or create an account to check the fare and manage your test reservation.</p>
 
@@ -301,10 +303,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
               label={`Traveller ${index + 1}${person.givenNames.trim() ? ` · ${person.givenNames.trim()} ${person.surname.trim()}` : ''}`}
               onChange={update => { if (sending.current) return; markDetailsChanged(); setServicePreferences(current => current.map((value, position) => position === index ? { ...value, ...update } : value)); }}
               disabled={submitting || !!submittedAttemptId} />)}
-            <FlightAirlineServices searchId={latestSelection?.searchId ?? checkout.searchId} offerId={latestSelection?.offer.offerId ?? offer.offerId}
-              passengers={passengers.map(person => ({ givenName: person.givenNames.trim(), surname: person.surname.trim() }))}
-              selectedExtras={selectedExtras} disabled={submitting || !!submittedAttemptId} onSelectedExtrasChange={extras => { if (sending.current) return; submissionKey.current = randomUUID(); setSelectedExtras(extras); }}
-              requireNames={!!offer.ndcContext} ready={!offer.ndcContext || passengers.every(person => person.confirmed)} />
+            <p className="guest-checkout-note">Available airline baggage, seats and meals are on the next step.</p>
           </section>
 
           <section className="guest-checkout-finish" aria-label="Checkout total">
@@ -312,7 +311,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
             <div className="guest-checkout-finish-card">
               <div className="guest-checkout-finish-total"><strong>{selectedExtras.length?'Estimated total with extras':'Total'}</strong><strong>{selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'Awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}</strong></div>
               {priceChanged && <p className="guest-checkout-next-notice">Fare updated from {money(offer.totalAmount,offer.currency)} to {money(pricedOffer.totalAmount,pricedOffer.currency)}. Review the total before continuing.</p>}
-              <button className="guest-checkout-next" type="button" onClick={() => void handleNext()} disabled={submitting || checkingFare || !!submittedAttemptId}>{submitting ? 'Preparing checkout…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : priceChanged ? 'Accept updated fare & continue' : 'Continue'}</button>
+              <button className="guest-checkout-next" type="button" onClick={() => void handleNext()} disabled={submitting || checkingFare}>{submitting ? 'Preparing checkout…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : priceChanged ? 'Accept updated fare & continue' : 'Continue to extras'}</button>
               {fareCheckError && <p className="guest-checkout-next-notice" role="status">{fareCheckError}</p>}
               {checkoutNotice && <p className="guest-checkout-next-notice" role="status">{checkoutNotice}</p>}
             </div>
@@ -328,7 +327,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
           <strong>{selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'Awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}</strong>
           <span>Price details <i aria-hidden="true" /></span>
         </button>
-        <button type="button" className="btn-primary" disabled={submitting || checkingFare || !!submittedAttemptId} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : priceChanged ? 'Accept & continue' : 'Continue'}</button>
+        <button type="button" className="btn-primary" disabled={submitting || checkingFare} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : priceChanged ? 'Accept & continue' : 'Continue to extras'}</button>
       </div>
       {mobilePriceDetailsOpen && <div className="checkout-mobile-price-layer">
         <button type="button" className="checkout-mobile-price-scrim" aria-label="Close price details" onClick={() => setMobilePriceDetailsOpen(false)} />

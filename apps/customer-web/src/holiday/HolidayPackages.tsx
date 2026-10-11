@@ -1,3 +1,4 @@
+import { Translated } from '../travel/language';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { HolidayPackage } from '@flyseri/types';
@@ -22,7 +23,7 @@ export function useHolidayPackages() {
 export function HolidayPackageCard({ item }: { item: HolidayPackage }) {
   return <Link className="holiday-card" to={`/holidays/${item.id}`}>
     <div className="holiday-card-image"><img src={item.imageUrl} alt={item.location} loading="lazy"/><span>{item.days} days · {item.nights} nights</span></div>
-    <div className="holiday-card-body"><p>{item.location}</p><h3>{item.title}</h3><div className="holiday-card-foot"><div><small>{item.preview ? 'Sample price per adult' : 'From / adult'}</small><strong>{holidayMoney(item.adultPrice)}</strong></div><span className="holiday-arrow" aria-hidden="true">↗</span></div></div>
+    <div className="holiday-card-body"><p>{item.location}</p><h3>{item.title}</h3><div className="holiday-card-foot"><div>{item.preview ? <strong>Explore destination</strong> : <><small>From / adult</small><strong>{holidayMoney(item.adultPrice)}</strong></>}</div><span className="holiday-arrow" aria-hidden="true">↗</span></div></div>
   </Link>;
 }
 export function HolidayPackageSlideshow({ items }: { items: HolidayPackage[] }) {
@@ -69,11 +70,10 @@ export function HolidayPackageSlideshow({ items }: { items: HolidayPackage[] }) 
         if (offset > count / 2) offset -= count;
         const distance = Math.abs(offset);
         const style = { '--slide-offset': offset, '--slide-rotation': `${offset === 0 ? 0 : offset < 0 ? 24 : -24}deg`, '--slide-scale': distance === 0 ? 1 : distance === 1 ? .94 : .83, zIndex: 10 - distance } as CSSProperties;
-        const content = <><img src={item.imageUrl} alt="" loading={distance <= 1 ? 'eager' : 'lazy'} draggable={false}/><div className="holiday-slide-caption"><span>{item.days} days · {item.nights} nights</span><h3>{item.location}</h3><p>{item.title}</p><strong>{holidayMoney(item.adultPrice)} <small>/ adult{item.preview ? ' · sample' : ''}</small></strong></div></>;
+        const content = <><img src={item.imageUrl} alt="" loading={distance <= 1 ? 'eager' : 'lazy'} draggable={false}/><div className="holiday-slide-caption"><span>{item.days} days · {item.nights} nights</span><h3>{item.location}</h3><p>{item.title}</p>{item.preview ? <strong>Explore destination</strong> : <strong>{holidayMoney(item.adultPrice)} <small>/ adult</small></strong>}</div></>;
         return <Link key={item.id} draggable={false} className={`holiday-slide${offset === 0 ? ' is-active' : ''}${distance > 2 ? ' is-hidden' : ''}`} style={style} to={`/holidays/${item.id}`} tabIndex={offset === 0 ? 0 : -1} aria-hidden={distance > 2} aria-label={offset === 0 ? `${item.title}, ${item.location}, view package` : `Preview ${item.location}`} onClick={event => { if (offset !== 0) { event.preventDefault(); select(index); } }}>{content}</Link>;
       })}
     </div>
-    <div className="holiday-playback"><button type="button" aria-label={paused ? 'Resume holiday slideshow' : 'Pause holiday slideshow'} aria-pressed={paused} onClick={() => setPaused(value => !value)}><span aria-hidden="true">{paused ? '▶' : 'Ⅱ'}</span>{paused ? 'Play' : 'Pause'}</button></div>
     <div className="holiday-mobile-dots" aria-label="Choose a holiday package">{items.map((item, index) => <button key={item.id} type="button" aria-label={`Show ${item.location}`} aria-pressed={selected === index} onClick={() => select(index)}/>)}</div>
     <HolidayPhotoCredit id={items[selected]!.id}/>
   </div>;
@@ -86,12 +86,13 @@ export function HolidayPackages({ full = false }: { full?: boolean }) {
   const { packages, loading, failed, preview, retry } = useHolidayPackages();
   const [category, setCategory] = useState<'DOMESTIC' | 'INTERNATIONAL'>('DOMESTIC');
   const items = packages.filter(p => p.category === category);
+  const Heading = full ? 'h1' : 'h2';
   return <section className={`holiday-section${full ? '' : ' holiday-showcase'}`} id="holidays" aria-labelledby="holiday-heading">
-    <div className="holiday-section-heading"><div><h2 id="holiday-heading">Holiday tour packages</h2></div>{!full && <Link to="/holidays">Explore all packages <span aria-hidden="true">↗</span></Link>}</div>
-    <div className="holiday-tabs" role="tablist" aria-label="Holiday destinations"><button id="holiday-domestic-tab" role="tab" aria-selected={category === 'DOMESTIC'} aria-controls="holiday-results" onClick={() => setCategory('DOMESTIC')}>Bangladesh</button><button id="holiday-international-tab" role="tab" aria-selected={category === 'INTERNATIONAL'} aria-controls="holiday-results" onClick={() => setCategory('INTERNATIONAL')}>International</button></div>
-    {preview && <p className="holiday-preview-note">Sample packages · not bookable</p>}
+    <div className="holiday-section-heading"><div><Heading id="holiday-heading"><Translated text={preview ? "Holiday inspiration" : "Holiday tour packages"} /></Heading></div>{!full && <Link to="/holidays">Explore all packages <span aria-hidden="true">↗</span></Link>}</div>
+    <div className="holiday-tabs" role="tablist" aria-label="Holiday destinations"><button id="holiday-domestic-tab" role="tab" aria-selected={category === 'DOMESTIC'} aria-controls="holiday-results" onClick={() => setCategory('DOMESTIC')}>Bangladesh</button><button id="holiday-international-tab" role="tab" aria-selected={category === 'INTERNATIONAL'} aria-controls="holiday-results" onClick={() => setCategory('INTERNATIONAL')}><Translated text="International" /></button></div>
+    {preview && <p className="holiday-preview-note">Destination ideas · sample content, not bookable</p>}
     <div id="holiday-results" role="tabpanel" aria-labelledby={`holiday-${category.toLowerCase()}-tab`}>
-      {loading ? <div className={`holiday-loading${full ? ' is-grid' : ''}`} role="status" aria-label="Loading holiday packages"><span className="sr-only">Finding your next getaway…</span>{[0, 1, 2].map(index => <div key={index} aria-hidden="true"/>)}</div> : items.length ? full ? <div className="holiday-grid">{items.map(item => <HolidayPackageCard item={item} key={item.id}/>)}</div> : <HolidayPackageSlideshow items={items} key={category}/> : <div className="holiday-empty"><h3>{failed ? 'Packages are temporarily unavailable' : 'New getaways are on the way'}</h3><p>{failed ? 'Please try again shortly.' : 'Our team is preparing holidays for you. Check back soon.'}</p>{failed && <button onClick={retry}>Try again</button>}</div>}
+      {loading ? <div className={`holiday-loading${full ? ' is-grid' : ''}`} role="status" aria-label="Loading holiday packages"><span className="sr-only">Finding your next getaway…</span>{[0, 1, 2].map(index => <div key={index} aria-hidden="true"/>)}</div> : items.length ? full ? <div className="holiday-grid">{items.map(item => <HolidayPackageCard item={item} key={item.id}/>)}</div> : <HolidayPackageSlideshow items={items} key={category}/> : <div className="holiday-empty"><h3>{failed ? 'Packages are temporarily unavailable' : 'New getaways are on the way'}</h3><p>{failed ? 'Please try again shortly.' : 'Our team is preparing holidays for you. Check back soon.'}</p>{failed && <button onClick={retry}><Translated text="Try again" /></button>}</div>}
     </div>
     {full && preview && <HolidayPhotoCredit id="preview-dhaka"/>}
   </section>;

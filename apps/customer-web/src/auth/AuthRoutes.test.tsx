@@ -19,6 +19,7 @@ vi.mock('../flight/GuestFlightCheckoutPage', () => ({ GuestFlightCheckoutPage: (
   return <div>Checkout behind sign in <span>{(location.state as { booking?: string } | null)?.booking}</span><input aria-label="Passenger name" /><Link to="/sign-in">Sign in</Link></div>;
 } }));
 vi.mock('../account/CustomerShell', () => ({ CustomerShell: () => <div>My Flyseri account</div> }));
+vi.mock('../components/PremiumNavbar', () => ({ PremiumNavbar: () => <nav aria-label="Flyseri navigation" /> }));
 
 const session = { access_token: 'test-access-token' } as Session;
 afterEach(() => { cleanup(); homeLoad.pending = null; vi.clearAllMocks(); document.body.style.overflow = ''; });
@@ -35,6 +36,13 @@ describe('sign-in overlay', () => {
     await act(async () => { homeLoad.pending = null; finish(); });
     expect(await screen.findByText('Home behind sign in')).toBeTruthy();
     expect(screen.queryByText('Getting your travel search ready')).toBeNull();
+  });
+  it('shows recovery for an unknown public link instead of an empty page', async () => {
+    auth.restore.mockResolvedValue(null);
+    render(<MemoryRouter initialEntries={['/outdated-link']}><AuthProvider><AuthRoutes /></AuthProvider></MemoryRouter>);
+    expect(await screen.findByRole('heading', {name:'We couldn’t find this page'})).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', {name:'Go to homepage'}));
+    expect(await screen.findByText('Home behind sign in')).toBeTruthy();
   });
   it('opens over the current page and returns there after signing in', async () => {
     auth.restore.mockResolvedValue(null);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FlightSearchResponse } from '@flyseri/types';
+import type { FlightSearchRequest, FlightSearchResponse } from '@flyseri/types';
+import { flightService } from '../services/flightService';
 
 export function shiftFlightDate(date: string, days: number): string {
   const value = new Date(`${date}T12:00:00Z`);
@@ -9,14 +10,19 @@ export function shiftFlightDate(date: string, days: number): string {
 }
 
 /** Only display prices already returned for the same search criteria and dates. */
-export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result, busy, onChoose }: {
+export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result, busy, onChoose, searchRequest }: {
   departureDate: string; returnDate?: string; criteriaKey: string;
   result: FlightSearchResponse | null; busy: boolean;
   onChoose: (departure: string, returning?: string) => void;
+  searchRequest?: FlightSearchRequest;
 }) {
   const [offset, setOffset] = useState(0);
   const days = useRef<HTMLDivElement>(null);
   const [quotes, setQuotes] = useState<Record<string, { amount: number; currency: string; expiresAt: string }>>({});
+  const [checking, setChecking] = useState(false);
+  const [checkNotice, setCheckNotice] = useState('');
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => { controller.current?.abort(); setChecking(false); setCheckNotice(''); return () => controller.current?.abort(); }, [criteriaKey, departureDate, returnDate]);
   const duration = returnDate ? Math.round((Date.parse(returnDate) - Date.parse(departureDate)) / 86400000) : 0;
   const keyFor = (date: string) => `${criteriaKey}|${date}|${returnDate ? shiftFlightDate(date, duration) : ''}`;
   useEffect(() => { setOffset(0); }, [departureDate]);
@@ -35,7 +41,26 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
   }, [result]);
   if (!shiftFlightDate(departureDate,0)) return null;
   const today = new Date().toISOString().slice(0, 10);
-  return <section className="flight-date-strip" aria-label="Compare departure dates">
+  async function checkNearby() {
+    if (!searchRequest || checking || busy) return;
+    const abort = new AbortController(); controller.current = abort; setChecking(true); setCheckNotice('Checking nearby dates…');
+    let failed = 0; let checked = 0;
+    for (const days of [-3, -2, -1, 1, 2, 3]) {
+      const date = shiftFlightDate(departureDate, days);
+      if (abort.signal.aborted) return;
+      if (date < today) continue;
+      try {
+        const response = await flightService.search({ ...searchRequest, departureDate: date, ...(returnDate ? { returnDate: shiftFlightDate(date, duration) } : {}) }, { signal: abort.signal });
+        if (abort.signal.aborted) return;
+        const values = response.offers.filter(offer => offer.currency === searchRequest.currency).map(offer => Number(offer.totalAmount)).filter(value => Number.isFinite(value) && value > 0);
+        if (values.length) setQuotes(previous => ({ ...previous, [keyFor(date)]: { amount: Math.min(...values), currency: searchRequest.currency, expiresAt: response.expiresAt } }));
+        checked++;
+      } catch { if (abort.signal.aborted) return; failed++; }
+      setCheckNotice(`Checked ${checked} nearby dates${failed ? ` · ${failed} unavailable` : ''}`);
+    }
+    setChecking(false);
+  }
+  return <><section className="flight-date-strip" aria-label="Compare departure dates">
     <button className="flight-date-arrow" type="button" aria-label="Previous seven dates" disabled={busy || shiftFlightDate(departureDate, offset - 3) <= today} onClick={() => setOffset(value => value - 7)}>‹</button>
     <div className="flight-date-days" ref={days}>{Array.from({length:7}, (_, index) => {
       const date = shiftFlightDate(departureDate, offset + index - 3);
@@ -48,5 +73,5 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
       </button>;
     })}</div>
     <button className="flight-date-arrow" type="button" aria-label="Next seven dates" disabled={busy} onClick={() => setOffset(value => value + 7)}>›</button>
-  </section>;
+    </section>{searchRequest && <div className="travel-date-check"><span role="status">{checkNotice || 'Compare 7 departure dates. Return trips keep the same length.'}</span><button type="button" disabled={busy || checking} onClick={() => void checkNearby()}>{checking ? 'Checking dates…' : 'Find cheaper dates ±3 days'}</button></div>}</>;
 }

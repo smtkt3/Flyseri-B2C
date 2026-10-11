@@ -12,13 +12,9 @@ function setup(reduced = false) {
 }
 describe('holiday slideshow', () => {
   const active = () => document.querySelector('.holiday-slide.is-active')?.getAttribute('href');
-  it('lets touch users pause and resume without changing the 1.5 second rotation', () => {
+  it('omits the visible pause button and keeps automatic rotation', () => {
     vi.useFakeTimers(); setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Pause holiday slideshow' }));
-    act(() => vi.advanceTimersByTime(6000));
-    expect(active()).toBe('/holidays/preview-kuakata');
-    expect(screen.getByRole('button', { name: 'Resume holiday slideshow' }).getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(screen.getByRole('button', { name: 'Resume holiday slideshow' }));
+    expect(screen.queryByRole('button', {name:'Pause holiday slideshow'})).toBeNull();
     act(() => vi.advanceTimersByTime(1500));
     expect(active()).toBe('/holidays/preview-sreemangal');
   });

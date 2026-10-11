@@ -244,3 +244,10 @@
   .premium-home-main .premium-hero-note img { width:26px; height:26px; }
   .premium-home-main .premium-hero-note b { width:18px; height:18px; }
 }
+/* Mobile headers scroll with the page rather than covering search fields. */
+@media(max-width:767px){
+ .premium-home-layout:not(.is-embedded) .premium-header.flyseri-site-navbar{position:relative;top:auto}
+ #home-search-map .explore-map{height:auto;max-height:none;display:block}
+ #home-search-map .explore-map-canvas{height:clamp(270px,42svh,350px);min-height:0!important;flex:none}
+ #home-search-map .explore-map-selection{position:relative;inset:auto;flex:none;width:auto;max-width:100%;height:auto;margin:0;box-sizing:border-box}
+}

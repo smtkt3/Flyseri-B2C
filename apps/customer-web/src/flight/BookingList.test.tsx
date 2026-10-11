@@ -23,6 +23,12 @@ describe('booking management', () => {
     expect(screen.queryByText('TEST02')).toBeNull();
     expect(screen.getByRole('link', { name: /Manage booking/ }).getAttribute('href')).toBe('/app/bookings/booking-1');
     expect(api.bookings).toHaveBeenCalledOnce();
+    fireEvent.change(screen.getByRole('searchbox'), { target: {value:'no matching reference'} });
+    expect(screen.getByRole('heading', {name:'No matching bookings'})).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', {name:'Clear search & filters'}));
+    expect(screen.getByText('TEST01')).toBeTruthy();
+    expect(screen.getByText('TEST02')).toBeTruthy();
+    expect(api.bookings).toHaveBeenCalledOnce();
   });
   it('restores an existing attempt instead of revalidating or reserving from the old review URL', async () => {
     api.intent.mockResolvedValue({ id: 'intent-1' });

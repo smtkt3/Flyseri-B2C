@@ -1,5 +1,5 @@
 import { and, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
-import { aiConversations, aiMessages, aiPendingActions, aiToolCalls, aiUsageEvents, crmSyncEvents, type DatabaseConnection } from '@flyseri/database';
+import { aiConversations, aiMessages, aiPendingActions, aiToolCalls, aiUsageEvents, crmSyncEvents, travelSupportRequests, type DatabaseConnection } from '@flyseri/database';
 import type { SeriConversationSummary, SeriMessage } from '@flyseri/types';
 
 const conversationDto = (row: typeof aiConversations.$inferSelect): SeriConversationSummary => ({
@@ -85,6 +85,10 @@ export class SeriRepository {
         .where(and(eq(aiPendingActions.id, actionId), eq(aiPendingActions.customerId, customerId), eq(aiPendingActions.conversationId, conversationId), eq(aiPendingActions.toolName, 'requestHumanSupport'), eq(aiPendingActions.status, 'PENDING'), gt(aiPendingActions.expiresAt, new Date())))
         .returning();
       if (!row) return null;
+      await tx.insert(travelSupportRequests).values({ customerId, conversationId, actionId: row.id,
+        reason: String((row.validatedArguments as Record<string, unknown>).reason ?? 'Travel assistance'),
+        updates: [{ stage: 'QUEUED', message: 'Request received. The team will review it before taking action.', at: new Date().toISOString(), author: 'TEAM' }],
+      });
       await tx.insert(crmSyncEvents).values({ eventType: 'ai.support_handoff', customerId, resourceId: conversationId });
       return row;
     });

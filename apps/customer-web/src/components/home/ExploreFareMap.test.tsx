@@ -27,6 +27,16 @@ function setup() {
   return { map, origin };
 }
 describe('interactive fare map', () => {
+  it('fetches fares only while its search panel is active', async () => {
+    const view = render(<MemoryRouter><ExploreFareMap active={false}/></MemoryRouter>);
+    expect(flightService.popularCachedFares).not.toHaveBeenCalled();
+    view.rerender(<MemoryRouter><ExploreFareMap active/></MemoryRouter>);
+    await waitFor(() => expect(flightService.popularCachedFares).toHaveBeenCalledTimes(1));
+    view.rerender(<MemoryRouter><ExploreFareMap active={false}/></MemoryRouter>);
+    vi.useFakeTimers();
+    try { act(() => vi.advanceTimersByTime(90000)); expect(flightService.popularCachedFares).toHaveBeenCalledTimes(1); }
+    finally { vi.useRealTimers(); }
+  });
   it('changes departure airport, clears old quotes, and uses the new origin in flight search', async () => {
     vi.mocked(flightService.popularCachedFares).mockResolvedValueOnce([{ destination: 'BKK', currency: 'BDT', price: '12000', departureDate: '2026-11-12', searchedAt: '2026-10-08T00:00:00Z', expiresAt: '2026-10-08T00:05:00Z' }]);
     setup();
@@ -89,7 +99,7 @@ describe('interactive fare map', () => {
     fireEvent.keyDown(map, { key: 'ArrowRight' });
     expect(parseFloat(origin.style.left)).toBeCloseTo(original.x - 80);
   });
-  it('supports two touch pointers and wheel zoom without changing the selected destination', async () => {
+  it('supports pinch and modifier-wheel zoom while ordinary wheel scroll stays with the page', async () => {
     const { map, origin } = setup();
     const original = origin.style.left;
     fireEvent.pointerDown(map, { pointerId: 1, button: 0, clientX: 100, clientY: 100 });
@@ -101,7 +111,10 @@ describe('interactive fare map', () => {
     fireEvent.pointerCancel(map, { pointerId: 1 });
     fireEvent.click(map);
     fireEvent.keyDown(map, { key: 'Home' });
+    const beforeWheel = map.querySelector('.explore-map-tiles')?.getAttribute('style');
     fireEvent.wheel(map, { clientX: 400, clientY: 200, deltaY: -100 });
+    expect(map.querySelector('.explore-map-tiles')?.getAttribute('style')).toBe(beforeWheel);
+    fireEvent.wheel(map, { clientX: 400, clientY: 200, deltaY: -100, ctrlKey: true });
     await waitFor(() => expect(origin.style.left).not.toBe(original));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Zoom out map' }).hasAttribute('disabled')).toBe(false));
   });

@@ -1,3 +1,4 @@
+import { matchesConfirmedItinerary } from './reservation-evidence.js';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AppConfig } from '@flyseri/config';
@@ -72,14 +73,7 @@ export class FlightTicketingService {
       const evidence = confirmedAncillaryItems(await this.sabre.getPurchaseBooking(booking.pnr), extraPurchase.plans, extraSnapshot.checkoutAncillaryRequests ?? []);
       if (!ancillaryIds.length || new Set(ancillaryIds).size !== ancillaryIds.length || evidence.some(item => !extraPurchase.items.some(expected => expected.requestId === item.requestId && expected.providerAncillaryIds.includes(item.itemId) && expected.airlineCurrency === item.currency && cents(expected.airlineAmount) === cents(item.amount)))) throw conflict('The confirmed airline extra price or association changed. Contact Flyseri before issuance.');
     }
-    const segments = (booking.selectedOffer.multiCityLegs ?? [booking.selectedOffer.outbound, ...(booking.selectedOffer.inbound ? [booking.selectedOffer.inbound] : [])]).flatMap(leg => leg.segments);
-    if (!current.view.cancellationCheckComplete || current.view.tickets.length || current.view.travellers.length !== booking.passengerNames.length ||
-      current.view.travellers.some((person, index) => `${person.givenName} ${person.surname}`.trim().replace(/\s+/g, ' ').toUpperCase() !== booking.passengerNames[index]!.trim().replace(/\s+/g, ' ').toUpperCase()) || current.view.flights.length !== segments.length ||
-      current.view.flights.some((flight, index) => {
-        const segment = segments[index]!;
-        return flight.origin !== segment.origin || flight.destination !== segment.destination || flight.airlineCode !== segment.marketingCarrier ||
-          Number(flight.flightNumber) !== Number(segment.flightNumber) || flight.departureDate !== segment.departureAt.slice(0, 10);
-      })) throw conflict('The current PNR needs staff review before ticketing.');
+    if (!current.view.cancellationCheckComplete || current.view.tickets.length || current.view.travellers.length !== booking.passengerNames.length || current.view.travellers.some((person,index)=>[person.givenName,person.surname].join(' ').trim().replace(/\s+/g,' ').toUpperCase() !== booking.passengerNames[index]!.trim().replace(/\s+/g,' ').toUpperCase()) || !matchesConfirmedItinerary(current.view, booking.selectedOffer)) throw conflict('The current PNR needs staff review before ticketing.');
     const db = this.connection.db;
     await db.transaction(async tx => {
       const [lockedIntent] = await tx.select().from(flightBookingIntents).where(and(eq(flightBookingIntents.id, booking.bookingIntentId), eq(flightBookingIntents.customerId, customerId))).for('update');

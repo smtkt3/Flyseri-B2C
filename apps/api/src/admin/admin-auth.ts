@@ -6,18 +6,18 @@ import { ApiException } from '../api-exception.js';
 import { APP_CONFIG } from '../tokens.js';
 
 export type AdminRole = 'owner' | 'manager' | 'ticketing_staff' | 'payment_staff' | 'support_staff';
-export type AdminPermission = 'overview' | 'customers' | 'travellers' | 'trips' | 'visa' | 'visa_pii' | 'visa_manage' | 'visa_configure' | 'documents' | 'document_content' | 'flights' | 'orders' | 'payments' | 'audit' | 'settings' | 'crm_links' | 'crm_sync' | 'ai_operations' | 'holidays';
+export type AdminPermission = 'overview' | 'customers' | 'travellers' | 'trips' | 'visa' | 'visa_pii' | 'visa_manage' | 'visa_configure' | 'documents' | 'document_content' | 'flights' | 'orders' | 'payments' | 'audit' | 'settings' | 'crm_links' | 'crm_sync' | 'ai_operations' | 'holidays' | 'support';
 export interface AdminIdentity { staffUserId: string; role: AdminRole }
 type Claims = { iss: 'seri-mechan-crm'; aud: 'flyseri-admin'; sub: string; role: AdminRole; iat: number; exp: number };
 type AdminRequest = { headers: { authorization?: string }; adminIdentity?: AdminIdentity };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const roles: AdminRole[] = ['owner', 'manager', 'ticketing_staff', 'payment_staff', 'support_staff'];
 const permissions: Record<AdminRole, AdminPermission[]> = {
-  owner: ['overview', 'customers', 'travellers', 'trips', 'visa', 'visa_pii', 'visa_manage', 'visa_configure', 'documents', 'document_content', 'flights', 'orders', 'payments', 'audit', 'settings', 'crm_links', 'crm_sync', 'ai_operations', 'holidays'],
-  manager: ['overview', 'customers', 'travellers', 'trips', 'visa', 'visa_pii', 'visa_manage', 'visa_configure', 'documents', 'flights', 'orders', 'payments', 'audit', 'crm_links', 'crm_sync', 'ai_operations', 'holidays'],
+  owner: ['overview', 'customers', 'travellers', 'trips', 'visa', 'visa_pii', 'visa_manage', 'visa_configure', 'documents', 'document_content', 'flights', 'orders', 'payments', 'audit', 'settings', 'crm_links', 'crm_sync', 'ai_operations', 'holidays', 'support'],
+  manager: ['overview', 'customers', 'travellers', 'trips', 'visa', 'visa_pii', 'visa_manage', 'visa_configure', 'documents', 'flights', 'orders', 'payments', 'audit', 'crm_links', 'crm_sync', 'ai_operations', 'holidays', 'support'],
   ticketing_staff: ['overview', 'customers', 'trips', 'flights', 'orders'],
   payment_staff: ['overview', 'orders', 'payments'],
-  support_staff: ['overview', 'customers', 'travellers', 'trips', 'visa', 'visa_manage', 'documents'],
+  support_staff: ['support', 'overview', 'customers', 'travellers', 'trips', 'visa', 'visa_manage', 'documents'],
 };
 export const adminPermissions = (role: AdminRole): AdminPermission[] => [...permissions[role]];
 export const RequireAdminPermission = (permission: AdminPermission) => SetMetadata('adminPermission', permission);

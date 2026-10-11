@@ -1,3 +1,4 @@
+import { TripBudget } from '../travel/TripBudget';
 import type { SeriMessage } from '@flyseri/types';
 import { useMemo } from 'react';
 import { displayDate } from '../trip/tripPresentation';
@@ -7,6 +8,7 @@ export function SeriMessageDetails({ message, onFlightsUpdate }: { message: Seri
   const payload = message.payload;
   const flights = useMemo(() => chatFlights(payload), [payload]);
   if (!payload) return null;
+  if (payload.budgetPlan && typeof payload.budgetPlan === 'object') return <TripBudget initial={payload.budgetPlan as { total: number; adults: number; currency: string }} />;
   if (flights) return <SeriFlightResults data={flights} onUpdate={onFlightsUpdate} />;
   const trips = Array.isArray(payload.trips) ? payload.trips as Array<Record<string, unknown>> : [];
   const applications = Array.isArray(payload.applications) ? payload.applications as Array<Record<string, unknown>> : [];

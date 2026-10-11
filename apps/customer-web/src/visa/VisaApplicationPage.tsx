@@ -1,3 +1,4 @@
+import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -199,7 +200,7 @@ export function VisaApplicationPage() {
 
   if (loading) return <div role="status" className="account-page visa-page"><div className="trip-skeleton trip-skeleton-wide"/>Loading your visa application…</div>;
   if (notFound) return <div className="account-page visa-page"><h1>Application not found</h1><Link to="/app/visa">Back to Visa</Link></div>;
-  if (!application || !trip) return <div role="alert" className="account-page visa-page"><h1>We couldn't load this application.</h1><p>{error}</p><button onClick={() => applicationId && void load(applicationId)}>Try again</button></div>;
+  if (!application || !trip) return <div role="alert" className="account-page visa-page"><h1>We couldn't load this application.</h1><p>{error}</p><button onClick={() => applicationId && void load(applicationId)}><Translated text="Try again" /></button></div>;
 
   const nameFor = (travellerId: string) => applicants.find((item) => item.id === travellerId)?.legalFirstName ?? 'Applicant';
   const editableField = (field: VisaFormField, scope: string) => {
@@ -316,7 +317,7 @@ export function VisaApplicationPage() {
             {requirement.documents.map((document) => {
               const scan = document.securityScanStatus;
               return <div className="visa-linked" key={document.documentVersionId}><span>{document.displayName || documentLabels[document.documentType]} · {document.originalFilename} (v{document.versionNumber})</span>
-                {editable && <button type="button" disabled={busy} onClick={() => void unlink(requirement.id, document.documentId)}>Remove</button>}
+                {editable && <button type="button" disabled={busy} onClick={() => void unlink(requirement.id, document.documentId)}><Translated text="Remove" /></button>}
                 {scan !== 'CLEAN' && <small className="visa-scan-unavailable">{scan === 'UNAVAILABLE' ? 'Security scan is unavailable.' : scan === 'FAILED' ? 'Security scan failed.' : 'Security scan is pending.'} This file cannot be submitted yet.</small>}
               </div>;
             })}

@@ -98,5 +98,24 @@ describe('customer account screens', () => {
     render(<MemoryRouter><TravellersPage /></MemoryRouter>);
     expect(screen.getByRole('status').textContent).toContain('Loading');
     expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('No travellers yet')).toBeNull();
+  });
+
+  it('blocks repeat traveller saves and editing while a save is pending', async () => {
+    let finish!: () => void;
+    traveller.list.mockResolvedValue([]);
+    traveller.create.mockReturnValue(new Promise<void>(resolve => {finish=resolve;}));
+    render(<MemoryRouter><TravellersPage /></MemoryRouter>);
+    await screen.findByText('No travellers yet');
+    fireEvent.click(screen.getByRole('button', {name:'+ Add traveller'}));
+    fireEvent.change(screen.getByLabelText('Legal first name'), {target:{value:'Sample'}});
+    fireEvent.change(screen.getByLabelText('Legal last name'), {target:{value:'Traveller'}});
+    const form = screen.getByRole('button', {name:'Add traveller'}).closest('form')!;
+    fireEvent.submit(form); fireEvent.submit(form);
+    expect(traveller.create).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', {name:'Cancel'})).toHaveProperty('disabled',true);
+    expect(screen.getByLabelText('Legal first name').closest('fieldset')).toHaveProperty('disabled',true);
+    finish();
+    expect(await screen.findByText('Traveller added.')).toBeTruthy();
   });
 });

@@ -1,3 +1,5 @@
+import { Chevron } from '../components/Chevron';
+import { Translated } from '../travel/language';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FlightAncillaryDisplayPrices, FlightAncillaryResponse, FlightAncillaryRequest, FlightBookingIntent } from '@flyseri/types';
 import { flightService } from '../services/flightService';
@@ -24,11 +26,11 @@ function loadQuote(key: string, lookup: () => Promise<FlightAncillaryResponse>, 
 }
 const quoteMoney = (amount: string, currency: string) => new Intl.NumberFormat('en-MY', { style: 'currency', currency, currencyDisplay: 'code' }).format(Number(amount));
 
-export function FlightAirlineServices({ searchId = '', offerId = '', intentId, passengers = [], ready, requireNames = true, selectedExtras = [], onSelectedExtrasChange, onSaved, disabled = false, onSavingChange }: {
-  searchId?: string; offerId?: string; intentId?: string; passengers?: { givenName: string; surname: string }[]; ready: boolean; requireNames?: boolean; selectedExtras?: FlightAncillaryRequest[]; onSelectedExtrasChange?: (extras: FlightAncillaryRequest[]) => void; onSaved?: (intent: FlightBookingIntent) => void; disabled?: boolean; onSavingChange?: (saving: boolean) => void;
+export function FlightAirlineServices({ searchId = '', offerId = '', intentId, passengers = [], ready, requireNames = true, selectedExtras = [], onSelectedExtrasChange, onSaved, disabled = false, onSavingChange, showSummary = true }: {
+  searchId?: string; offerId?: string; intentId?: string; passengers?: { givenName: string; surname: string }[]; ready: boolean; requireNames?: boolean; selectedExtras?: FlightAncillaryRequest[]; onSelectedExtrasChange?: (extras: FlightAncillaryRequest[]) => void; onSaved?: (intent: FlightBookingIntent) => void; disabled?: boolean; onSavingChange?: (saving: boolean) => void; showSummary?: boolean;
 }) {
   const { session } = useAuth();
-  const identity = JSON.stringify([session?.user.id ?? 'guest', searchId, offerId, intentId, requireNames ? passengers : passengers.length, requireNames]);
+  const identity = JSON.stringify([session?.user.id ?? 'guest', searchId, offerId, intentId, intentId ? [] : requireNames ? passengers : passengers.length, requireNames]);
   const section = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
   const [quote, setQuote] = useState<{ key: string; result: FlightAncillaryResponse } | null>(null);
@@ -181,19 +183,19 @@ export function FlightAirlineServices({ searchId = '', offerId = '', intentId, p
       <button type="button" className="account-outline-button" disabled={!ready || busy || saving || disabled || retrySeconds > 0} onClick={() => { setVisible(true); setRefresh(value => value + 1); }}>{busy ? 'Checking…' : retrySeconds > 0 ? `Retry in ${retrySeconds}s` : result ? 'Refresh offers' : 'Check services'}</button></div>
     {!ready && <p className="guest-checkout-note">Confirm your traveler details to load available services automatically.</p>}
     {requireNames && <p className="guest-checkout-note">Confirmed passenger names are used for the airline service lookup.</p>}
-    {notice?.key === identity && <p role="status" className="flight-airline-offers-notice">{notice.message} {retrySeconds > 0 ? <span>Retry available in {retrySeconds}s.</span> : <button type="button" disabled={busy} onClick={() => setRefresh(value => value + 1)}>Try again</button>}</p>}
+    {notice?.key === identity && <p role="status" className="flight-airline-offers-notice">{notice.message} {retrySeconds > 0 ? <span>Retry available in {retrySeconds}s.</span> : <button type="button" disabled={busy} onClick={() => setRefresh(value => value + 1)}><Translated text="Try again" /></button>}</p>}
     {busy && !result && <div className="flight-airline-offers-loading" role="status"><span>Finding available airline extras…</span><i/><i/><i/></div>}
     {result && <>
       {result.services.length > 0 ? <>
         <div className="flight-airline-offers-filters" role="group" aria-label="Service categories"><button type="button" aria-pressed={category === 'ALL'} onClick={() => setCategory('ALL')}>All services <span>{result.services.length}</span></button>{groups.map(group => <button key={group.id} type="button" aria-pressed={category === group.id} disabled={!group.services.length} onClick={() => setCategory(group.id)}>{group.label} <span>{group.services.length}</span></button>)}</div>
         <label className="flight-airline-offers-search"><span>Find a service</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search meals, bags, seats…" maxLength={120}/></label>
         <div className="flight-airline-offers-currency" role="status">Prices in <strong>{currency}</strong>{missingConversion && convertingKey === conversionKey ? ' · Converting prices…' : missingConversion ? ' · Some converted prices are unavailable.' : display?.provider ? ' · Converted estimates' : ''}</div>
-        {travelerIndexes.length > 1 && <label className="flight-airline-offers-traveler">Choose traveler <BoundedSelect ariaLabel="Choose traveler for airline extras" value={String(traveler)} placeholder="Choose traveler" options={[{value:'ALL',label:'All travelers'},...travelerIndexes.map(index=>({value:String(index),label:`Traveler ${index+1}`}))]} onChange={selection=>setTraveler(selection==='ALL'?'ALL':Number(selection))}/></label>}
-        {[...flightGroups].map(([flightKey, flight], flightIndex) => <details className="flight-airline-offers-flight" key={flightKey} open={flightIndex === 0 || !!term}><summary><div><strong>{flight.labels.join(' / ') || 'Flight association unavailable'}</strong><small>{flight.groups.reduce((count, group) => count + group.services.length, 0)} offers{flight.labels.length > 1 ? ' · Applies to these flights together' : ''}</small></div><span aria-hidden="true">⌄</span></summary>
+        {travelerIndexes.length > 1 && <label className="flight-airline-offers-traveler">Choose traveler <BoundedSelect ariaLabel="Choose traveler for airline extras" value={String(traveler)} placeholder="Choose traveler" options={[{value:'ALL',label:'All travelers'},...travelerIndexes.map(index=>({value:String(index),label:`Traveler ${index+1}${passengers[index] ? ' · ' + [passengers[index]!.givenName,passengers[index]!.surname].join(' ').trim() : ''}`}))]} onChange={selection=>setTraveler(selection==='ALL'?'ALL':Number(selection))}/></label>}
+        {[...flightGroups].map(([flightKey, flight], flightIndex) => <details className="flight-airline-offers-flight" key={flightKey} open={flightIndex === 0 || !!term}><summary><div><strong>{flight.labels.join(' / ') || 'Flight association unavailable'}</strong><small>{flight.groups.reduce((count, group) => count + group.services.length, 0)} offers{flight.labels.length > 1 ? ' · Applies to these flights together' : ''}</small></div><span aria-hidden="true"><Chevron/></span></summary>
           {flight.groups.map(group => {
             const countKey = flightKey + group.id, limit = visibleCounts[countKey] ?? 6;
             return <details className="flight-airline-offers-category" key={group.id}>
-              <summary className="flight-airline-offers-category-summary"><span><strong>{group.label}</strong><small>{group.description}</small></span><span className="flight-airline-offers-category-count">{group.services.length}</span><span className="flight-airline-offers-category-chevron" aria-hidden="true">⌄</span></summary>
+              <summary className="flight-airline-offers-category-summary"><span><strong>{group.label}</strong><small>{group.description}</small></span><span className="flight-airline-offers-category-count">{group.services.length}</span><span className="flight-airline-offers-category-chevron" aria-hidden="true"><Chevron/></span></summary>
               <div className="flight-airline-offers-category-body"><div className="flight-airline-service-list">{group.services.slice(0, limit).map(({ service, index }) => {
               const native = service.currency === currency;
               const zero = service.amount !== null && !!service.currency && Number(service.amount) === 0;
@@ -202,7 +204,7 @@ export function FlightAirlineServices({ searchId = '', offerId = '', intentId, p
               const selected = selectedExtras.some(extra => ancillaryKey(extra) === ancillaryKey(service));
               const canSelect = !!result.quoteId && service.segmentLabels.length > 0 && service.passengerIndexes.length > 0 && (!!intentId && !!onSaved || !!onSelectedExtrasChange);
               return <details className={`flight-airline-service${selected ? ' is-selected' : ''}`} key={`${service.offerItemId ?? service.serviceCode}-${index}`}>
-                <summary className="flight-airline-service-summary"><span className="flight-airline-service-name"><strong>{service.name}</strong><small>{service.passengerIndexes.length ? `Traveler${service.passengerIndexes.length === 1 ? '' : 's'} ${service.passengerIndexes.map(index => index + 1).join(', ')}` : 'Traveler association unavailable'}</small></span><span className="flight-airline-service-price"><strong title={service.amount !== null && service.currency ? `Airline quote: ${quoteMoney(service.amount, service.currency)}` : undefined}>{price}</strong><small>{selected ? 'Selected' : 'Airline quote'}</small></span><span className="flight-airline-service-chevron" aria-hidden="true">⌄</span></summary>
+                <summary className="flight-airline-service-summary"><span className="flight-airline-service-name"><strong>{service.name}</strong><small>{service.passengerIndexes.length ? `Traveler${service.passengerIndexes.length === 1 ? '' : 's'} ${service.passengerIndexes.map(index => index + 1).join(', ')}` : 'Traveler association unavailable'}</small></span><span className="flight-airline-service-price"><strong title={service.amount !== null && service.currency ? `Airline quote: ${quoteMoney(service.amount, service.currency)}` : undefined}>{price}</strong><small>{selected ? 'Selected' : 'Airline quote'}</small></span><span className="flight-airline-service-chevron" aria-hidden="true"><Chevron/></span></summary>
                 <div className="flight-airline-service-details"><button type="button" className="flight-airline-service-select" aria-pressed={selected} disabled={!canSelect || disabled || saving || busy} onClick={event=>{const card=event.currentTarget.closest('details');void toggleService(service).then(()=>{if(card)card.open=true;});}}>{selected ? 'Remove extra' : 'Add to booking request'}</button></div>
               </details>;
             })}</div>{group.services.length > limit && <button type="button" className="flight-airline-offers-more" onClick={() => setVisibleCounts(counts => ({ ...counts, [countKey]: limit + 6 }))}>Show {Math.min(6, group.services.length - limit)} more · {group.services.length - limit} remaining</button>}</div></details>;
@@ -214,7 +216,7 @@ export function FlightAirlineServices({ searchId = '', offerId = '', intentId, p
       {display?.provider && <p className="flight-airline-offers-attribution">Converted prices are estimates. <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by ExchangeRate-API</a>{display.updatedAt && ` · ${new Date(display.updatedAt).toLocaleDateString('en-MY')}`}</p>}
     </>}
     {selectionNotice && <p className="flight-airline-offers-notice" role="alert">{selectionNotice}</p>}
-    <FlightSelectedExtras requests={selectedExtras}/>
+    {showSummary && <FlightSelectedExtras requests={selectedExtras}/>}
     {!!selectedExtras.length && <button type="button" className="flight-airline-offers-more" disabled={saving || disabled || !ready} onClick={() => void clearSelections()}>Clear selected extras</button>}
   </section>;
 }

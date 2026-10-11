@@ -17,6 +17,7 @@ import type { FlightService } from './flight.service.js';
 import { SabreBookingUnknownError, type SabreBookingManagementClient } from './sabre-booking-management.client.js';
 import { CommerceRepository } from '../commerce/commerce.repository.js';
 import { PaymentEngineService } from '../commerce/payment-engine.service.js';
+import { FlightTicketingService } from './flight-ticketing.service.js';
 
 describe('flight reservation and payment lifecycle with isolated provider fixtures', () => {
   it('preserves ownership, one reservation, one order and verified payment; blocks repeat sends after uncertainty', async () => {
@@ -35,12 +36,15 @@ describe('flight reservation and payment lifecycle with isolated provider fixtur
         outbound: { stops: 0, durationMinutes: 60, segments: [{ origin: 'KUL', destination: 'PEN', departureAt: '2027-02-18T09:00:00+08:00', arrivalAt: '2027-02-18T10:00:00+08:00', marketingCarrier: 'MH', flightNumber: '1148', bookingClass: 'Q', durationMinutes: 60 }] } };
       const search: FlightSearchRequest = { origin: 'KUL', destination: 'PEN', departureDate: '2027-02-18', tripType: 'ONE_WAY', adults: 1, children: 0, infants: 0, cabin: 'ECONOMY', currency: 'MYR' };
       const agency = { ticketingPolicy: 'TODAY', address: { name: 'Test Agency', street: 'Test Street', city: 'Test City', stateProvince: 'Test Region', postalCode: '00000', countryCode: 'MY', freeText: 'Test Agency' } };
-      const config = { ...parseConfig({ APP_ENV: 'test' }), FLIGHT_BOOKING_EXECUTION_ENABLED: 'true' as const, SABRE_PCC: 'TEST', SABRE_BOOKING_AGENCY: JSON.stringify(agency) };
+      const config = { ...parseConfig({ APP_ENV: 'test' }), FLIGHT_BOOKING_EXECUTION_ENABLED: 'true' as const, SABRE_PCC: 'TEST', SABRE_BOOKING_AGENCY: JSON.stringify(agency), SABRE_TICKETING_PROFILE: JSON.stringify({ticketCountryCode:'MY',hardcopyPrinterAddress:'ABC123',formOfPayment:'INVOICE',invoiceDescription:'Fixture'}) };
       const telemetry = new FlightTelemetry({ info: vi.fn() } as never);
       const intents = new BookingIntentService(config, store, undefined, {} as FlightService, telemetry, new FlightOfferValidationService(undefined));
       const createBooking = vi.fn(async () => ({ confirmationId: 'TEST01', sabreBookingId: 'provider-1' }));
       const provider = { createBooking, flightCheck: vi.fn(async () => ({ offers: [{ id: 'fare-1', source: { distributionModel: 'ATPCO' }, applicableToPseudoCityCodes: ['TEST'], validUntil: new Date(Date.now() + 600000).toISOString(), totalPrice: { amount: '100.00', currencyCode: 'MYR' }, items: [{ fares: [{ fareComponents: [{ segmentDetails: [{ bookingClassCode: 'Q' }] }] }] }] }] })) };
       const bookings = new FlightBookingsService(config, connection, provider as unknown as SabreBookingManagementClient, intents, telemetry);
+      const airlineView = {retrievedAt:new Date().toISOString(),cancellationCheckComplete:true,tickets:[],travellers:[{givenName:'Test',surname:'Traveler'}],flights:[{origin:'KUL',destination:'PEN',airlineCode:'MH',flightNumber:'1148',departureDate:'2027-02-18',departureTime:'09:00',arrivalDate:'2027-02-18',arrivalTime:'10:00',status:'Confirmed'}]};
+      const getBookingView=vi.fn(async()=>({bookingId:'provider-1',view:airlineView}));
+      Object.assign(provider,{getBookingView,fulfillFlightTickets:vi.fn()});
       const input = { namesConfirmed: true, contactEmail: 'test@example.com', contactPhone: '+12025550100', billingAddress: agency.address };
       async function selection() {
         const { intent } = await store.create({ customerId, tripId: null, searchId: randomUUID(), offerId: offer.offerId, idempotencyKey: randomUUID(), travellerIds: [travelerId], offer, search });
@@ -54,6 +58,11 @@ describe('flight reservation and payment lifecycle with isolated provider fixtur
       expect(booking).toMatchObject({ status: 'PNR_CREATED', pnr: 'TEST01', passengerNamesSource: 'BOOKED_SNAPSHOT', passengerNames: ['Test Traveler'] });
       expect((await bookings.reserve(customerId, intentId, input)).id).toBe(booking.id);
       expect(createBooking).toHaveBeenCalledOnce();
+      getBookingView.mockResolvedValueOnce({bookingId:'provider-1',view:{...airlineView,flights:[{...airlineView.flights[0]!,status:'Cancelled'}]}});
+      await expect(bookings.refreshCheckout(customerId,booking.id)).rejects.toMatchObject({status:409});
+      getBookingView.mockResolvedValueOnce({bookingId:'provider-1',view:{...airlineView,flights:[{...airlineView.flights[0]!,departureTime:'11:00'}]}});
+      await expect(bookings.refreshCheckout(customerId,booking.id)).rejects.toMatchObject({status:409});
+      await expect(bookings.refreshCheckout(customerId,booking.id)).resolves.toMatchObject({id:booking.id,pnr:'TEST01'});
       const commerce = new CommerceRepository(connection);
       const order = await commerce.createFlightOrder(customerId, intentId, 'test');
       expect((await commerce.createFlightOrder(customerId, intentId, 'repeat')).id).toBe(order.id);
@@ -69,6 +78,11 @@ describe('flight reservation and payment lifecycle with isolated provider fixtur
       await commerce.applyVerifiedEvent('STRIPE_TEST', payment.payment.id, event, 'verified-fixture');
       await commerce.applyVerifiedEvent('STRIPE_TEST', payment.payment.id, event, 'duplicate-event');
       expect(await bookings.detail(customerId, booking.id)).toMatchObject({ status: 'AWAITING_STAFF_TICKETING', ticketStatus: 'NOT_VERIFIED', order: { id: order.id, status: 'PAID' } });
+      const ticketing=new FlightTicketingService(config,connection,provider as unknown as SabreBookingManagementClient,bookings);
+      vi.spyOn(ticketing,'capabilities').mockResolvedValue({ticketIssuanceAvailable:true,environment:'CERT',ticketingMessage:'Fixture'});
+      getBookingView.mockResolvedValueOnce({bookingId:'provider-1',view:{...airlineView,flights:[{...airlineView.flights[0]!,status:'Waitlisted'}]}});
+      await expect(ticketing.issue(customerId,booking.id,'TEST01')).rejects.toMatchObject({status:409});
+      expect((provider as typeof provider & {fulfillFlightTickets:ReturnType<typeof vi.fn>}).fulfillFlightTickets).not.toHaveBeenCalled();
       const unknownIntent = await selection();
       createBooking.mockRejectedValueOnce(new SabreBookingUnknownError('NETWORK_OR_TIMEOUT'));
       const unknown = await bookings.reserve(customerId, unknownIntent, input);

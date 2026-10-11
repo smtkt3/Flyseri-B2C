@@ -1,3 +1,4 @@
+import { Translated } from '../travel/language';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -91,7 +92,7 @@ export function AuthPage({ mode, modal = false, backgroundPath = '/', background
       </form>
       <div className="account-auth-links">
         {mode === 'sign-in' && <><Link to="/forgot-password">Forgot password?</Link><span>New to Flyseri? <Link to="/create-account" state={{ from: returnTo }}>Create account</Link></span></>}
-        {mode === 'create-account' && <span>Already have an account? <Link to="/sign-in" state={{ from: returnTo }}>Sign in</Link></span>}
+        {mode === 'create-account' && <span>Already have an account? <Link to="/sign-in" state={{ from: returnTo }}><Translated text="Sign in" /></Link></span>}
         {(mode === 'forgot-password' || mode === 'reset-password') && <Link to="/sign-in">Back to sign in</Link>}
       </div>
     </div>

@@ -1,0 +1,127 @@
+.premium-exclusive-offers .premium-offers-track{animation:none;transform:none;will-change:auto}
+.premium-exclusive-offers .premium-offers-marquee{overflow-x:auto;mask-image:none;scroll-snap-type:x mandatory;scroll-padding-inline:20px;scrollbar-width:thin;scrollbar-color:#aac9e9 transparent}
+.premium-exclusive-offers .exclusive-ticket{scroll-snap-align:start}
+.premium-offers-navigation{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 22px 18px;color:#526d89;font-size:12px}
+.premium-offers-navigation>div{display:flex;gap:8px}
+.premium-offers-navigation button{min-height:44px;padding:8px 15px;border:1px solid #d3e3f3;border-radius:10px;background:#fff;color:#245e9c;font:inherit;font-weight:650;cursor:pointer}
+.premium-offers-navigation button:focus-visible{outline:3px solid #3487e5;outline-offset:2px}
+.premium-home-main .exclusive-ticket-price strong{font-size:15px}
+.premium-home-main .premium-offers-heading-copy>p,.premium-exclusive-offers>.premium-offers-demo-label{font-size:12px;color:#506982;line-height:1.5}
+.premium-home-main .exclusive-ticket-route small,.premium-home-main .exclusive-ticket-airline small,.premium-home-main .exclusive-ticket-price small{font-size:11px;color:#56708c}
+.partner-logo-fallback{color:#294e78;text-align:center;font-size:14px;font-weight:750}
+.partner-logo-fallback[hidden],.premium-partner-grid img[hidden]{display:none}
+.premium-service-group.is-upcoming summary{padding:16px 12px;list-style:none;font-size:12px;line-height:1.5;color:#5c728c;cursor:pointer;border-top:1px solid #e2edf5}
+.premium-service-group.is-upcoming summary::-webkit-details-marker{display:none}
+.premium-service-group.is-upcoming summary:focus-visible{outline:2px solid #3487e5;outline-offset:-2px}
+.premium-footer-help p{max-width:260px;font-size:13px;line-height:1.6;color:#526d89}
+.premium-booking-guidance{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-block:24px;border-top:1px solid #dce8f3}
+.premium-booking-guidance details{padding:16px 20px;border:1px solid #dce8f3;border-radius:14px;background:#ffffffb3}
+.premium-booking-guidance summary{cursor:pointer;color:#284564;font-weight:700;font-size:14px;min-height:24px}
+.premium-booking-guidance p{font-size:14px;line-height:1.7;color:#526b83;margin:12px 0 0}
+.premium-booking-guidance a{display:inline-block;margin-top:12px;color:#2266ad;font-size:14px}
+body:has(#home-search-ai:not([hidden])) .seri-floating-launcher{display:none}
+@media(min-width:1367px){
+ .premium-home-main .premium-main{display:block}
+ .premium-home-main .premium-main .premium-journey-grid{display:block}
+ .premium-search-view{display:block;min-width:0}
+ .premium-search-mode-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:6px;margin-bottom:14px;border:1px solid #fff;border-radius:18px;background:#f1f9fff5;box-shadow:0 6px 24px #24598710}
+ .premium-search-mode-switch>button{display:flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:12px;border:1px solid transparent;border-radius:13px;background:transparent;color:#48647f;font:inherit;font-size:14px;font-weight:750;cursor:pointer}
+ .premium-search-mode-switch svg{width:20px;height:20px}
+ .premium-search-mode-switch>button[aria-selected=true]{background:linear-gradient(115deg,#2379ed,#53a9f7);color:#fff;box-shadow:0 4px 12px #2379ed30}
+ .premium-search-mode-switch>button:focus-visible{outline:3px solid #245e9c;outline-offset:2px}
+ .premium-home-main .premium-main #home-search-ai>.premium-seri-chat{height:480px;max-height:none;padding:24px;gap:16px}
+ #home-search-ai .premium-seri-entry-heading h2{font-size:20px}
+ #home-search-ai .premium-seri-entry-heading p,#home-search-ai .home-seri-sign-in{font-size:13px}
+ #home-search-ai .premium-seri-chat>form input{font-size:16px;padding:12px}
+ #home-search-ai .premium-seri-chat>form button{font-size:14px;min-height:44px;padding:12px 20px}
+ .premium-home-main .premium-main .premium-exclusive-offers{margin-top:24px}
+}
+@media(max-width:760px){
+ .premium-home-ad{grid-template-columns:minmax(0,1fr) 28%;min-height:0}
+ .premium-home-ad-brand{grid-column:1/-1;flex-direction:row;justify-content:flex-start;gap:12px;min-height:0;padding:10px 16px}
+ .premium-home-ad-brand strong{font-size:22px}
+ .premium-home-ad-brand span{font-size:9px}
+ .premium-home-ad-copy{padding:16px;gap:7px}
+ .premium-home-ad-copy h2{font-size:clamp(21px,5.8vw,27px)}
+ .premium-home-ad-copy p{display:none}
+ .premium-home-ad-copy a{min-height:44px;padding:0 17px;font-size:12px}
+ .premium-home-ad-scenes{height:auto}
+ .premium-home-ad-scenes figure{clip-path:none;margin:0}
+ .premium-home-ad-scenes figure:not(:first-child){display:none}
+ .premium-home-ad-scenes figcaption{left:8px;right:4px;font-size:11px}
+ .premium-home-ad-eyebrow{font-size:10px;letter-spacing:.08em}
+ .premium-booking-guidance{grid-template-columns:1fr;gap:12px}
+ .premium-offers-navigation{padding-inline:15px;flex-wrap:wrap}
+ .premium-offers-navigation>div{margin-left:auto}
+ .premium-home-main .premium-offers-heading-copy>p{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.premium-offers-marquee{scroll-behavior:auto}}
+body:has(#home-search-ai:not([hidden])) .seri-label-dismiss{display:none}
+.premium-home-main .premium-search .premium-field-label,.premium-home-main .premium-search label>span{color:#476582}
+.premium-home-main .premium-footer small{color:#526b83}
+@media(max-width:380px){.premium-offers-heading-copy>span{letter-spacing:.08em}.premium-exclusive-offers .premium-offers-tab h2{font-size:18px}.premium-offers-title-icon{display:none}}
+/* A comfortable reading column and a composer that stays below the conversation. */
+.premium-home-main .premium-main #home-search-ai>.premium-seri-chat,
+.premium-home-main .premium-main #home-search-ai>.premium-seri-chat:has(.home-seri-transcript.is-empty){display:flex;flex-direction:column;align-items:stretch;width:100%;max-width:1120px;height:580px;min-height:0;max-height:none;margin:0 auto 24px;padding:0;gap:0;overflow:hidden;border:1px solid #dce9f5;border-radius:24px;background:linear-gradient(145deg,#fff,#f4fafc);box-shadow:0 12px 32px #21466a0a;box-sizing:border-box}
+#home-search-ai .premium-seri-chat>.premium-seri-entry-heading{display:flex;align-items:center;gap:12px;flex:none;padding:22px 28px;border-bottom:1px solid #e5edf5}
+#home-search-ai .premium-seri-entry-heading h2{margin:0;font-size:20px;line-height:1.35;color:#203b5c}
+#home-search-ai .premium-seri-entry-heading p{display:block;margin:4px 0 0;font-size:13px;color:#5b728c;line-height:1.5}
+#home-search-ai .premium-seri-chat>.seri-chat-team{display:flex;justify-content:space-between;align-items:center;flex:none;gap:12px;padding:10px 28px;background:#f5f9fe;border-bottom:1px solid #e5edf5;color:#526b84;font-size:13px}
+#home-search-ai .seri-chat-team .travel-handover{min-width:0;margin-left:auto}
+#home-search-ai .seri-chat-team button.account-outline-button{min-height:40px;padding:8px 14px;font-size:13px;border:1px solid #d7e6f6;border-radius:10px;background:#fff;color:#286bb4;white-space:nowrap}
+#home-search-ai .seri-chat-team:has(.travel-tool){display:block}
+#home-search-ai .seri-chat-team .travel-tool{max-height:180px;overflow-y:auto;margin-top:8px}
+#home-search-ai .premium-seri-chat .home-seri-transcript,
+#home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{display:block;flex:1 1 0;width:100%;max-width:960px;min-height:0;max-height:none;box-sizing:border-box;align-self:center;margin:0;padding:22px 28px;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:auto;border:0;border-radius:0;background:transparent;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#adc4dc transparent;-webkit-overflow-scrolling:touch}
+#home-search-ai .premium-seri-chat .home-seri-message{width:fit-content;max-width:88%;box-sizing:border-box;margin:0 0 16px;padding:14px 18px;border:1px solid #e0eaf4;border-radius:16px 16px 16px 4px;background:#fff;overflow-wrap:anywhere}
+#home-search-ai .premium-seri-chat .home-seri-message.is-user{margin-left:auto;background:#eaf3ff;border-color:#d4e5fa;border-radius:16px 16px 4px 16px}
+#home-search-ai .home-seri-message>small{display:block;margin-bottom:6px;font-size:11px;color:#526f90;font-weight:700}
+#home-search-ai .home-seri-message>p,#home-search-ai .home-seri-message .seri-rich-text{margin:0;font-size:15px;line-height:1.7;color:#294360}
+#home-search-ai .premium-seri-chat>.home-seri-sign-in{flex:none;margin:0;padding:8px 20px;font-size:12px;text-align:center;line-height:1.5}
+#home-search-ai .premium-seri-chat>form{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;flex:none;width:calc(100% - 48px);max-width:912px;box-sizing:border-box;align-self:center;margin:0 24px 22px;padding:7px;border:1px solid #cadff4;border-radius:16px;background:#fff;box-shadow:0 4px 14px #23578408}
+#home-search-ai .premium-seri-chat>form:focus-within{border-color:#498de0;box-shadow:0 0 0 3px #4b98ed1a}
+#home-search-ai .premium-seri-chat>form input{flex:1;min-width:0;width:0;min-height:44px;padding:10px 12px;border:0;outline:none;background:transparent;font-size:16px;color:#243f5d;box-shadow:none}
+#home-search-ai .premium-seri-chat>form button{flex:none;min-height:44px;width:auto;padding:10px 18px;border-radius:11px;font-size:14px}
+#home-search-ai .home-seri-welcome.seri-welcome-design{height:100%;min-height:0;box-sizing:border-box;padding:8px 0}
+#home-search-ai .seri-welcome-design .seri-welcome-orbit{width:70px;height:70px;margin-bottom:10px}
+#home-search-ai .seri-welcome-design .seri-welcome-orbit>div{width:50px;height:50px}
+@media(max-width:600px){
+ .premium-home-main .premium-main #home-search-ai>.premium-seri-chat,.premium-home-main .premium-main #home-search-ai>.premium-seri-chat:has(.home-seri-transcript.is-empty){height:clamp(440px,72svh,580px);border-radius:20px}
+ #home-search-ai .premium-seri-chat>.premium-seri-entry-heading{padding:16px;gap:10px}
+ #home-search-ai .premium-seri-entry-heading h2{font-size:17px}
+ #home-search-ai .premium-seri-chat>.seri-chat-team{padding:8px 14px;gap:8px;font-size:12px}
+ #home-search-ai .seri-chat-team button.account-outline-button{font-size:12px;padding:8px 10px}
+ #home-search-ai .premium-seri-chat .home-seri-transcript,#home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{padding:16px 12px}
+ #home-search-ai .premium-seri-chat .home-seri-message{max-width:94%;padding:12px 14px}
+ #home-search-ai .home-seri-message>p,#home-search-ai .home-seri-message .seri-rich-text{font-size:14px}
+ #home-search-ai .premium-seri-chat>form{width:calc(100% - 24px);margin:0 12px 12px;gap:4px}
+ #home-search-ai .premium-seri-chat>form button{padding:10px 12px;font-size:13px}
+ #home-search-ai .seri-welcome-prompts{gap:6px}
+}
+/* Keep support in the header and let message content determine its bubble size. */
+.premium-home-main .premium-main #home-search-ai>.premium-seri-chat,.premium-home-main .premium-main #home-search-ai>.premium-seri-chat:has(.home-seri-transcript.is-empty){max-width:960px;height:540px;background:#f8fbff}
+#home-search-ai .premium-seri-chat>.premium-seri-entry-heading{padding:18px 24px;background:#fff;flex-wrap:wrap}
+#home-search-ai .seri-header-support{margin-left:auto}
+#home-search-ai .seri-header-support .travel-handover{margin:0}
+#home-search-ai .seri-header-support .account-outline-button{min-height:40px;margin:0;padding:8px 12px;border:1px solid #dce7f3;border-radius:10px;background:#f5f9fe;color:#2866aa;font-size:13px;font-weight:650}
+#home-search-ai .premium-seri-entry-heading:has(.travel-tool) .seri-header-support{flex-basis:100%;margin:0}
+#home-search-ai .seri-header-support .travel-tool{max-height:180px;overflow:auto;margin-top:8px;font-size:14px}
+#home-search-ai .premium-seri-chat .home-seri-transcript,#home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{padding:20px 24px;max-width:none;scrollbar-gutter:auto}
+#home-search-ai .premium-seri-chat .home-seri-transcript::-webkit-scrollbar{width:5px}
+#home-search-ai .premium-seri-chat .home-seri-transcript::-webkit-scrollbar-thumb{background:#bdcfe1;border-radius:8px}
+#home-search-ai .premium-seri-chat .home-seri-transcript::-webkit-scrollbar-button{display:none;height:0}
+#home-search-ai .premium-seri-chat .home-seri-message{max-width:82%;padding:12px 16px;margin-bottom:12px}
+#home-search-ai .premium-seri-chat .home-seri-message .seri-rich-text p,#home-search-ai .premium-seri-chat .home-seri-message .seri-rich-text li,#home-search-ai .premium-seri-chat .home-seri-message .seri-rich-text a{font-size:15px;line-height:1.7;color:#294360}
+#home-search-ai .premium-seri-chat .home-seri-message .seri-rich-text p{margin:0 0 10px}
+#home-search-ai .premium-seri-chat .home-seri-message .seri-rich-text p:last-child{margin-bottom:0}
+#home-search-ai .premium-seri-chat>form{width:calc(100% - 40px);margin:0 20px 20px;max-width:none}
+@media(max-width:600px){
+ .premium-home-main .premium-main #home-search-ai>.premium-seri-chat,.premium-home-main .premium-main #home-search-ai>.premium-seri-chat:has(.home-seri-transcript.is-empty){height:clamp(430px,72svh,560px)}
+ #home-search-ai .premium-seri-chat>.premium-seri-entry-heading{padding:14px;gap:10px}
+ #home-search-ai .premium-seri-entry-heading h2{font-size:16px}
+ #home-search-ai .seri-header-support{flex-basis:100%;margin:0}
+ #home-search-ai .seri-header-support .account-outline-button{width:100%;min-height:40px}
+ #home-search-ai .premium-seri-chat .home-seri-transcript,#home-search-ai .premium-seri-chat .home-seri-transcript.is-empty{padding:16px 12px}
+ #home-search-ai .premium-seri-chat .home-seri-message{max-width:94%}
+ #home-search-ai .premium-seri-chat>form{width:calc(100% - 24px);margin:0 12px 12px}
+}

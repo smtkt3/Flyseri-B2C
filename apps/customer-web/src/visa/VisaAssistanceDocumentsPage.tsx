@@ -1,3 +1,4 @@
+import { Translated } from '../travel/language';
 import { SavedVisaJourneyProgress } from './SavedVisaJourneyProgress';
 import { VisaAssistanceRequestPage } from './VisaAssistanceRequestPage';
 import { useEffect, useRef, useState } from 'react';
@@ -152,7 +153,7 @@ export function VisaAssistanceDocumentsPage() {
     <header className="account-panel visa-assistance-intro"><p className="account-eyebrow">YOUR ASSISTED VISA APPLICATION</p><h1>{data && data.status !== 'NEW' ? 'Your request is with Flyseri' : pageStep === 'choose' ? 'Your visa selection' : pageStep === 'form' ? 'Your saved applicant details' : review ? 'Review your application' : 'Add your documents'}</h1><p>{review ? "Check each applicant’s information and attachments before continuing to payment. Submit to Flyseri after payment is verified." : "Your applicant details are saved. Prepare clear documents for our visa team to review."}</p>
       </header>
     <SavedVisaJourneyProgress requestId={requestId} current={savedDetails ? pageStep as "choose" | "form" : review ? "review" : "documents"} complete={!!data && data.status !== "NEW"} disabled={loading || !!busy || !!pending || additionalNote !== savedNote} />
-    {error && <div className="account-panel" role="alert">{error}{!data && <button onClick={() => void load()}>Try again</button>}</div>}
+    {error && <div className="account-panel" role="alert">{error}{!data && <button onClick={() => void load()}><Translated text="Try again" /></button>}</div>}
     {documentWarning && <div className="account-panel" role="alert">{documentWarning} Your saved application and attached files remain available. <button disabled={!!busy || !!pending || loading || additionalNote !== savedNote} onClick={() => void load()}>Retry document services</button></div>}
     {loading ? <div className="account-panel" role="status">Loading your saved application…</div> : data && <div className="visa-assistance-layout"><section>
       {savedDetails ? <>

@@ -56,6 +56,17 @@ describe('authenticated customer dashboard', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByText('Trips are unavailable right now')).toBeTruthy();
     expect(screen.queryByText('Nothing needs your attention right now')).toBeNull();
+    expect(screen.queryByText('Up to date')).toBeNull();
+    expect(screen.getByText('Check incomplete')).toBeTruthy();
+    expect(screen.getByText('Flight selections unavailable')).toBeTruthy();
+  });
+
+  it('does not describe unavailable payments as no payments', async () => {
+    api.payments.mockRejectedValue(new Error('offline'));
+    render(<MemoryRouter><CustomerDashboard /></MemoryRouter>);
+    expect(await screen.findByText('Payments unavailable')).toBeTruthy();
+    expect(screen.queryByText('No payment yet')).toBeNull();
+    expect(screen.getByText('Retry above before deciding whether to pay again.')).toBeTruthy();
   });
 
   it('formats backend currency strings without float arithmetic or MYR assumptions', () => {

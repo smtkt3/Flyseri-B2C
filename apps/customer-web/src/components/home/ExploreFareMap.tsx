@@ -1,3 +1,5 @@
+import { Chevron } from '../Chevron';
+import { Translated } from '../../travel/language';
 import {
   useEffect,
   useMemo,
@@ -73,7 +75,7 @@ const money = (fare?: PopularCachedFlightFare) =>
   fare
     ? `${fare.currency} ${Number(fare.price).toLocaleString("en-MY", { maximumFractionDigits: 0 })}`
     : "Check fares"
-export function ExploreFareMap() {
+export function ExploreFareMap({ active: panelActive = true }: { active?: boolean } = {}) {
   const search = useHomeSearchDraft()
   const [originCode, setOriginCode] = useHomeSearchField("origin")
   const originAirport = allPlaces.find((place) => place.code === originCode) ?? allPlaces.find(place => place.code === "DAC")!
@@ -134,6 +136,7 @@ export function ExploreFareMap() {
     return () => { window.removeEventListener(currencyPreferenceEvent, update); window.removeEventListener("storage", update) }
   }, [])
   useEffect(() => {
+    if (!panelActive) return
     let mounted = true
     const refresh = () =>
       void flightService
@@ -155,7 +158,7 @@ export function ExploreFareMap() {
       mounted = false
       window.clearInterval(timer)
     }
-  }, [originCode, currency, departureDate, places])
+  }, [originCode, currency, departureDate, places, panelActive])
   useEffect(() => {
     if (!mapRef.current || typeof ResizeObserver === "undefined") return
     const observer = new ResizeObserver(([entry]) => {
@@ -215,6 +218,8 @@ export function ExploreFareMap() {
     const element = mapRef.current
     if (!element) return
     const wheel = (event: WheelEvent) => {
+      // Ordinary wheel/trackpad scrolling belongs to the page.
+      if (!event.ctrlKey && !event.metaKey) return
       if (
         (event.target as Element).closest(
           "aside,article,.explore-map-list,.explore-map-zoom",
@@ -263,7 +268,7 @@ export function ExploreFareMap() {
     }
     if (pointers.current.size > 1)
       event.currentTarget.setPointerCapture?.(event.pointerId)
-    if (!(event.target as Element).closest("button"))
+    if (event.pointerType !== 'touch' && !(event.target as Element).closest("button"))
       event.currentTarget.focus({ preventScroll: true })
   }
   function pointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -303,6 +308,7 @@ export function ExploreFareMap() {
     )
       return
     const from = moved.current ? previous : (dragStart.current ?? previous)
+    if (event.pointerType === 'touch' && !moved.current && Math.abs(point.y - from.y) >= Math.abs(point.x - from.x)) return
     moved.current = true
     setDragging(true)
     event.currentTarget.setPointerCapture?.(event.pointerId)
@@ -350,7 +356,7 @@ export function ExploreFareMap() {
       (!faresOnly || !!fare) &&
       (!fare || maxPrice === null || Number(fare.price) <= maxPrice)
     )
-  }), [byCode, faresOnly, maxPrice])
+  }), [places, byCode, faresOnly, maxPrice])
   const selected =
     visible.find((place) => place.code === (destination || active)) ?? visible[0] ?? places[4]!
   const selectedFare = byCode.get(selected.code)
@@ -368,7 +374,7 @@ export function ExploreFareMap() {
     const rank = (code: string) => code === selected.code ? -2 : byCode.has(code) ? -1 : worldwide.includes(code) ? worldwide.indexOf(code) : photos[code] ? 20 : 30
     return rank(a.code) - rank(b.code)
   })
-  const labels = layoutMapLabels(
+  const labels = dragging ? [] : layoutMapLabels(
     prioritized.map((place) => ({ code: place.code, point: place.point })),
     viewport,
     mobile,
@@ -410,9 +416,9 @@ export function ExploreFareMap() {
     >
       <div className="explore-map-toolbar">
         <button type="button" className="explore-map-destination-trigger" aria-label="Choose map departure airport" aria-expanded={listOpen && selectingOrigin} aria-controls="explore-map-destinations" onClick={() => { setSelectingOrigin(true); setQuery(""); setListOpen(!listOpen || !selectingOrigin); setFiltersOpen(false) }}>
-          <span>From</span>
+          <span><Translated text="From" /></span>
           <strong>
-            {originAirport.code} <small>{originAirport.city} ⌄</small>
+            {originAirport.code} <small>{originAirport.city} <Chevron/></small>
           </strong>
         </button>
         <i aria-hidden="true">→</i>
@@ -424,10 +430,10 @@ export function ExploreFareMap() {
           aria-controls="explore-map-destinations"
           onClick={() => { setSelectingOrigin(false); setQuery(""); setListOpen(!listOpen || selectingOrigin); setFiltersOpen(false) }}
         >
-          <span>To</span>
+          <span><Translated text="To" /></span>
           <strong>
             {destination ? places.find((place) => place.code === destination)?.city : "Anywhere"}
-            <small>{destination ? `${destination} · Change destination ⌄` : "Explore the world ⌄"}</small>
+            <small>{destination ? `${destination} · Change destination` : "Explore the world"} <Chevron/></small>
           </strong>
         </button>
         <Link to={`/flights?${new URLSearchParams({ origin: originCode, currency })}`} aria-label="Change flight route">
@@ -443,7 +449,7 @@ export function ExploreFareMap() {
             setListOpen(false)
           }}
         >
-          ☷ <span>Filters</span>
+          ☷ <span><Translated text="Filters" /></span>
         </button>
         <CalendarDateField label="Choose dates" value={departureDate} minDate={minimumDate} onChange={setDepartureDate} className="explore-map-date" align="end" />
       </div>
@@ -492,7 +498,7 @@ export function ExploreFareMap() {
           viewBox={`0 0 ${size.width} ${size.height}`}
           aria-hidden="true"
         >
-          {routes &&
+          {routes && !dragging &&
             onScreen
               .filter(
                 (place) =>
@@ -741,8 +747,17 @@ export function ExploreFareMap() {
             {listed.length === 0 && <p>No destinations match your search.</p>}
           </div>
         )}{" "}
+        <a
+          className="explore-map-attribution"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >
+          © OpenStreetMap contributors
+        </a>
+      </div>
         {visible.length > 0 && (
-          <article
+        <article
             className="explore-map-selection"
             aria-label="Selected destination"
           >
@@ -762,20 +777,11 @@ export function ExploreFareMap() {
             </div>
             <strong>{selectedFare && <small className="explore-map-cached-label">Cached fare</small>}{money(selectedFare)}</strong>
             <Link to={homeSearchUrl({ ...search, departure: departureDate || selectedFare?.departureDate || "" }, selected.code) + "&currency=" + currency}>
-              View flights <span aria-hidden="true">→</span>
+              <Translated text="View flights" /><span aria-hidden="true">→</span>
             </Link>
           </article>
         )}
-        <a
-          className="explore-map-attribution"
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noreferrer"
-        >
-          © OpenStreetMap contributors
-        </a>
-      </div>
-      <p id="explore-map-instructions" className="sr-only">
+        <p id="explore-map-instructions" className="sr-only">
         Drag to explore · Scroll or pinch to zoom · Arrow keys to move · Home
         for the world view. Explore destination ideas. Prices, when shown, are
         from recent searches; check live fares before booking.

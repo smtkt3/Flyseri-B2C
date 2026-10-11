@@ -96,3 +96,15 @@ button.seri-floating-launcher[hidden]{display:none}
 .home-seri-error>button{min-height:40px;padding:8px 14px;border:1px solid #e2b8be;border-radius:10px;background:#fff;color:#933747;font:600 13px Inter,system-ui,sans-serif;cursor:pointer}
 .home-seri-error>button:disabled{opacity:.5;cursor:default}
 @media(max-width:767px){.seri-floating-launcher.is-compact:not(.is-open){width:76px}.seri-label-dismiss{right:90px;bottom:calc(65px + env(safe-area-inset-bottom,0px))}}
+/* Keep the entire composer inside Safari's visible viewport. */
+@media(max-width:767px){
+ #seri-floating-chat{max-height:none;min-height:0;box-sizing:border-box;overscroll-behavior:contain}
+ #seri-floating-chat .premium-seri-chat{min-height:0;overflow:hidden}
+ #seri-floating-chat .home-seri-transcript{flex:1 1 0;min-height:0;-webkit-overflow-scrolling:touch}
+ #seri-floating-chat .premium-seri-chat>form{flex:0 0 auto;margin-bottom: max(10px,env(safe-area-inset-bottom,0px))}
+ #seri-floating-chat .premium-seri-entry-heading{padding:10px 14px}
+ #seri-floating-chat .seri-chat-team{padding:6px 14px}
+ .seri-floating-launcher.is-compact:not(.is-open){min-width:0;width:60px;height:60px}
+ .seri-floating-launcher.is-compact .seri-launcher-aircraft{width:58px;height:58px}
+ .seri-floating-launcher{right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+}

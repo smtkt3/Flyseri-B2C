@@ -234,7 +234,7 @@ export interface FlightBooking {
   createdAt: string;
   updatedAt: string;
   lastSabreRefreshAt: string | null;
-  ticketStatus: 'NOT_VERIFIED';
+  ticketStatus: 'NOT_VERIFIED' | 'ISSUED';
   providerView?: FlightBookingProviderView;
 }
 export interface FlightBookingProviderView {
@@ -623,3 +623,4 @@ export interface VisaAssistanceRequestDetail extends VisaAssistanceRequestSummar
  documents: VisaAssistanceDocument[];
 }
 export type { HolidayPackage, HolidayBookingInput, HolidayBooking } from './holiday.js';
+export type { FareWatch, SupportStage, SupportUpdate, TravelSupportRequest } from './travel.js';

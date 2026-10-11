@@ -1,3 +1,4 @@
+import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
 import { SavedVisaJourneyProgress } from './SavedVisaJourneyProgress';
 import { cloneElement, createContext, useContext, useEffect, useId, useRef, useState, type ReactElement, type FormEvent } from 'react';
@@ -337,7 +338,7 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
               <span className="visa-start-number">{String(index + 1).padStart(2, '0')}</span>
               <div className="visa-saved-applicant-copy"><h3>{name}</h3><p>{countryName(person.nationalityCountryCode)} · {person.documentType === 'PASSPORT' ? 'Passport' : person.documentType === 'NATIONAL_ID' ? 'National ID' : 'Travel document'} ending {person.documentNumber.slice(-4)}</p></div>
               <span className="visa-saved-applicant-status"><span aria-hidden="true">✓ </span>Saved</span>
-              <div className="visa-saved-applicant-actions"><button type="button" className="account-outline-button" aria-label={'Edit applicant ' + (index + 1)} onClick={() => editApplicant(id)}>Edit</button>{applicantIds.length > 1 && <button type="button" className="visa-remove-applicant" aria-label={'Remove applicant ' + (index + 1)} onClick={() => removeApplicant(id)}>Remove</button>}</div>
+              <div className="visa-saved-applicant-actions"><button type="button" className="account-outline-button" aria-label={'Edit applicant ' + (index + 1)} onClick={() => editApplicant(id)}>Edit</button>{applicantIds.length > 1 && <button type="button" className="visa-remove-applicant" aria-label={'Remove applicant ' + (index + 1)} onClick={() => removeApplicant(id)}><Translated text="Remove" /></button>}</div>
             </article> : <div className="visa-applicant-form-wrap" data-applicant-id={id} key={id}>{applicantIds.length > 1 && <button type="button" className="visa-remove-applicant" aria-label={'Remove applicant ' + (index + 1)} disabled={busy} onClick={() => removeApplicant(id)}>Remove applicant</button>}<ApplicantForm index={index} person={person} travelDate={draft.expectedTravelDate}
               samePermanentAddress={Boolean(sameAddress[id])} onChange={(patch) => updateApplicant(id, patch)}
               onAddressChange={(field, key, value) => updateAddress(id, field, key, value)}

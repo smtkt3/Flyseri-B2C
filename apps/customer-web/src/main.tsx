@@ -9,13 +9,15 @@ import './premium-theme.css'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { AuthRoutes } from './auth/AuthRoutes'
+import { LanguageProvider } from './travel/language'
+import './travel/travel-tools.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
+      <LanguageProvider><AuthProvider>
         <AuthRoutes />
-      </AuthProvider>
+      </AuthProvider></LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

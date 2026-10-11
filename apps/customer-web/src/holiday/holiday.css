@@ -4,3 +4,5 @@
 @media(prefers-reduced-motion:reduce){.holiday-card{transition:none}.holiday-card:hover{transform:none}}
 
 
+
+.holiday-page .holiday-section-heading h1{font-size:clamp(26px,3vw,34px);letter-spacing:-.035em;line-height:1.25;margin:0 0 20px}

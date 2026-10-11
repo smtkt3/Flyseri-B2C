@@ -1,3 +1,4 @@
+import { hasIssuedTicketEvidence, matchesConfirmedItinerary } from './reservation-evidence.js';
 import { publicAncillaryPurchase, type AncillarySnapshot } from './ancillary-purchase.contract.js';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -89,7 +90,7 @@ export class FlightBookingsService {
       ...(row.providerSnapshot ? { providerView: row.providerSnapshot } : {}),
       ...(row.order?.id ? { order: { ...row.order, status: (row.order.expiresAt && row.order.expiresAt.getTime() <= Date.now() && ['PENDING_PAYMENT','PAYMENT_FAILED'].includes(row.order.status) ? 'EXPIRED' : row.order.status) as OrderStatus, expiresAt: row.order.expiresAt?.toISOString() ?? null, paidAt: row.order.paidAt?.toISOString() ?? null } } : {}),
       createdAt: row.booking.createdAt.toISOString(), updatedAt: row.booking.updatedAt.toISOString(),
-      lastSabreRefreshAt: row.booking.lastSabreRefreshAt?.toISOString() ?? null, ticketStatus: 'NOT_VERIFIED' };
+      lastSabreRefreshAt: row.booking.lastSabreRefreshAt?.toISOString() ?? null, ticketStatus: hasIssuedTicketEvidence(row.providerSnapshot,row.bookedNames?.length ?? orderedPeople.length) ? 'ISSUED' : 'NOT_VERIFIED' };
   }
   async list(customerId: string) { return Promise.all((await this.rows(customerId)).map(row => this.present(row))); }
   async detail(customerId: string, id: string) { const [row] = await this.rows(customerId, id); if (!row) throw missing(); return this.present(row); }
@@ -214,11 +215,7 @@ export class FlightBookingsService {
     if (!booking.pnr || !['PNR_CREATED', 'AWAITING_PAYMENT'].includes(booking.status)) throw new ApiException('CONFLICT', 'This reservation needs review before payment.', 409);
     const current = await this.sabre.getBookingView(booking.pnr);
     const [record] = await this.db.select().from(flightBookings).where(and(eq(flightBookings.id,id),eq(flightBookings.customerId,customerId))).limit(1);
-    const segments = (booking.selectedOffer.multiCityLegs ?? [booking.selectedOffer.outbound, ...(booking.selectedOffer.inbound ? [booking.selectedOffer.inbound] : [])]).flatMap(leg=>leg.segments);
-    if (booking.passengerNamesSource !== 'BOOKED_SNAPSHOT' || !record || current.bookingId !== (record.sabreBookingId ?? booking.pnr) || !current.view.cancellationCheckComplete || current.view.tickets.length || current.view.travellers.length !== booking.passengerNames.length || current.view.travellers.some((person,index)=>`${person.givenName} ${person.surname}`.trim().replace(/\s+/g,' ').toUpperCase() !== booking.passengerNames[index]!.trim().replace(/\s+/g,' ').toUpperCase()) || current.view.flights.length !== segments.length || current.view.flights.some((flight,index)=>{
-      const segment=segments[index]!;
-      return flight.origin!==segment.origin || flight.destination!==segment.destination || flight.airlineCode!==segment.marketingCarrier || Number(flight.flightNumber)!==Number(segment.flightNumber) || flight.departureDate!==segment.departureAt.slice(0,10) || flight.status!=='Confirmed';
-    })) throw new ApiException('CONFLICT','Your reservation needs airline verification before payment. Contact Flyseri.',409);
+    if (booking.passengerNamesSource !== 'BOOKED_SNAPSHOT' || !record || current.bookingId !== (record.sabreBookingId ?? booking.pnr) || !current.view.cancellationCheckComplete || current.view.tickets.length || current.view.travellers.length !== booking.passengerNames.length || current.view.travellers.some((person,index)=>[person.givenName,person.surname].join(' ').trim().replace(/\s+/g,' ').toUpperCase() !== booking.passengerNames[index]!.trim().replace(/\s+/g,' ').toUpperCase()) || !matchesConfirmedItinerary(current.view, booking.selectedOffer)) throw new ApiException('CONFLICT','Your reservation needs airline verification before payment. Contact Flyseri.',409);
     const [intent] = await this.db.select().from(flightBookingIntents).where(and(eq(flightBookingIntents.id,booking.bookingIntentId),eq(flightBookingIntents.customerId,customerId))).limit(1);
     if (!intent?.validatedTotalAmount) throw missing();
     const offer=booking.selectedOffer;

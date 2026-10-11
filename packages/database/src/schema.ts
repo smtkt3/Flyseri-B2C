@@ -1,6 +1,23 @@
 import { foreignKey, check, date, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+export const fareWatches = pgTable('fare_watches', {
+  id: uuid('id').primaryKey().defaultRandom(), customerId: uuid('customer_id').notNull().references(() => customers.id),
+  search: jsonb('search').notNull(), targetAmount: numeric('target_amount', { precision: 14, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull(), active: boolean('active').notNull().default(true),
+  lastAmount: numeric('last_amount', { precision: 14, scale: 2 }), checkedAt: timestamp('checked_at', { withTimezone: true }),
+  matchedAt: timestamp('matched_at', { withTimezone: true }), checkError: boolean('check_error').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+export const travelSupportRequests = pgTable('travel_support_requests', {
+  id: uuid('id').primaryKey().defaultRandom(), customerId: uuid('customer_id').notNull().references(() => customers.id),
+  conversationId: uuid('conversation_id').notNull().references(() => aiConversations.id),
+  actionId: uuid('action_id').notNull().unique().references(() => aiPendingActions.id), reason: text('reason').notNull(), version: integer('version').notNull().default(1),
+  stage: varchar('stage', { length: 24 }).notNull().default('QUEUED'), quote: jsonb('quote'), updates: jsonb('updates').notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const holidayPackages = pgTable('holiday_packages', {
   id: uuid('id').primaryKey().defaultRandom(),
   definition: jsonb('definition').notNull(),

@@ -1,3 +1,5 @@
+import { CheckoutPageHeader } from '../flight/CheckoutPageHeader';
+import { Translated } from '../travel/language';
 import { useEffect, useState, type FormEvent } from 'react';
 import type { CustomerProfile } from '@flyseri/types';
 import { Link } from 'react-router-dom';
@@ -29,8 +31,8 @@ export function ProfilePage() {
   }
 
   const field = (key: keyof CustomerProfile) => (event: React.ChangeEvent<HTMLInputElement>) => setProfile((previous) => ({ ...previous, [key]: event.target.value || null }));
-  return <div className="account-page"><p className="account-eyebrow">ACCOUNT DETAILS</p><h1>My Profile</h1><p className="account-muted">Keep the details you share with Flyseri up to date.</p>
-    {loading ? <p role="status" className="account-soft-note">Loading your profile…</p> : error && !hasLoaded ? <div role="alert" className="account-error">{error} <button onClick={() => { void load(); }}>Retry</button></div> : <>
+  return <div className="account-page"><CheckoutPageHeader title="My profile" description="Manage your contact details and preferences."/>
+    {loading ? <p role="status" className="account-soft-note">Loading your profile…</p> : error && !hasLoaded ? <div role="alert" className="account-error">{error} <button onClick={() => { void load(); }}><Translated text="Retry" /></button></div> : <>
       {error && <p role="alert" className="account-error">{error}</p>}{notice && <p role="status" className="account-notice">{notice}</p>}
       <form className="account-panel account-form" onSubmit={(event) => { void save(event); }}>
         <h2>Account details</h2><div className="account-form-grid">

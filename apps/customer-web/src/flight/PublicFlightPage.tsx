@@ -9,6 +9,6 @@ export function PublicFlightPage() {
   if (new URLSearchParams(location.search).has('tripId')) return <Navigate to={`/app/flights${location.search}`} replace />;
   return <div className="public-flight-shell">
     <PremiumNavbar />
-    <main>{resolving ? <p role="status" className="account-muted">Restoring your search…</p> : <FlightSearchPage key={location.key} publicSearch />}</main>
+    <main><h1 className="sr-only">Search flights</h1>{resolving ? <p role="status" className="account-muted">Restoring your search…</p> : <FlightSearchPage key={location.key} publicSearch />}</main>
   </div>;
 }

@@ -1,3 +1,5 @@
+import { ChatAircraftIcon } from './ChatAircraftIcon';
+import { Translated } from '../../travel/language';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -12,6 +14,7 @@ import './home-search-improvements.css';
 import './seri-welcome.css';
 import { useHomeSearchDraft } from './homeSearchDraft';
 import { useBackStepState } from '../useBackStepState';
+import { SupportHandover } from '../../travel/SupportHandover';
 import { SeriRichText } from './SeriRichText';
 
 const suggestions = ['Where shall we go?', 'Plan a relaxing beach getaway', 'Help me plan a Japan trip', 'Plan a weekend trip from Dhaka'];
@@ -42,15 +45,30 @@ export function HomeSeriSearch() {
   useEffect(() => { if (skipDraftSave.current) { skipDraftSave.current = false; return; } try { if (question) sessionStorage.setItem(draftKey, question); else sessionStorage.removeItem(draftKey); } catch {} }, [question, draftKey]);
   useEffect(() => {
     const viewport = window.visualViewport;
+    let fullHeight = window.innerHeight;
     const resize = () => {
-      const open = !!viewport && window.innerHeight - viewport.height > 120;
+      const editing = document.activeElement?.matches('input,textarea,[contenteditable="true"]');
+      if (!editing) fullHeight = Math.max(fullHeight, window.innerHeight);
+      const open = !!viewport && Math.max(fullHeight, window.innerHeight) - viewport.height > 120;
       setKeyboardOpen(open);
-      setKeyboardViewport(open && window.innerWidth <= 767 ? { top: viewport!.offsetTop || 0, height: viewport!.height } : null);
+      setKeyboardViewport(viewport && window.innerWidth <= 767 ? { top: viewport.offsetTop || 0, height: viewport.height } : null);
     };
     resize(); viewport?.addEventListener('resize', resize);
     viewport?.addEventListener('scroll', resize);
-    return () => { viewport?.removeEventListener('resize', resize); viewport?.removeEventListener('scroll', resize); };
+    window.addEventListener('resize', resize);
+    document.addEventListener('focusin', resize);
+    document.addEventListener('focusout', resize);
+    return () => { viewport?.removeEventListener('resize', resize); viewport?.removeEventListener('scroll', resize); window.removeEventListener('resize', resize); document.removeEventListener('focusin', resize); document.removeEventListener('focusout', resize); };
   }, []);
+  useEffect(() => {
+    if (!floating || window.innerWidth > 767) return;
+    const scrollY = window.scrollY;
+    const previous = { position: document.body.style.position, top: document.body.style.top, width: document.body.style.width };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    return () => { Object.assign(document.body.style, previous); window.scrollTo(0, scrollY); };
+  }, [floating]);
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
     window.addEventListener('online', update); window.addEventListener('offline', update);
@@ -201,40 +219,33 @@ export function HomeSeriSearch() {
   }
 
   const chat = <section ref={chatSection} className="premium-seri-entry premium-seri-chat" aria-labelledby="home-seri-title">
-    <div className="premium-seri-entry-heading"><span className="premium-seri-entry-icon" aria-hidden="true">✦</span><div><h2 id="home-seri-title">{floating ? 'Seri' : 'Plan your journey with Seri'}</h2>{floating && <p>Your AI travel assistant</p>}</div>{floating && <button type="button" className="seri-floating-close" aria-label="Close Seri chat" onClick={closeFloating}>×</button>}</div>
-    {floating && <div className="seri-chat-team"><span>Need help from our team?</span><Link to="/app/support">Contact team <span aria-hidden="true">↗</span></Link></div>}
+    <div className="premium-seri-entry-heading"><span className="premium-seri-entry-icon" aria-hidden="true">✦</span><div><h2 id="home-seri-title">{floating ? 'Seri' : 'Plan your journey with Seri'}</h2><p><Translated text="Your AI travel assistant" /></p></div>{!floating && <div className="seri-header-support"><SupportHandover key={conversation.current ?? 'guest'} conversationId={conversation.current} messages={messages} /></div>}{floating && <button type="button" className="seri-floating-close" aria-label="Close Seri chat" onClick={closeFloating}>×</button>}</div>
+    {floating && <div className="seri-chat-team"><SupportHandover key={conversation.current ?? 'guest'} conversationId={conversation.current} messages={messages} /></div>}
     <div className={`home-seri-transcript${!messages.length && !sending && !error ? ' is-empty' : ''}`} ref={transcript} role="log" aria-label="Seri search conversation" aria-live="polite" aria-relevant="additions text" aria-busy={sending} tabIndex={0}>
       {!messages.length && <div className="home-seri-welcome seri-welcome-design">
         <div className="seri-welcome-orbit" aria-hidden="true"><div><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m27 5-8 23-5-10L4 13 27 5Z"/><path d="m14 18 7-7"/></svg></div><i/><i/></div>
-        <strong>Where to next?</strong>
-        <p>Find flights. Shape your next escape.</p>
+        <strong><Translated text="Where to next?" /></strong>
+        <p><Translated text="Find flights. Shape your next escape." /></p>
         <div className="seri-welcome-prompts" aria-label="Start a conversation">{[
           { title: 'Find a flight', prompt: 'Help me find flights', path: 'm21 3-7 18-3-8-8-3 18-7Z M11 13l5-5' },
           { title: 'Plan a holiday', prompt: 'Help me plan a holiday', path: 'M4 7h16v14H4V7Z M9 7V4h6v3 M4 12h16 M9 12v3 M15 12v3' },
-          { title: 'Inspire me', prompt: 'Suggest a destination for my next trip', path: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z' },
+          { title: 'Plan by budget', prompt: 'Help me plan a trip with a budget of BDT 100000', path: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z' },
         ].map(item => <button type="button" key={item.title} onClick={() => { setQuestion(item.prompt); chatInput.current?.focus({ preventScroll: true }); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.path}/></svg><span>{item.title}</span><span aria-hidden="true">↗</span></button>)}</div>
       </div>}
       {messages.map(message => <article key={message.id} className={`home-seri-message is-${message.role.toLowerCase()}`}><small>{message.role === 'USER' ? 'You' : 'Seri'}</small>{message.role === 'USER' ? <p>{message.content}</p> : <SeriRichText content={message.payload?.source === 'sabre' && Array.isArray(message.payload.offers) && message.payload.offers.length ? 'Here are your flight options.' : message.content} hideFlightLinks={message.messageType === 'FLIGHT_RESULTS'} onFlightSearch={(city, code) => { void send(undefined, `Show me flights to ${city} (${code})`); }} />}<SeriMessageDetails message={message} onFlightsUpdate={data => setMessages(items => items.map(item => item.id === message.id ? { ...item, payload: { ...data } } : item))} />{message.messageType === 'CONFIRMATION' && conversation.current && <Link to={`/app/seri?conversation=${encodeURIComponent(conversation.current)}`}>Review this request →</Link>}</article>)}
       {!online && <p className="home-seri-error" role="status">You’re offline. Your draft is saved—reconnect to send it.</p>}
       {sending && <p className="home-seri-status" role="status">✦ Seri is preparing your reply…</p>}
-      {error && <div className="home-seri-error" role="alert"><p>{error}</p><button type="button" disabled={sending || !online || !question.trim()} onClick={() => void send()}>Try again</button></div>}
+      {error && <div className="home-seri-error" role="alert"><p>{error}</p><button type="button" disabled={sending || !online || !question.trim()} onClick={() => void send()}><Translated text="Try again" /></button></div>}
     </div>
-    {!session && <p className="home-seri-sign-in"><Link to="/sign-in">Sign in for your saved trips</Link></p>}
+    {!session && <p className="home-seri-sign-in"><Link to="/sign-in"><Translated text="Sign in for your saved trips" /></Link></p>}
     <form onSubmit={event => { void send(event); }}><label className="sr-only" htmlFor="home-seri-question">Ask Seri a travel question</label><input ref={chatInput} id="home-seri-question" value={question} maxLength={4000} onChange={event => setQuestion(event.target.value)} placeholder={suggestions[suggestion]} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} disabled={sending} /><button type="submit" disabled={sending || !online || !question.trim()}>{sending ? 'Sending…' : 'Ask Seri'} <span aria-hidden="true">↗</span></button></form>
   </section>;
   return <>{floating ? <div className="seri-inline-placeholder" style={{ minHeight: inlineHeight }}><span aria-hidden="true">✦</span><div><strong>Your conversation with Seri is open</strong></div><button type="button" onClick={closeFloating}>Continue here ↗</button></div> : chat}{createPortal(<>
     {floating && <div ref={floatingPanel} style={keyboardViewport ? { top: keyboardViewport.top + 12, bottom: 'auto', height: Math.max(180, keyboardViewport.height - 24) } : undefined} className={`seri-floating-panel${closing ? ' is-closing' : ''}`} id="seri-floating-chat" role="dialog" aria-labelledby="home-seri-title" tabIndex={-1}>{chat}</div>}
     {!floating && !labelDismissed && !launcherObstructed && !editingElsewhere && !keyboardOpen && <button type="button" className="seri-label-dismiss" aria-label="Hide chat invitation" onClick={() => { setLabelDismissed(true); try { sessionStorage.setItem('flyseri.chat-label-dismissed', '1'); } catch {} launcher.current?.focus({ preventScroll: true }); }}>×</button>}
-    <button ref={launcher} type="button" hidden={keyboardOpen || (editingElsewhere && !floating)} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${labelDismissed || launcherObstructed ? ' is-compact' : ''}`} aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-controls={floating ? 'seri-floating-chat' : undefined} onClick={() => { if (floating) closeFloating(); else { setInlineHeight(chatSection.current?.getBoundingClientRect().height ?? 0); setFloating(true); } }}>
-      {!floating && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong>Chat with us</strong><small>AI & travel support</small></span>}
-      <svg className="seri-launcher-aircraft" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <defs><linearGradient id="seri-aircraft-paint" x1="14" y1="6" x2="53" y2="57" gradientUnits="userSpaceOnUse"><stop stopColor="#2478ed"/><stop offset=".6" stopColor="#329ff2"/><stop offset="1" stopColor="#69d4d6"/></linearGradient></defs>
-        <g transform="rotate(30 32 32)">
-          <path d="M32 4c-3 0-4 3-4 7l-1 13L7 36c-2 1-2 2-2 4v3l22-7 1 13-7 5v4l11-3 11 3v-4l-7-5 1-13 22 7v-3c0-2 0-3-2-4L37 24l-1-13c0-4-1-7-4-7Z" fill="url(#seri-aircraft-paint)" stroke="white" strokeWidth="1.7" strokeLinejoin="round"/>
-          <path d="M30 13q2-3 4 0l.5 6q-2.5-2-5 0l.5-6Z" fill="white" fillOpacity=".9"/>
-          <path d="M32 25v23" stroke="white" strokeOpacity=".4" strokeWidth="1.2" strokeLinecap="round"/>
-        </g>
-      </svg>
+    <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${labelDismissed || launcherObstructed ? ' is-compact' : ''}`} aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-controls={floating ? 'seri-floating-chat' : undefined} onClick={() => { if (floating) closeFloating(); else { setInlineHeight(chatSection.current?.getBoundingClientRect().height ?? 0); setFloating(true); } }}>
+      {!floating && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong><Translated text="Chat with us" /></strong><small><Translated text="AI & travel support" /></small></span>}
+      <ChatAircraftIcon />
     </button>
   </>, document.body)}</>;
 }

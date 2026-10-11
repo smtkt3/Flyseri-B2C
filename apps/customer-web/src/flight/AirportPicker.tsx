@@ -97,7 +97,7 @@ export function AirportPicker({ label, value, onChange, error }: AirportPickerPr
     <label htmlFor={id}>{label}</label>
     <input ref={input} id={id} aria-label={`${label} airport`} aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined} role="combobox" aria-autocomplete="list" aria-expanded={open}
       aria-controls={`${id}-suggestions`} aria-activedescendant={open && suggestions.length ? `${id}-option-${Math.min(active, suggestions.length - 1)}` : undefined}
-      autoComplete="off" placeholder="City, airport or code" value={value} required maxLength={120}
+      autoComplete="off" placeholder="City or airport" value={value} required maxLength={120}
       onFocus={show} onBlur={() => setOpen(false)} onKeyDown={handleKeyDown}
       onChange={(event) => { setAirports(null);onChange(event.target.value); setActive(0); setOpen(true); }} />
     {error && <span className="home-field-error" id={`${id}-error`}>{error}</span>}

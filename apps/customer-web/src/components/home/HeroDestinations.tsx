@@ -12,7 +12,7 @@ export function HeroDestinations() {
   const [active, setActive] = useState(0);
   const [loaded, setLoaded] = useState<number[]>([]);
   const [requested, setRequested] = useState(1);
-  const [paused, setPaused] = useState(false);
+  const paused = false;
   const [visible, setVisible] = useState(() => !document.hidden);
   const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
@@ -45,8 +45,8 @@ export function HeroDestinations() {
   const slide = slides[active]!;
   return <>
     <div className="premium-hero-photo premium-hero-slideshow" role="img" aria-label={slide.name}>
-      {slides.slice(0, requested).map((item, index) => <img key={item.image} className={index === active ? 'is-active' : ''} src={imageUrl(item.image, 1200)} srcSet={`${imageUrl(item.image, 800)} 800w, ${imageUrl(item.image, 1800)} 1800w`} sizes="100vw" alt="" aria-hidden="true" decoding="async" fetchPriority={index === 0 ? 'high' : 'low'} style={{ objectPosition: item.position }} onLoad={() => setLoaded(current => current.includes(index) ? current : [...current, index])} />)}
+      {slides.slice(0, requested).map((item, index) => <img key={item.image} className={index === active ? 'is-active' : ''} src={imageUrl(item.image, 800)} srcSet={`${imageUrl(item.image, 480)} 480w, ${imageUrl(item.image, 800)} 800w, ${imageUrl(item.image, 1280)} 1280w`} sizes="(max-width: 1366px) 100vw, 70vw" alt="" aria-hidden="true" decoding="async" fetchPriority={index === 0 ? 'high' : 'low'} style={{ objectPosition: item.position }} onLoad={() => setLoaded(current => current.includes(index) ? current : [...current, index])} />)}
     </div>
-    <div className="premium-hero-note"><img src={imageUrl(slide.image, 100)} alt="" /><span>{slide.name}</span>{!reduced && <button type="button" onClick={() => setPaused(value => !value)} aria-label={paused ? 'Play destination slideshow' : 'Pause destination slideshow'} title={paused ? 'Play slideshow' : 'Pause slideshow'}>{paused ? '▶' : 'Ⅱ'}</button>}</div>
+    <div className="premium-hero-note"><img src={imageUrl(slide.image, 100)} alt="" /><span>{slide.name}</span></div>
   </>;
 }

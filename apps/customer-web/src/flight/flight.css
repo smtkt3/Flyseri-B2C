@@ -213,8 +213,6 @@
 .flight-airline-filters { display:grid; gap:.1rem; max-height:320px; margin-top:.5rem; overflow:auto; }
 .flight-filter-section>summary { display:flex; align-items:center; justify-content:space-between; gap:.6rem; list-style:none; cursor:pointer; color:#18345a; font-size:.84rem; font-weight:750; }
 .flight-filter-section>summary::-webkit-details-marker { display:none; }
-.flight-filter-section>summary:after { content:'⌄'; flex:none; color:#748aa1; font-size:1rem; transition:transform .18s ease; }
-.flight-filter-section[open]>summary:after { transform:rotate(180deg); }
 .flight-filter-section>summary small { margin-left:auto; color:#758ba2; font-size:.7rem; font-weight:500; }
 .flight-time-filter { margin-top:.9rem; }
 .flight-time-filter-label,.flight-time-range-labels { display:flex; align-items:center; justify-content:space-between; gap:.35rem; color:#435d7b; font-size:.73rem; }
@@ -725,6 +723,9 @@
 .flight-search-organized .flight-sort-tabs small{font-size:.63rem}
 .flight-sort-select{display:grid;align-content:center;gap:.25rem;flex:0 0 135px;border-left:1px solid #e4eef7;padding:.6rem .7rem;font-size:.65rem;color:#7189a2}
 .flight-sort-select select{color:#335679;font-size:.72rem;background:transparent;width:100%;border:0;outline-offset:3px}
+.flight-search-organized .flight-sort-select .bounded-select-trigger{height:36px;min-height:36px;margin:0;padding:.35rem .55rem;border-color:#dce8f3;border-radius:8px;background:#f8fbfe;color:#335679;font-size:.72rem;font-weight:650}
+.flight-search-organized .flight-sort-select .bounded-select-trigger>span:first-child{overflow:visible;text-overflow:clip;white-space:nowrap}
+.flight-search-organized .flight-sort-select .bounded-select-chevron{display:none}
 .flight-active-filters{display:flex;flex-wrap:wrap;gap:.4rem;margin:.7rem 0}
 .flight-active-filters button{padding:.35rem .6rem;border:1px solid #cce4fa;border-radius:20px;background:#eff8ff;color:#2d6eac;font-size:.68rem}
 .flight-search-organized .flight-result-row{padding:0;border:1px solid #dcebf6;border-radius:14px;overflow:hidden;background:white;box-shadow:0 4px 18px #3a70920b}
@@ -765,9 +766,9 @@
 .flight-search-organized button:focus-visible{outline:2px solid #328afa;outline-offset:2px}
 .flight-search-organized .flight-results-column{container-type:inline-size}
 @container(max-width:620px){.flight-results-column .flight-row-main{grid-template-columns:minmax(0,1fr) 135px;gap:1rem}.flight-row-timeline{grid-column:1/-1;grid-row:2;padding:.2rem .2rem .3rem;grid-template-columns:1fr 1.1fr 1fr}.flight-row-purchase{grid-column:2;grid-row:1;border:0;padding:0}.flight-sort-toolbar{flex-wrap:wrap}.flight-sort-select{flex-basis:100%;display:flex;justify-content:flex-end;align-items:center;gap:.5rem;border-left:0;border-top:1px solid #e7f0f7;padding:.5rem .75rem}.flight-sort-select select{width:auto}}
-@media(max-width:1100px){.flight-search-organized .flight-results-layout{grid-template-columns:205px minmax(0,1fr);gap:.75rem}.flight-row-main{grid-template-columns:130px minmax(195px,1fr) 130px;gap:.65rem}.flight-row-endpoint strong{font-size:1.2rem}.flight-sort-select{flex-basis:115px}}
+@media(max-width:1100px){.flight-search-organized .flight-results-layout{grid-template-columns:205px minmax(0,1fr);gap:.75rem}.flight-row-main{grid-template-columns:130px minmax(195px,1fr) 130px;gap:.65rem}.flight-row-endpoint strong{font-size:1.2rem}.flight-search-organized .flight-sort-select{flex-basis:220px}.flight-search-organized .flight-sort-select .bounded-select-trigger{min-width:180px}}
 @media(max-width:900px){.flight-search-organized .flight-results-layout{grid-template-columns:1fr}.flight-mobile-filter-toggle{display:block;text-align:center;margin:0}.flight-search-organized .flight-filter-sidebar{display:none;position:static;max-height:none}.flight-search-organized .flight-filter-sidebar.is-open{display:block}.flight-row-main{grid-template-columns:minmax(140px,1fr) minmax(220px,1.6fr) 145px}}
-@media(max-width:650px){.flight-search-organized .flight-results-head{padding:.85rem}.flight-search-organized .flight-results-head h2{font-size:.95rem}.flight-row-main{grid-template-columns:minmax(0,1fr) 135px;gap:1rem;padding:.85rem}.flight-row-timeline{grid-column:1/-1;grid-row:2;padding:.2rem .2rem .3rem;grid-template-columns:1fr 1.1fr 1fr}.flight-row-purchase{grid-column:2;grid-row:1;border:0;padding:0}.flight-row-endpoint strong{font-size:1.5rem}.flight-row-airline .airline-copy strong{font-size:.82rem}.flight-row-benefits{padding:.65rem .85rem 0}.flight-row-footer{padding:.6rem .85rem;gap:.6rem}.flight-sort-toolbar{flex-wrap:wrap}.flight-sort-select{flex-basis:100%;display:flex;align-items:center;justify-content:flex-end;gap:.5rem;border-left:0;border-top:1px solid #e7f0f7;padding:.5rem .75rem}.flight-sort-select select{width:auto}.flight-date-days button{flex-basis:95px}.flight-date-arrow{flex-basis:28px}.flight-search-organized .flight-sort-tabs strong{font-size:.7rem}.flight-search-organized .flight-sort-tabs small{font-size:.59rem}.flight-results-count small{max-width:110px;line-height:1.5}.flight-row-purchase>strong{font-size:1.18rem}}
+@media(max-width:650px){.flight-search-organized .flight-results-head{padding:.85rem}.flight-search-organized .flight-results-head h2{font-size:.95rem}.flight-row-main{grid-template-columns:minmax(0,1fr) 135px;gap:1rem;padding:.85rem}.flight-row-timeline{grid-column:1/-1;grid-row:2;padding:.2rem .2rem .3rem;grid-template-columns:1fr 1.1fr 1fr}.flight-row-purchase{grid-column:2;grid-row:1;border:0;padding:0}.flight-row-endpoint strong{font-size:1.5rem}.flight-row-airline .airline-copy strong{font-size:.82rem}.flight-row-benefits{padding:.65rem .85rem 0}.flight-row-footer{padding:.6rem .85rem;gap:.6rem}.flight-sort-toolbar{flex-wrap:wrap}.flight-search-organized .flight-sort-select{flex-basis:100%;display:flex;align-items:center;justify-content:flex-end;gap:.5rem;border-left:0;border-top:1px solid #e7f0f7;padding:.5rem .75rem}.flight-sort-select select{width:auto}.flight-search-organized .flight-sort-select .bounded-select-trigger{width:auto;min-width:170px;height:40px;min-height:40px}.flight-date-days button{flex-basis:95px}.flight-date-arrow{flex-basis:28px}.flight-search-organized .flight-sort-tabs strong{font-size:.7rem}.flight-search-organized .flight-sort-tabs small{font-size:.59rem}.flight-results-count small{max-width:110px;line-height:1.5}.flight-row-purchase>strong{font-size:1.18rem}}
 @media(prefers-reduced-motion:reduce){.flight-date-days{scroll-behavior:auto}}
 
 /* Element-shaped loading placeholders; each surface carries its own shimmer. */
@@ -1019,6 +1020,8 @@
 }
 @media(min-width:651px) and (max-width:900px){
  .flight-sort-toolbar .flight-mobile-filter-toggle{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;min-height:44px;margin:6px;align-self:center;font-size:12px}
+ .flight-search-organized .flight-sort-select{flex:0 0 220px;min-width:220px}
+ .flight-search-organized .flight-sort-select .bounded-select-trigger{min-width:180px}
 }
 
 /* Mobile flight cards: airline, journey, then a single price/action row. */

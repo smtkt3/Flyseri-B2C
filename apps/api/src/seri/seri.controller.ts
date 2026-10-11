@@ -10,8 +10,8 @@ import type { AuthenticatedUserContext, ContextRequest } from '../request-contex
 import { SeriOrchestratorService } from './seri.service.js';
 
 class CreateConversationDto { @IsOptional() @IsUUID() tripId?: string }
-class SendMessageDto { @IsString() @MinLength(1) @MaxLength(4000) message!: string }
-class SupportRequestDto { @IsString() @MinLength(1) @MaxLength(1000) reason!: string; @IsOptional() @IsUUID() bookingId?: string }
+class SendMessageDto { @IsString() @MinLength(1) @MaxLength(4000) message!: string; @IsOptional() @IsIn(['en', 'bn']) language?: 'en' | 'bn' }
+class SupportRequestDto { @IsString() @MinLength(1) @MaxLength(1000) reason!: string; @IsOptional() @IsUUID() bookingId?: string; @IsOptional() @IsUUID() conversationId?: string }
 const validate = (type: new () => object) => new ValidationPipe({ expectedType: type, transform: true, whitelist: true, forbidNonWhitelisted: true,
   exceptionFactory: () => new BadRequestException('The request is invalid.') });
 const response = <T>(request: ContextRequest, data: T): ApiSuccess<T> => ({ success: true, data, requestId: request.requestId });
@@ -59,7 +59,7 @@ export class SeriController {
   @Post('conversations/:conversationId/messages')
   async send(@CurrentUser() user: AuthenticatedUserContext, @Param('conversationId', ParseUUIDPipe) id: string,
     @Body(validate(SendMessageDto)) body: SendMessageDto, @Req() request: ContextRequest): Promise<ApiSuccess<SeriTurnResponse>> {
-    return response(request, await this.seri.send(user, id, body.message, request.requestId));
+    return response(request, await this.seri.send(user, id, body.message, request.requestId, body.language));
   }
   @Post('conversations/:conversationId/actions/:actionId/confirm')
   @UseGuards(CustomerRateLimitGuard)

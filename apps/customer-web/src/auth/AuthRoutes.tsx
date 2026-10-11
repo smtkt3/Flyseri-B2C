@@ -2,8 +2,11 @@ import { lazy, Suspense, useRef } from 'react';
 import { Route, Routes, useLocation, type Location } from 'react-router-dom';
 import { ProtectedRoute } from './AuthProvider';
 import { PremiumNavbar } from '../components/PremiumNavbar';
+import { PageRecovery, PageRecoveryBoundary } from '../account/PageRecovery';
 import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 
+const BudgetPage = lazy(() => import('../travel/TravelPages').then(module => ({ default: module.BudgetPage })));
+const DemoBookingManagement = lazy(() => import('../flight/DemoBookingManagement').then(module => ({ default: module.DemoBookingManagement })));
 const App = lazy(() => import('../App'));
 const AuthPage = lazy(() => import('./AuthPage').then((module) => ({ default: module.AuthPage })));
 const CustomerShell = lazy(() => import('../account/CustomerShell').then((module) => ({ default: module.CustomerShell })));
@@ -34,18 +37,22 @@ export function AuthRoutes() {
 
   return <>
     <div className={overlay ? 'auth-background auth-background-blurred' : 'auth-background'} inert={overlay} aria-hidden={overlay}>
-      <Suspense fallback={background.pathname === '/' ? <HomeLoadingScreen /> : <div className="account-center" role="status">Opening Flyseri…</div>}>
+      <PageRecoveryBoundary key={background.pathname} fallback={<div className="customer-site-shell"><PremiumNavbar/><PageRecovery failed /></div>}><Suspense fallback={background.pathname === '/' ? <HomeLoadingScreen /> : <div className="account-center" role="status">Opening Flyseri…</div>}>
         <Routes location={background}>
           <Route path="/" element={<App />} />
           <Route path="/reset-password" element={<div className="customer-site-shell"><PremiumNavbar/><AuthPage mode="reset-password" /></div>} />
+          <Route path="/plan-budget" element={<BudgetPage />} />
           <Route path="/flights" element={<PublicFlightPage />} />
           <Route path="/flight-checkout" element={<GuestFlightCheckoutPage />} />
+          <Route path="/demo/bookings" element={<DemoBookingManagement />} />
+          <Route path="/demo/bookings/:demoId" element={<DemoBookingManagement />} />
           <Route path="/holidays" element={<HolidayCataloguePage />} />
           <Route path="/holidays/bookings" element={<ProtectedRoute><HolidayBookingsPage /></ProtectedRoute>} />
           <Route path="/holidays/:id" element={<HolidayDetailPage />} />
           <Route path="/app/*" element={<ProtectedRoute><CustomerShell /></ProtectedRoute>} />
+          <Route path="*" element={<div className="customer-site-shell"><PremiumNavbar/><PageRecovery /></div>} />
         </Routes>
-      </Suspense>
+      </Suspense></PageRecoveryBoundary>
     </div>
     {overlay && <Suspense fallback={<div className="account-center" role="status">Opening sign in…</div>}>
       <Routes>

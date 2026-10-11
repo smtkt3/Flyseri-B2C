@@ -136,3 +136,35 @@
 .explore-map-selection .explore-map-route-label{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:#edf5ff;color:#286bb8;font-size:11px;font-weight:650;margin:2px 0 6px}
 .explore-map-selection h3{font-size:14px;line-height:1.35;margin-bottom:4px}
 .explore-map-routes path.is-selected{stroke-width:2.6;filter:drop-shadow(0 1px 2px #1169de30)}
+/* A compact phone map with less decorative paint during gestures. */
+@container(max-width:760px){
+ .explore-map-canvas{height:clamp(340px,48svh,410px)}
+ .explore-map-selection{bottom:26px;left:10px;width:calc(100% - 20px);grid-template-columns:42px minmax(0,1fr) auto;gap:8px;padding:10px;border-radius:16px}
+ .explore-map-selection>img,.explore-map-selection .explore-map-selection-icon{width:42px;height:48px}
+ .explore-map-selection h3{font-size:13px;margin:0 0 3px}
+ .explore-map-selection>a{padding:10px;min-height:42px;font-size:12px}
+ .explore-map-selection .explore-map-route-label{font-size:10px;padding:3px 6px;margin:2px 0}
+ .explore-map-selection>strong{font-size:10px}
+ .explore-map-canvas.is-dragging .explore-map-dot::after{box-shadow:none}
+ .explore-map-pin{filter:none}
+ .explore-map-routes path.is-selected{filter:none}
+}
+.explore-map-canvas.is-dragging .explore-map-tiles img{filter:none}
+/* Keep destination information outside the touch map on every phone size. */
+.explore-map{position:relative}
+@media(max-width:767px){
+ .explore-map-canvas{height:clamp(270px,42svh,350px)}
+ .explore-map-selection{position:relative;inset:auto;box-sizing:border-box;width:auto;max-width:100%;margin:0;padding:14px;grid-template-columns:44px minmax(0,1fr);gap:10px 12px;border:0;border-top:1px solid #dfebf5;border-radius:0;background:#fff;box-shadow:none}
+ .explore-map-selection>img,.explore-map-selection .explore-map-selection-icon{grid-column:1;grid-row:1/3;width:44px;height:54px}
+ .explore-map-selection>div:not(.explore-map-selection-icon){grid-column:2;min-width:0;overflow-wrap:anywhere}
+ .explore-map-selection h3{font-size:15px;line-height:1.4}
+ .explore-map-selection p{font-size:12px;line-height:1.5}
+ .explore-map-selection>strong{grid-column:2;max-width:none;white-space:normal;text-align:left;font-size:13px;line-height:1.4}
+ .explore-map-selection div>span{font-size:11px;line-height:1.5}
+ .explore-map-selection>a{grid-column:1/-1;min-height:44px;box-sizing:border-box;justify-content:center;gap:12px;font-size:14px;padding:12px;border-radius:10px}
+ .explore-map-selection .explore-map-route-label{font-size:11px}
+}
+/* Vertical phone gestures belong to the page; horizontal gestures pan the map. */
+@media(hover:none) and (pointer:coarse){
+ .explore-map-canvas,.explore-map-gesture-plane,.explore-map-place,.explore-map-dot{touch-action:pan-y}
+}

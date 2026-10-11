@@ -1,24 +1,55 @@
-.premium-main .premium-exclusive-offers{border:1px solid #d5e7f8;background:linear-gradient(145deg,#f8fcff 0%,#eef6ff 56%,#f2f2ff 100%);box-shadow:0 12px 32px #2c63910d}
-.premium-exclusive-offers .premium-offers-tab{background:linear-gradient(110deg,#ffffffd9,#f0f7ffb8);color:#203552;padding:18px 20px 10px}
-.premium-exclusive-offers .premium-offers-tab h2{color:#203552;font-size:20px;letter-spacing:-.45px}
-.premium-exclusive-offers .premium-offers-bell{color:#2877d4;background:linear-gradient(145deg,#fff,#edf5ff);border-color:#d5e6fa;box-shadow:0 3px 10px #2877d410}
-.premium-exclusive-offers .premium-offers-bell:hover{background:#e0edff;transform:translateY(-1px)}
-.premium-exclusive-offers>.premium-offers-demo-label{display:table;margin:0 20px 8px;padding:5px 9px;border:1px solid #d7e7f7;border-radius:999px;background:#ffffffa8;color:#637d9b;font-size:11px;line-height:1.2}
-.premium-offers-marquee{container-type:inline-size;overflow:hidden;padding:4px 18px 18px;outline-offset:-3px;mask-image:linear-gradient(90deg,transparent 0,#000 3%,#000 97%,transparent 100%)}
-.premium-exclusive-offers .premium-offers-track{display:flex;flex-direction:row;gap:0;width:max-content;animation:airline-offers-travel 36s linear infinite;will-change:transform}
-.premium-offers-group{display:flex;gap:16px;padding-right:16px;flex:none}
-.premium-exclusive-offers .premium-offers-group .premium-offer-preview{box-sizing:border-box;flex:none;width:calc((100cqw - 32px)/3);min-width:280px;min-height:118px;gap:16px;padding:18px;border-radius:17px;background:linear-gradient(145deg,#fff,#fcfdff);border:1px solid #d8e7f7;box-shadow:0 7px 20px #284d7410;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
-.premium-exclusive-offers .premium-offers-group .premium-offer-preview:hover{transform:translateY(-2px);border-color:#a9cff4;box-shadow:0 12px 24px #2c72b51a}
-.premium-exclusive-offers .premium-offer-preview:focus-visible{outline:3px solid #378bef;outline-offset:2px;z-index:1}
-.premium-offer-airline-logo{display:grid;place-items:center;flex:none;width:62px;height:62px;padding:6px;border-radius:16px;background:linear-gradient(145deg,#f8fbff,#eef5ff);border:1px solid #e7eff8}
+.premium-main .premium-exclusive-offers{overflow:hidden;border:1px solid #dce8f5;border-radius:22px;background:linear-gradient(145deg,#fff 0%,#f8fbff 62%,#f5f7ff 100%);box-shadow:0 16px 38px #27476b12}
+.premium-exclusive-offers .premium-offers-tab{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px 17px;background:linear-gradient(110deg,#ffffffed,#f4f8ffed);border-bottom:1px solid #e8eff7;color:#203552}
+.premium-offers-heading{display:flex;align-items:center;gap:13px;min-width:0}
+.premium-offers-title-icon{display:grid;place-items:center;width:46px;height:46px;flex:none;border:1px solid #dceafa;border-radius:15px;background:linear-gradient(145deg,#edf6ff,#e5f4f1);color:#347ed5}
+.premium-offers-title-icon svg{width:22px;height:22px}
+.premium-offers-heading-copy{min-width:0}
+.premium-offers-heading-copy>span{display:block;margin-bottom:4px;color:#6584a3;font-size:9px;font-weight:850;letter-spacing:.16em}
+.premium-exclusive-offers .premium-offers-tab h2{margin:0;color:#1c3151;font-size:clamp(19px,2vw,24px);font-weight:850;letter-spacing:-.55px;line-height:1.2}
+.premium-offers-heading-copy>p{margin:4px 0 0;color:#72849a;font-size:11px;line-height:1.45}
+.premium-exclusive-offers .premium-offers-bell{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;flex:none;padding:0 13px;border:1px solid #d8e6f5;border-radius:12px;background:linear-gradient(145deg,#fff,#f3f8ff);color:#2877d4;font-size:11px;font-weight:750;box-shadow:0 4px 12px #2877d410;transition:background .18s ease,transform .18s ease}
+.premium-exclusive-offers .premium-offers-bell svg{width:17px;height:17px}
+.premium-exclusive-offers .premium-offers-bell:hover{transform:translateY(-1px);background:#eaf3ff}
+.premium-exclusive-offers .premium-offers-bell:focus-visible{outline:3px solid #74adf1;outline-offset:2px}
+.premium-exclusive-offers>.premium-offers-demo-label{display:table;margin:13px 22px 0;padding:5px 10px;border:1px solid #e2ebf5;border-radius:999px;background:#f3f7fb;color:#627d98;font-size:10px;font-weight:700;line-height:1.2}
+.premium-offers-marquee{container-type:inline-size;overflow:hidden;padding:12px 20px 21px;outline-offset:-3px;mask-image:linear-gradient(90deg,transparent 0,#000 2%,#000 98%,transparent 100%)}
+.premium-exclusive-offers .premium-offers-track{display:flex;flex-direction:row;gap:0;width:max-content;animation:airline-offers-travel 40s linear infinite;will-change:transform}
+.premium-offers-group{display:flex;gap:14px;padding-right:14px;flex:none}
+.premium-exclusive-offers .premium-offers-group .premium-offer-preview{position:relative;box-sizing:border-box;flex:none;width:calc((100cqw - 28px)/3);min-width:280px;min-height:122px;gap:14px;padding:17px;border:1px solid #e0e9f4;border-radius:17px;background:linear-gradient(145deg,#fff,#fbfdff);box-shadow:0 8px 22px #284d740d;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.premium-exclusive-offers .premium-offers-group .premium-offer-preview:hover{transform:translateY(-2px);border-color:#a9cff4;box-shadow:0 13px 26px #2c72b51a}
+.premium-exclusive-offers .premium-offer-preview:focus-visible{z-index:1;outline:3px solid #378bef;outline-offset:2px}
+.premium-offer-airline-logo{display:grid;place-items:center;width:56px;height:56px;flex:none;padding:7px;border:1px solid #e5edf6;border-radius:15px;background:linear-gradient(145deg,#f8fbff,#eef5fc)}
 .premium-offer-airline-logo img{width:100%;height:100%;object-fit:contain}
-.premium-exclusive-offers .premium-offer-preview h3{font-size:17px;margin:5px 0 4px;letter-spacing:-.2px}
-.premium-exclusive-offers .premium-offer-preview p,.premium-exclusive-offers .premium-offer-preview small{font-size:12px}
-.premium-exclusive-offers .premium-offer-preview small{color:#6f86a1;font-weight:650}
-.premium-exclusive-offers .premium-offer-preview>strong{padding:9px 11px;border:1px solid #d9e9fc;border-radius:11px;background:#f0f7ff;color:#2672ce;font-size:17px;letter-spacing:-.2px}
+.premium-exclusive-offers .premium-offer-preview>div{flex:1;min-width:0}
+.premium-exclusive-offers .premium-offer-preview small{display:block;color:#68819d;font-size:10px;font-weight:750;letter-spacing:.035em}
+.premium-exclusive-offers .premium-offer-preview h3{margin:5px 0 3px;color:#203a5c;font-size:16px;font-weight:800;letter-spacing:-.25px;line-height:1.25}
+.premium-exclusive-offers .premium-offer-preview p{margin:0;color:#7a8da2;font-size:10px;line-height:1.4}
+.premium-exclusive-offers .premium-offer-preview>strong{display:grid;gap:4px;justify-items:end;flex:none;padding:9px 10px;border:1px solid #dceafa;border-radius:12px;background:linear-gradient(145deg,#f4f9ff,#edf5ff);color:#2672ce;font-size:15px;font-weight:850;letter-spacing:-.2px;white-space:nowrap}
+.premium-exclusive-offers .premium-offer-preview>strong small{color:#7b91a8;font-size:8px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
 .premium-offers-marquee:hover .premium-offers-track,.premium-offers-marquee:focus-within .premium-offers-track{animation-play-state:paused}
+.premium-exclusive-offers .premium-offers-bell{width:auto;height:42px}
 @keyframes airline-offers-travel{to{transform:translateX(-50%)}}
-@media(max-width:1366px){.premium-exclusive-offers .premium-offers-group .premium-offer-preview{width:calc((100cqw - 16px)/2)}}
-@media(max-width:650px){.premium-exclusive-offers .premium-offers-tab{padding:15px 16px 9px}.premium-exclusive-offers .premium-offers-tab h2{font-size:17px}.premium-exclusive-offers>.premium-offers-demo-label{margin-left:16px}.premium-offers-marquee{padding:4px 12px 15px}.premium-exclusive-offers .premium-offers-group .premium-offer-preview{width:88cqw;min-width:0;min-height:102px;padding:14px;gap:11px}.premium-offer-airline-logo{width:48px;height:48px;padding:5px}.premium-exclusive-offers .premium-offer-preview h3{font-size:15px}.premium-exclusive-offers .premium-offer-preview>strong{padding:8px;font-size:14px}.premium-exclusive-offers .premium-offer-preview p{font-size:11px}}
-@media(prefers-reduced-motion:reduce){.premium-exclusive-offers .premium-offers-group .premium-offer-preview{transition:none}}
-@media(prefers-reduced-motion:reduce){.premium-offers-track{animation:none;will-change:auto}.premium-offers-marquee{overflow-x:auto}.premium-offers-group[aria-hidden=true]{display:none}}
+.premium-home-main .premium-exclusive-offers .exclusive-ticket{display:flex;flex-direction:column;align-items:stretch;gap:0;min-height:224px;padding:19px 20px;text-align:left;background:#fff;border:1px solid #dbe6f1;border-radius:18px;box-shadow:0 7px 20px #1c385a0b}
+.exclusive-ticket-airline{display:flex;align-items:center;gap:10px;min-width:0;color:#203552;font-size:12px;font-weight:750}
+.premium-home-main .exclusive-ticket-airline .premium-offer-airline-logo{width:38px;height:38px;padding:5px;border-radius:10px;background:#fff}
+.exclusive-ticket-airline>span:nth-child(2){flex:1;min-width:0;line-height:1.4}
+.premium-home-main .exclusive-ticket-airline small{margin-top:2px;color:#8292a5;font-size:10px;font-weight:500;letter-spacing:0}
+.exclusive-ticket-badge{flex:none;padding:5px 8px;border:1px solid #d8ebe6;border-radius:6px;background:#edf7f3;color:#35806c;font-size:9px;font-weight:750}
+.exclusive-ticket-route{display:grid;grid-template-columns:1fr 65px 1fr;align-items:center;gap:10px;padding:22px 0 20px}
+.exclusive-ticket-route>span:first-child,.exclusive-ticket-route>span:last-child{display:grid;gap:3px;min-width:0}
+.exclusive-ticket-route>span:last-child{text-align:right}
+.premium-home-main .exclusive-ticket-route small{color:#8998a9;font-size:9px;font-weight:650;letter-spacing:.12em}
+.exclusive-ticket-route b{color:#1b3557;font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1.1}
+.exclusive-ticket-route>span>span{color:#71849b;font-size:11px;line-height:1.3}
+.exclusive-ticket-path{position:relative;display:flex;align-items:center;justify-content:center;color:#458edc}
+.exclusive-ticket-path:before{position:absolute;right:0;left:0;content:'';border-top:1px solid #d6e4f2}
+.exclusive-ticket-path svg{position:relative;width:27px;height:27px;padding:5px;background:white;transform:rotate(45deg)}
+.exclusive-ticket-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:15px;border-top:1px dashed #d8e3ee}
+.exclusive-ticket-details{padding:7px 10px;border-radius:7px;background:#f1f6fc;color:#44729d;font-size:10px;font-weight:750}
+.exclusive-ticket-price{display:grid;gap:4px;text-align:right}
+.premium-home-main .exclusive-ticket-price small{color:#8594a7;font-size:9px;font-weight:500;letter-spacing:0}
+.exclusive-ticket-price strong{color:#206bc3;font-size:19px;font-weight:850;letter-spacing:-.035em;white-space:nowrap}
+@media(max-width:650px){.premium-home-main .premium-exclusive-offers .exclusive-ticket{min-height:218px;padding:17px 18px}.exclusive-ticket-route{padding:20px 0}.exclusive-ticket-route b{font-size:27px}.exclusive-ticket-airline{font-size:11px}.exclusive-ticket-price strong{font-size:18px}}
+@media(max-width:1366px){.premium-exclusive-offers .premium-offers-group .premium-offer-preview{width:calc((100cqw - 14px)/2)}}
+@media(max-width:650px){.premium-exclusive-offers .premium-offers-tab{align-items:flex-start;gap:8px;padding:17px 15px 14px}.premium-offers-heading{gap:10px}.premium-offers-title-icon{width:39px;height:39px;border-radius:13px}.premium-offers-title-icon svg{width:19px;height:19px}.premium-offers-heading-copy>span{font-size:8px}.premium-exclusive-offers .premium-offers-tab h2{font-size:17px}.premium-offers-heading-copy>p{font-size:10px}.premium-exclusive-offers .premium-offers-bell{gap:0;width:40px;min-width:40px;height:40px;min-height:40px;padding:0;border-radius:12px}.premium-exclusive-offers .premium-offers-bell span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.premium-exclusive-offers>.premium-offers-demo-label{margin:12px 15px 0;font-size:9px}.premium-offers-marquee{padding:10px 12px 16px}.premium-exclusive-offers .premium-offers-group .premium-offer-preview{width:88cqw;min-width:0;min-height:102px;padding:13px;gap:10px}.premium-offer-airline-logo{width:46px;height:46px;padding:5px;border-radius:12px}.premium-exclusive-offers .premium-offer-preview h3{font-size:14px}.premium-exclusive-offers .premium-offer-preview p{font-size:9px}.premium-exclusive-offers .premium-offer-preview>strong{padding:8px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.premium-exclusive-offers .premium-offers-group .premium-offer-preview{transition:none}.premium-offers-track{animation:none;will-change:auto}.premium-offers-marquee{overflow-x:auto}.premium-offers-group[aria-hidden=true]{display:none}}

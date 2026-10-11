@@ -1,3 +1,4 @@
+import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -115,7 +116,7 @@ export function TripVisaPage({ embedded = false, initialTripId }: { embedded?: b
 
   if (loading) return <div role="status" className="account-page visa-page"><div className="trip-skeleton trip-skeleton-wide" />Loading visa planning…</div>;
   if (notFound) return <div className="account-page visa-page"><h1>Trip not found</h1><Link to="/app/trips">Back to My Trips</Link></div>;
-  if (!trip) return <div role="alert" className="account-page visa-page"><h1>We couldn't load visa planning.</h1><p>{error}</p><button className="btn-primary" onClick={() => tripId && void load(tripId)}>Try again</button></div>;
+  if (!trip) return <div role="alert" className="account-page visa-page"><h1>We couldn't load visa planning.</h1><p>{error}</p><button className="btn-primary" onClick={() => tripId && void load(tripId)}><Translated text="Try again" /></button></div>;
 
   return <div className={`${embedded ? '' : 'account-page '}visa-page visa-trip-page${embedded ? ' visa-trip-page-embedded' : ''}`}>
     {!embedded && <Link className="trip-back" to="/app/visa">← Visa planning</Link>}
@@ -135,7 +136,7 @@ export function TripVisaPage({ embedded = false, initialTripId }: { embedded?: b
           </select></label>
         </div>
         {loadingTypes && <p role="status" className="visa-assistance-help">Loading published visa services. You can choose a general purpose now.</p>}
-        {catalogueError && <p role="alert" className="account-error">{catalogueError} You can still continue with a general assisted request. <button type="button" onClick={() => setCatalogueRevision((value) => value + 1)}>Retry</button></p>}
+        {catalogueError && <p role="alert" className="account-error">{catalogueError} You can still continue with a general assisted request. <button type="button" onClick={() => setCatalogueRevision((value) => value + 1)}><Translated text="Retry" /></button></p>}
         {!loadingTypes && country && !types.length && !catalogueError && <p className="visa-service-empty">Flyseri can review an assisted visa request for {countryName(country)}. This form is for Flyseri’s service; it is not a government application, and you can review the configured service fee before payment.</p>}
         {selectedType && <article className="visa-catalogue-detail"><h3>{countryName(selectedType.destinationCountryCode)} · {selectedType.name}</h3><p>{selectedType.description || 'Visa application assistance by Seri Mechan.'}</p>
           <dl>{selectedType.processingTimeText && <div><dt>Processing time</dt><dd>{selectedType.processingTimeText}</dd></div>}{selectedType.entryType && <div><dt>Entry</dt><dd>{selectedType.entryType}</dd></div>}{selectedType.validityText && <div><dt>Validity</dt><dd>{selectedType.validityText}</dd></div>}{selectedType.governmentFeeAmount && selectedType.currency && <div><dt>Government / embassy fee</dt><dd>{formatMoney(selectedType.governmentFeeAmount, selectedType.currency)}</dd></div>}{selectedType.serviceFeeAmount && selectedType.currency && <div><dt>Service fee</dt><dd>{formatMoney(selectedType.serviceFeeAmount, selectedType.currency)}</dd></div>}</dl>

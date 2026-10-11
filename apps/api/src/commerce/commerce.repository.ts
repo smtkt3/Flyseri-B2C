@@ -309,10 +309,14 @@ export class CommerceRepository {
     if (!event.providerEventId || !event.providerPaymentId || !amountPattern.test(event.amount) ||
         !/^[A-Z]{3}$/.test(event.currency)) throw new PaymentVerificationError();
     await this.connection.db.transaction(async (tx) => {
+      // Every payment mutation locks order -> payment, matching reservePayment.
+      // Reading the immutable order ID first avoids a retry/webhook deadlock.
+      const [reference] = await tx.select({ orderId: payments.orderId }).from(payments).where(eq(payments.id, paymentId)).limit(1);
+      if (!reference) throw new PaymentVerificationError();
+      const [order] = await tx.select().from(orders).where(eq(orders.id, reference.orderId)).for('update').limit(1);
       const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for('update').limit(1);
       if (!payment || payment.provider !== provider || payment.providerPaymentId !== event.providerPaymentId ||
           payment.amount !== money(event.amount) || payment.currency !== event.currency) throw new PaymentVerificationError();
-      const [order] = await tx.select().from(orders).where(eq(orders.id, payment.orderId)).for('update').limit(1);
       if (!order || order.customerId !== payment.customerId || order.totalAmount !== payment.amount || order.currency !== payment.currency) {
         throw new PaymentVerificationError();
       }

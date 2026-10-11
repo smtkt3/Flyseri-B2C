@@ -1,0 +1,49 @@
+/* Account surfaces share the approved checkout spacing and interaction language. */
+.customer-site-shell .account-page{max-width:1200px;padding-top:24px;min-width:0}
+.customer-site-shell .account-page>h1{font-size:clamp(26px,3vw,34px);letter-spacing:-.035em;line-height:1.25}
+.customer-site-shell .account-page>.account-eyebrow{display:none}
+.customer-site-shell .account-page>.account-muted{margin:8px 0 24px;line-height:1.65}
+.customer-site-shell .account-panel,.customer-site-shell .account-empty,.customer-site-shell .account-traveller-card{border-color:#e0e8f2;border-radius:16px;box-shadow:0 5px 20px #19385405;background:#fff}
+.customer-site-shell .account-panel h2,.customer-site-shell .account-empty h2{font-size:20px;letter-spacing:-.025em;line-height:1.35}
+.customer-site-shell .account-page :is(.btn-primary,.account-outline-button,.trip-primary-link,.vault-primary){display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;min-height:44px;border-radius:10px;font-size:13px;line-height:1.5;text-decoration:none}
+.customer-site-shell .account-page .account-submit{min-height:48px}
+.customer-site-shell .account-page :is(button,a,input,select,textarea):focus-visible{outline:2px solid #287fea;outline-offset:3px}
+.customer-site-shell .account-page :is(button:disabled,input:disabled,select:disabled){cursor:not-allowed}
+.customer-site-shell .account-form-grid{gap:20px}
+.customer-site-shell .account-form label{line-height:1.5}
+.customer-site-shell .account-form :is(input:not([type=checkbox]):not([type=radio]),select){min-height:46px;font-weight:400}
+.customer-site-shell .commerce-order-link{padding:20px;gap:18px;align-items:center;margin-top:12px;text-decoration:none}
+.customer-site-shell .commerce-order-link>div{min-width:0}
+.customer-site-shell .commerce-order-link>div>strong{font-size:15px;color:#294968}
+.customer-site-shell .commerce-order-link p{margin:6px 0;font-size:12px;line-height:1.7}
+.customer-site-shell .commerce-order-link>strong{font-size:20px;color:#193854;white-space:nowrap}
+.customer-site-shell .checkout-history-stats{gap:12px;margin:20px 0}
+.customer-site-shell .checkout-history-stats>div{padding:16px;border-radius:12px;box-shadow:none}
+.customer-site-shell .checkout-history-stats strong{font-size:24px}
+.customer-site-shell .checkout-empty{padding:32px 24px}
+.customer-site-shell .checkout-empty>.account-eyebrow{display:none}
+.customer-site-shell .trip-page-heading,.customer-site-shell .vault-heading{margin-bottom:24px;gap:20px}
+.customer-site-shell :is(.trip-page-heading,.vault-heading)>div>.account-eyebrow{display:none}
+.customer-site-shell :is(.trip-page-heading,.vault-heading) h1{font-size:clamp(26px,3vw,34px);letter-spacing:-.035em;margin:0 0 8px;line-height:1.25}
+.customer-site-shell .account-card-actions button{min-height:44px;padding:10px 14px;border-radius:8px}
+.customer-site-shell .account-error,.customer-site-shell .account-notice{line-height:1.7}
+@media(max-width:640px){.customer-site-shell .account-page{padding-top:16px;padding-inline:16px}.customer-site-shell .commerce-order-link{flex-wrap:wrap;padding:16px;gap:12px}.customer-site-shell .commerce-order-link>div{flex:1 1 100%}.customer-site-shell .commerce-order-link>strong{font-size:18px}.customer-site-shell .checkout-history-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.customer-site-shell .checkout-history-stats>div{padding:12px 10px;min-width:0}.customer-site-shell .checkout-history-stats span{font-size:11px;line-height:1.5}.customer-site-shell .checkout-history-stats strong{font-size:21px}.customer-site-shell .account-form-grid{gap:16px}.customer-site-shell :is(.trip-page-heading,.vault-heading){align-items:stretch;gap:16px}.customer-site-shell .checkout-empty{padding:28px 18px}}
+@media(prefers-reduced-motion:reduce){.customer-site-shell *, .customer-site-shell *:before,.customer-site-shell *:after{scroll-behavior:auto!important}}
+.customer-site-shell .support-page form label{display:grid;gap:8px;margin:16px 0;font-size:13px;color:#294968;font-weight:600}
+.customer-site-shell .support-page textarea{display:block;width:100%;min-height:140px;padding:12px 14px;border:1px solid #d8e4f1;border-radius:10px;background:#fff;color:#193854;font:inherit;font-size:14px;font-weight:400;line-height:1.7;resize:vertical}
+.customer-site-shell .support-page form select{min-height:46px;padding:10px 12px;border:1px solid #d8e4f1;border-radius:10px;background:#fff;color:#193854;font:inherit;font-weight:400}
+.customer-site-shell .support-page .travel-tool-heading h2{font-size:18px;font-weight:650}
+.holiday-page .holiday-section-heading h1{font-size:clamp(26px,3vw,34px);letter-spacing:-.035em;line-height:1.25;margin:0 0 20px}
+
+/* Long references and contact details must wrap within their cards. */
+.customer-site-shell :is(.account-panel,.account-traveller-card,.account-feature) :is(h2,p,dd,strong,small){overflow-wrap:anywhere}
+.customer-site-shell .account-traveller-card>div{min-width:0}
+.customer-site-shell fieldset.account-form-grid{min-width:0;margin:0;padding:0;border:0}
+.customer-site-shell .support-review-summary{padding:16px;border:1px solid #dce8f3;border-radius:12px;background:#f6faff;white-space:pre-wrap;overflow-wrap:anywhere}
+.customer-site-shell .support-review-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+@media(max-width:800px){
+  /* Keep iOS from zooming while customers enter booking and account details. */
+  .customer-site-shell .account-page :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px}
+  .customer-site-shell .account-mobile-menu{position:static;max-height:60dvh;overflow-y:auto}
+  .customer-site-shell .account-mobile-bottom a{min-height:48px}
+}

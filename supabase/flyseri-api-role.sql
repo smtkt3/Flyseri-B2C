@@ -20,7 +20,8 @@ DECLARE
     'payments', 'payment_attempts', 'payment_events', 'refunds',
     'commerce_outbox', 'commerce_audit_events', 'crm_customer_links',
     'crm_sync_events', 'ai_conversations', 'ai_messages',
-    'ai_tool_calls', 'ai_pending_actions', 'ai_usage_events', 'holiday_packages', 'holiday_bookings'
+    'ai_tool_calls', 'ai_pending_actions', 'ai_usage_events', 'holiday_packages', 'holiday_bookings',
+    'fare_watches', 'travel_support_requests'
   ];
 BEGIN
   IF NOT EXISTS (
@@ -42,10 +43,11 @@ BEGIN
       RAISE EXCEPTION 'Flyseri table public.% is missing', app_table;
     END IF;
 
-    EXECUTE format(
-      'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.%I TO flyseri_api',
-      app_table
-    );
+    IF app_table = 'travel_support_requests' THEN
+      EXECUTE format('GRANT SELECT, INSERT, UPDATE ON TABLE public.%I TO flyseri_api', app_table);
+    ELSE
+      EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.%I TO flyseri_api', app_table);
+    END IF;
 
     IF EXISTS (
       SELECT 1

@@ -1,0 +1,32 @@
+/* Shared visual language for checkout steps; all rules stay inside checkout pages. */
+:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page){max-width:1200px;margin-inline:auto;color:#193854}
+:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) h1{font-size:clamp(28px,3vw,36px);letter-spacing:-.035em;line-height:1.2}
+:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress ol{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress li{border-radius:10px;padding:13px 12px;background:#fff;box-shadow:none;font-size:12px}
+:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress li>span{width:28px;height:28px;border-radius:8px}
+:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress li.is-current{background:#eff6ff;border-color:#73aaf0}
+.guest-checkout-layout{gap:28px}
+.guest-checkout-content .guest-checkout-card{background:#fff;border:1px solid #e0e8f2;border-radius:16px;padding:24px;box-shadow:0 6px 24px #19385405}
+.guest-checkout-content .guest-checkout-card-heading h2{font-size:20px;letter-spacing:-.025em}
+.guest-checkout-content .guest-checkout-info{background:#f5f9fe;border-radius:10px;border-color:#e0e8f2;font-size:13px;line-height:1.65}
+.guest-checkout-content .guest-checkout-person{border-radius:12px;border-color:#e0e8f2;box-shadow:none}
+.guest-checkout-content .guest-checkout-note,.guest-checkout-content .guest-checkout-intro{color:#627995;line-height:1.7}
+.guest-checkout-content .guest-price-reference{border-radius:14px;border-color:#e0e8f2;background:#fbfcfe;box-shadow:none}
+.guest-checkout-content .guest-checkout-finish-card{border-radius:14px;border-color:#e0e8f2;background:#f8fbff;box-shadow:none}
+.flight-extras-page .flight-extras-layout{grid-template-columns:minmax(0,1fr) 310px;gap:28px}
+.flight-extras-page .flight-extras-summary{padding:22px;border:1px solid #e0e8f2;border-radius:14px;background:#fbfcfe;box-shadow:none}
+.flight-extras-page .flight-extras-summary h2{font-size:18px;letter-spacing:-.025em}
+.flight-extras-page .flight-extras-route{border:1px solid #e0e8f2;border-radius:14px;background:#fff;padding:20px;box-shadow:none}
+.flight-extras-page .flight-airline-services{border-radius:14px;border-color:#e0e8f2;background:#fff;box-shadow:none}
+.flight-extras-page .flight-extras-actions button{border-radius:10px;font-size:13px}
+.flight-extras-page .flight-extras-actions .account-outline-button{border-color:transparent;background:transparent;color:#58718e}
+.checkout-step-page .checkout-layout{gap:28px;grid-template-columns:minmax(0,1fr) 310px}
+.checkout-step-page .account-panel{border:1px solid #e0e8f2;border-radius:16px;box-shadow:0 6px 24px #19385405;background:#fff}
+.checkout-step-page .checkout-summary{border-radius:14px;background:#fbfcfe;top:88px}
+.checkout-step-page .checkout-status-card{border-radius:14px;padding:20px;box-shadow:none}
+.checkout-step-page .checkout-status-card h2{font-size:22px!important;letter-spacing:-.025em}
+.checkout-step-page .account-submit{border-radius:10px;min-height:48px}
+.checkout-step-page .checkout-summary h2{font-size:18px;letter-spacing:-.025em}
+:is(.flight-extras-page,.flight-review-page,.checkout-step-page) .btn-primary:focus-visible{outline:3px solid #94c3ff;outline-offset:3px}
+@media(max-width:1000px){.flight-extras-page .flight-extras-layout,.checkout-step-page .checkout-layout{grid-template-columns:1fr}.flight-extras-page .flight-extras-summary,.checkout-step-page .checkout-summary{position:static}}
+@media(max-width:600px){:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress li{flex-direction:column;gap:7px;padding:10px 4px;text-align:center;font-size:10px;min-width:0}:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress li strong{font-size:10px;line-height:1.4;overflow-wrap:normal}:is(.guest-checkout-content,.flight-extras-page,.flight-review-page,.checkout-step-page) .booking-progress ol{gap:5px}.guest-checkout-content .guest-checkout-card{padding:18px 16px}.flight-extras-page .flight-extras-summary,.flight-extras-page .flight-extras-route{padding:18px}.checkout-step-page .checkout-layout{gap:20px}}

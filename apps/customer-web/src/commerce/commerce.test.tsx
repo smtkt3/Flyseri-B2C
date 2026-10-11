@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { OrdersPage } from './OrdersPage';
 import { OrderDetailPage } from './OrderDetailPage';
@@ -21,6 +21,15 @@ describe('customer commerce screens', () => {
     expect(screen.getByRole('status').textContent).toContain('Loading');
     resolve([]);
     expect(await screen.findByText('Your orders will appear here')).toBeTruthy();
+  });
+  it('excludes expired and cancelled orders from the unpaid filter', async () => {
+    commerce.orders.mockResolvedValue(['PENDING_PAYMENT','EXPIRED','CANCELLED'].map((status,index)=>({id:'filter-'+index,orderNumber:'FILTER-'+index,status,totalAmount:'100',currency:'BDT',createdAt:'2026-10-10T00:00:00Z'})));
+    render(<MemoryRouter><OrdersPage/></MemoryRouter>);
+    await screen.findByText('FILTER-0');
+    fireEvent.click(screen.getByRole('button',{name:/^Unpaid$/}));
+    expect(screen.getByText('FILTER-0')).toBeTruthy();
+    expect(screen.queryByText('FILTER-1')).toBeNull();
+    expect(screen.queryByText('FILTER-2')).toBeNull();
   });
   it('renders a real order and no fake payment success', async () => {
     commerce.orders.mockResolvedValue([{ id: 'order-1', orderNumber: 'SMO-123', status: 'PENDING_PAYMENT',

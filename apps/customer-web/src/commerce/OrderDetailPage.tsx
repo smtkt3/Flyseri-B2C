@@ -1,3 +1,7 @@
+import { bookingHasIssuedTickets } from '../flight/bookingPresentation';
+import { CheckoutPageHeader } from '../flight/CheckoutPageHeader';
+import '../flight/checkout-step-style.css';
+import { Translated } from '../travel/language';
 import { FlightAncillaryPurchasePanel } from '../flight/FlightAncillaryPurchasePanel';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -8,12 +12,15 @@ import { FlightBaggageDetails, FlightServiceDetails } from '../flight/FlightFare
 import { commerceService } from '../services/commerceService';
 import { downloadText } from '../lib/downloadText';
 import { formatMoney, formatTimestamp, orderStatus, paymentStatus } from '../account/presentation';
+import { TravelCompanion } from '../travel/TravelCompanion';
 import { BookingProgress } from '../flight/BookingProgress';
 import { BookingLoading } from '../flight/BookingLoading';
 import { usePreferredDisplayPrices } from '../flight/usePreferredDisplayPrices';
 
 export function OrderDetailPage() {
   const { orderId } = useParams();
+  const activeOrderId = useRef(orderId);
+  activeOrderId.current = orderId;
   const [query] = useSearchParams();
   const sending = useRef(false);
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -64,7 +71,7 @@ export function OrderDetailPage() {
     try { await commerceService.payment(current.payment.id); return await commerceService.order(id); }
     catch { return current; }
   }
-  useEffect(() => { if (!orderId) return; let active = true; setLoading(true); setOrder(null); setReceipt(null); setError(false); setPaymentNotice(''); setPaymentConfirmed(false); void loadOrder(orderId).then((value) => {
+  useEffect(() => { if (!orderId) return; let active = true; setCheckoutAvailable(false); setStartingPayment(false); setRefreshing(false); setLoading(true); setOrder(null); setReceipt(null); setError(false); setPaymentNotice(''); setPaymentConfirmed(false); void loadOrder(orderId).then((value) => {
     if (active) setOrder(value); }, () => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); });
     void commerceService.paymentCapabilities().then((value) => { if (active) setCheckoutAvailable(value.checkoutAvailable); }, () => {});
     return () => { active = false; }; }, [orderId]);
@@ -83,24 +90,27 @@ export function OrderDetailPage() {
     }, 5000);
     return () => { active = false; window.clearInterval(timer); };
   }, [orderId, pending]);
-  async function refresh() { if (!orderId || refreshing) return; setRefreshing(true); try { setOrder(await loadOrder(orderId)); setError(false); } catch { setError(true); } finally { setRefreshing(false); } }
-  async function showReceipt() { if (!orderId) return; try { setReceipt(await commerceService.receipt(orderId)); } catch { setPaymentNotice('The receipt could not be loaded. Check payment status and try again.'); } }
+  async function refresh() { if (!orderId || refreshing) return; const id=orderId;setRefreshing(true); try { const value=await loadOrder(id);if(activeOrderId.current===id){setOrder(value);setError(false);} } catch { if(activeOrderId.current===id)setError(true); } finally { if(activeOrderId.current===id)setRefreshing(false); } }
+  async function showReceipt() { if (!orderId) return; const id=orderId;try { const value=await commerceService.receipt(id);if(activeOrderId.current===id)setReceipt(value); } catch { if(activeOrderId.current===id)setPaymentNotice('The receipt could not be loaded. Check payment status and try again.'); } }
   async function beginPayment() {
     if (!orderId || sending.current || !paymentConfirmed || !canPay) return;
     sending.current = true;
+    const id=orderId;
     setStartingPayment(true); setPaymentNotice('');
     try {
-      const result = await commerceService.startPayment(orderId, crypto.randomUUID());
+      const result = await commerceService.startPayment(id, crypto.randomUUID());
+      if (activeOrderId.current !== id) return;
       if (result.redirectUrl) { window.location.assign(result.redirectUrl); return; }
       setPaymentNotice(result.payment.status === 'SUCCEEDED' ? 'Payment verified. Your order is being updated.' : 'This checkout has no available payment link. Check the latest status before continuing.');
       await refresh();
-    } catch (cause) { setPaymentNotice(cause instanceof Error ? cause.message : 'Checkout could not start. Check the order status before trying again.'); }
-    finally { sending.current = false; setStartingPayment(false); }
+    } catch (cause) { if(activeOrderId.current===id)setPaymentNotice(cause instanceof Error ? cause.message : 'Checkout could not start. Check the order status before trying again.'); }
+    finally { sending.current = false; if(activeOrderId.current===id)setStartingPayment(false); }
   }
-  return <div className={`account-page${canPay ? ' checkout-with-mobile-actions' : ''}`}><Link className="account-link" to="/app/orders">← My Orders</Link>
-    <p className="account-eyebrow">{paid ? 'BOOKING CONFIRMATION' : 'SECURE CHECKOUT'}</p><h1>{paid ? 'Payment confirmed' : 'Complete your payment'}</h1>
+  return <div className={`account-page checkout-step-page${canPay ? ' checkout-with-mobile-actions' : ''}`}>
+    <CheckoutPageHeader title={paid ? 'Payment confirmed' : 'Complete your payment'} back={<Link to="/app/orders">← My orders</Link>}/>
     {loading && <BookingLoading label="Loading your order…" />}
-    {!loading && error && <div className="account-panel" role="alert">We couldn't refresh this order. <button className="account-link" onClick={() => { void refresh(); }}>Retry</button></div>}
+    {!loading && error && <div className="account-panel" role="alert">We couldn't refresh this order. <button className="account-link" onClick={() => { void refresh(); }}><Translated text="Retry" /></button></div>}
+    {booking && <TravelCompanion booking={booking} />}
     {order && <>{order.flightBookingId && <BookingProgress current={3} complete={paid} />}
       <div className="checkout-trial-note"><span aria-hidden="true">◈</span><div><strong>Test checkout</strong>Use Stripe test payment details. No real payment is collected. Any issued test tickets are not valid for travel.</div></div>
       <div className="checkout-layout"><section className="account-panel">
@@ -112,7 +122,7 @@ export function OrderDetailPage() {
         {query.get('checkout') === 'returned' && !paid && <p>Welcome back. Payment is confirmed only after Stripe verifies it.</p>}
       </div>
       <p>Status: <strong>{orderStatus(order.status)}</strong>{order.payment && <> · Payment: <strong>{paymentStatus(order.payment.status)}</strong></>}</p>
-      {paid && booking && <section className="checkout-pnr-confirmation"><span>Booking reference (PNR)</span><strong>{booking.pnr ?? 'Awaiting confirmation'}</strong><p>{booking.providerView?.tickets.some(ticket=>ticket.status==='Issued') ? 'Your ticket documents are available in your booking.' : booking.status==='MANUAL_REVIEW_REQUIRED' ? 'Your payment is saved. Our team needs to check ticket issuance; please contact Flyseri.' : ticketingAvailable ? 'Your payment is verified. Your test tickets are being prepared; this page updates automatically.' : 'Your test payment is saved. Ticket issuance is awaiting activation.'}</p><Link className="account-link" to={'/app/bookings/'+booking.id}>View my booking</Link></section>}
+      {paid && booking && <section className="checkout-pnr-confirmation"><span>Booking reference (PNR)</span><strong>{booking.pnr ?? 'Awaiting confirmation'}</strong><p>{bookingHasIssuedTickets(booking) ? 'Your ticket documents are available in your booking.' : booking.status==='MANUAL_REVIEW_REQUIRED' ? 'Your payment is saved. Our team needs to check ticket issuance; please contact Flyseri.' : ticketingAvailable ? 'Your payment is verified. Your test tickets are being prepared; this page updates automatically.' : 'Your test payment is saved. Ticket issuance is awaiting activation.'}</p><Link className="account-link" to={'/app/bookings/'+booking.id}>View my booking</Link></section>}
       {order.flightBookingId && <p><Link className="account-link" to={'/app/bookings/' + order.flightBookingId}>View reservation and ticket status →</Link></p>}
       {order.expiresAt && order.status !== 'PAID' && <p>Fare valid until {new Date(order.expiresAt).toLocaleString()}.</p>}
       {booking && <details className="checkout-services checkout-service-details"><summary>Flight details &amp; included services</summary><section aria-label="Meals, baggage and assistance">

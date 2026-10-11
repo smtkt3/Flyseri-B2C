@@ -25,7 +25,8 @@ describe('flight selection inside Seri', () => {
   });
   it('carries the selected offer, immutable request, search ID and chat return route straight to passenger details', () => {
     const result = data(); mount(result);
-    fireEvent.click(within(screen.getAllByRole('article')[1]!).getByRole('button', { name: 'Select flight' }));
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'cheapest' } });
+    fireEvent.click(within(screen.getAllByRole('article')[0]!).getByRole('button', { name: 'Select flight' }));
     const selected = JSON.parse(screen.getByTestId('selection').textContent!);
     expect(selected).toEqual({ path: '/flight-checkout', offer: result.offers[1], searchId: 'search-1', searchRequest: request, seriReturnTo: '/#book' });
   });

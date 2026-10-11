@@ -58,6 +58,17 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('premium homepage', () => {
   beforeEach(() => { sessionStorage.clear(); updateHomeSearch(emptyHomeSearch); });
+  it('opens the deferred aircraft chat and native Back closes only the chat', async () => {
+    auth.restore.mockResolvedValue(null); renderHome();
+    expect(screen.queryByRole('log', { name: 'Seri search conversation' })).toBeNull();
+    expect(flights.popularCachedFares).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Chat with us' }));
+    expect(await screen.findByRole('dialog', { name: 'Seri' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Test Back' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Seri' })).toBeNull());
+    expect(screen.getByRole('tabpanel', { name: 'Flights' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Special Flight Offers' })).toBeTruthy();
+  });
   it('identifies missing fields individually and clears errors as they are corrected', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome(true);
@@ -109,11 +120,11 @@ describe('premium homepage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Departure,/ }));
     fireEvent.click(screen.getByRole('tab', { name: 'Map Search' }));
     expect(screen.queryByRole('dialog', { name: 'Choose a date for departure' })).toBeNull();
-    expect(screen.getByRole('region', { name: 'Explore flights on the world map' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Explore flights on the world map' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Search flights' })).toBeNull();
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Map Search' }), { key: 'ArrowRight' });
     expect(screen.getByRole('tab', { name: 'AI Search' }).getAttribute('aria-selected')).toBe('true');
-    expect(getComputedStyle(screen.getByRole('log', { name: 'Seri search conversation' })).overscrollBehaviorY).toBe('auto');
+    expect(getComputedStyle(await screen.findByRole('log', { name: 'Seri search conversation' })).overscrollBehaviorY).toBe('auto');
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'AI Search' }));
     fireEvent.change(screen.getByLabelText('Ask Seri a travel question'), { target: { value: 'Find a beach trip' } });
     fireEvent.click(screen.getByRole('tab', { name: 'Flights' }));
@@ -125,8 +136,9 @@ describe('premium homepage', () => {
   });
 
   it('answers guest questions on the desktop homepage',async()=>{
-    auth.restore.mockResolvedValue(null);renderHome();await screen.findByText('Find your next escape');
-    const button=screen.getByRole('button',{name:'Ask Seri'});expect(button.hasAttribute('disabled')).toBe(true);
+    auth.restore.mockResolvedValue(null);renderHome();await screen.findByRole('heading', { name: 'Special Flight Offers' });
+    fireEvent.click(screen.getByRole('tab', { name: 'AI Search' }));
+    const button=await screen.findByRole('button',{name:'Ask Seri'});expect(button.hasAttribute('disabled')).toBe(true);
     fireEvent.change(screen.getByLabelText('Ask Seri a travel question'),{target:{value:'Plan 5 days in Tokyo'}});fireEvent.click(button);
     expect(await screen.findByText('Let’s plan your Tokyo trip.')).toBeTruthy();
     expect(guestSeri.guestSend).toHaveBeenCalledWith('Plan 5 days in Tokyo', [], 'BDT');
@@ -135,11 +147,14 @@ describe('premium homepage', () => {
   it('expands and closes the travel services menu without presenting future services as live', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome();
-    expect(await screen.findByText('Find your next escape')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Special Flight Offers' })).toBeTruthy();
     const toggle = screen.getByRole('button', { name: 'Expand travel services' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(toggle);
     expect(screen.getByRole('button', { name: 'Collapse travel services' }).getAttribute('aria-expanded')).toBe('true');
+    const upcoming = screen.getByText('More services · coming soon').closest('details')!;
+    expect(upcoming.hasAttribute('open')).toBe(false);
+    fireEvent.click(screen.getByText('More services · coming soon'));
     expect(screen.getAllByText('Soon')).toHaveLength(3);
     expect(screen.getByRole('link', { name: /^Packages$/ }).getAttribute('href')).toBe('/holidays');
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -149,8 +164,8 @@ describe('premium homepage', () => {
   it('shows honest empty states without loading customer data for a guest', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome();
-    expect(await screen.findByText('Find your next escape')).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'Explore flights on the world map' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Special Flight Offers' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Explore flights on the world map' })).toBeNull();
     expect(screen.queryByText(/\$1,120|RM 1,120/)).toBeNull();
     expect(trips.list).not.toHaveBeenCalled();
     expect(orders.orders).not.toHaveBeenCalled();
@@ -163,6 +178,8 @@ describe('premium homepage', () => {
       { destination: 'NRT', departureDate: '2026-11-20', price: '1299', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
     ]);
     renderHome();
+    fireEvent.click(screen.getByRole('tab', { name: 'Map Search' }));
+    await screen.findByRole('region', { name: 'Explore flights on the world map' });
     fireEvent.click(screen.getByRole('button', { name: 'Show full world map' }));
     expect(await screen.findByRole('button', { name: 'Select Bangkok, BDT 499' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Select Tokyo, BDT 1,299' })).toBeTruthy();
@@ -197,7 +214,7 @@ describe('premium homepage', () => {
     renderHome();
     expect(await screen.findByText('Ain', {}, { timeout: 5000 })).toBeTruthy();
 
-    expect(screen.getByRole('region', { name: 'Explore flights on the world map' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Explore flights on the world map' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Passengers and cabin/ }));
     expect(screen.getByRole('dialog', { name: 'Passengers and cabin' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Add children' }));
@@ -217,7 +234,7 @@ describe('premium homepage', () => {
   it('offers a multi-city search and sends its connected legs in order', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome();
-    expect(await screen.findByText('Find your next escape')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Special Flight Offers' })).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: 'Multi-city' }));
     const froms = screen.getAllByRole('combobox', { name: 'From airport' });
     const tos = screen.getAllByRole('combobox', { name: 'To airport' });
