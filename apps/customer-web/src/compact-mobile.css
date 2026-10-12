@@ -1,0 +1,85 @@
+/* Shared density rules for narrow phones and short mobile viewports.
+   Keep readable form text and touch targets while reducing surrounding space. */
+@media (max-width: 380px), (max-width: 480px) and (max-height: 700px) {
+  html .customer-site-shell .account-page {
+    padding: 8px 12px calc(144px + env(safe-area-inset-bottom, 0px));
+    min-width: 0;
+  }
+  html .customer-site-shell .account-page .account-page { padding: 0; }
+  html .customer-site-shell .account-page :is(input:not([type=checkbox]):not([type=radio]), select, textarea),
+  html .premium-site :is(input:not([type=checkbox]):not([type=radio]), select, textarea),
+  html .guest-checkout-content :is(input:not([type=checkbox]):not([type=radio]), select, textarea) {
+    font-size: 16px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  html .customer-site-shell .account-page :is(input:not([type=checkbox]):not([type=radio]), select),
+  html .customer-site-shell .account-page :is(.btn-primary, .account-outline-button, .account-primary-button) {
+    min-height: 44px;
+  }
+  html body .premium-header.flyseri-site-navbar { min-height: 50px; margin-block: 8px; padding-block: 3px; border-radius: 18px; }
+  html .customer-site-shell .account-workspace-hero { padding: 14px 16px; gap: 8px; border-radius: 18px; }
+  html .customer-site-shell .account-workspace-hero .account-eyebrow { margin-block: 0 4px; font-size: 9px; }
+  html .customer-site-shell .account-workspace-hero h1 { font-size: 24px; margin: 4px 0 6px; }
+  html .customer-site-shell .account-workspace-hero > div > p:last-child { font-size: 12px; line-height: 1.45; }
+  html .customer-site-shell .account-workspace-tabs { margin: 10px 0; padding: 3px; gap: 3px; border-radius: 13px; }
+  html .customer-site-shell .account-workspace-tabs :is(a, button) { min-height: 44px; padding: 7px 8px; font-size: 12px; border-radius: 10px; }
+  html .customer-site-shell .account-tab-description { font-size: 12px; line-height: 1.45; margin-bottom: 10px; }
+  html .customer-site-shell :is(.account-panel, .profile-settings-card, .profile-photo-card, .support-panel, .account-empty, .account-traveller-card) { padding: 14px; border-radius: 16px; min-width: 0; }
+  html .customer-site-shell :is(.account-form-grid, .profile-form-grid) { gap: 14px; }
+  html .customer-site-shell :is(.trip-page-heading, .vault-heading, .booking-management-heading) { gap: 8px; margin-bottom: 10px; }
+  html .customer-site-shell .booking-management-heading-actions { gap: 8px; }
+  html .customer-site-shell .account-page :is(.btn-primary, .account-outline-button, .account-primary-button),
+  html .customer-site-shell .booking-management-heading-actions > * { padding: 8px 10px; min-height: 44px; font-size: 12px; line-height: 1.4; box-shadow: none; }
+  html .customer-site-shell .booking-management-tools { padding: 12px; gap: 10px; margin-bottom: 12px; }
+  html .customer-site-shell .booking-management-tools > p { font-size: 12px; line-height: 1.5; margin: 0; }
+  html .customer-site-shell .booking-management-filters {
+    flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: 4px;
+    scrollbar-width: thin; overscroll-behavior-x: contain;
+  }
+  html .customer-site-shell .booking-management-filters button { flex: 0 0 auto; min-height: 44px; }
+  html .customer-site-shell .booking-management .booking-management-card { padding: 16px; margin-block: 12px; }
+  html .customer-site-shell .booking-management-card .booking-management-route { padding-block: 16px; gap: 12px; }
+  html .customer-site-shell .points-content { gap: 14px; margin-top: 14px; }
+  html .customer-site-shell :is(.points-hero, .points-rules, .points-activity, .points-unavailable) { padding: 18px 16px; border-radius: 18px; }
+  html .customer-site-shell .points-hero h1 { font-size: 26px; }
+  html .customer-site-shell .points-balances { margin-block: 18px; gap: 12px; }
+  html .customer-site-shell .points-balances strong { font-size: 30px; }
+  html .customer-site-shell .visa-hub-trip { padding: 16px; gap: 12px; }
+  html .customer-site-shell .visa-assistance-intro { padding: 18px; border-radius: 20px; margin-block: 0 16px; }
+  html .customer-site-shell .visa-assistance-intro h1 { font-size: 26px; line-height: 1.15; }
+  html .customer-site-shell .visa-assistance-intro p { font-size: 13px; line-height: 1.5; }
+  html .customer-site-shell .visa-hub-steps { margin-inline: 0; gap: 8px; }
+  html .customer-site-shell .visa-hub-steps > div { padding: 12px; }
+  html .customer-site-shell .checkout-page-header { margin-bottom: 16px; }
+  html .customer-site-shell .checkout-page-header .checkout-page-back :is(a, button) { min-height: 44px; }
+  html .guest-checkout-content { padding-inline: 12px; }
+  html .premium-site .premium-container { width: calc(100% - 24px); }
+  html .premium-site .premium-home-main .premium-hero { min-height: 270px; padding: 88px 22px 32px; }
+  html .premium-site .premium-home-main .premium-hero h1 { font-size: 34px; line-height: 1.05; }
+  html .premium-site .premium-home-main .premium-hero-note { display: none; }
+  html .premium-site .premium-search-tabs { gap: 4px; }
+  html .premium-site .premium-search-tabs :is(a, button) { min-height: 44px; }
+  html .premium-site .premium-glass { padding: 16px; }
+  html .customer-site-shell .account-mobile-bottom {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 4px; gap: 2px; border-radius: 18px;
+    box-shadow: 0 4px 18px #234c741a;
+  }
+  html .customer-site-shell .account-mobile-bottom a {
+    min-height: 44px; padding: 0; gap: 3px; border-radius: 13px;
+  }
+  html .customer-site-shell .account-mobile-bottom a .account-bottom-icon {
+    width: 26px; height: 22px; border-radius: 7px;
+  }
+  html .customer-site-shell .account-mobile-bottom .account-bottom-icon svg { width: 20px; height: 20px; }
+  html .customer-site-shell .account-mobile-bottom a .account-bottom-label { font-size: 10px; line-height: 13px; }
+  html .customer-site-shell .account-mobile-bottom a.active { border-radius: 13px; background: #e8f2ff; }
+  html .customer-site-shell .account-mobile-bottom a.active .account-bottom-icon {
+    color: #1976df; background: transparent; box-shadow: none;
+  }
+  html body .seri-floating-launcher .seri-launcher-label,
+  html body .seri-label-dismiss { display: none; }
+}

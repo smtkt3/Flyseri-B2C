@@ -59,7 +59,9 @@ export function useAircraftLaunch(button: RefObject<HTMLButtonElement | null>, o
   const charged = useRef(false);
   const lastPattern = useRef<AircraftFlightPattern | null>(null);
   const chargeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const gesture = useRef<{ id: number; y: number; distance: number; room: number } | null>(null);
+  const screenShakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const screenShake = useRef<Animation | null>(null);
+  const gesture = useRef<{ id: number; y: number; distance: number; room: number; touch: boolean; feltReady: boolean; shookScreen: boolean } | null>(null);
   const locked = useRef(false);
   const suppressClick = useRef(false);
   const animation = useRef<Animation | null>(null);
@@ -67,11 +69,22 @@ export function useAircraftLaunch(button: RefObject<HTMLButtonElement | null>, o
   const mounted = useRef(true);
   const openRef = useRef(open); openRef.current = open;
   const disabledRef = useRef(disabled); disabledRef.current = disabled;
+  function haptic(pattern: number | number[], touch: boolean) {
+    if (!touch || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    // Unsupported or policy-blocked vibration must never interrupt chat.
+    try { navigator.vibrate?.(pattern); } catch { /* Visual feedback remains available. */ }
+  }
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; if (chargeTimer.current) clearTimeout(chargeTimer.current); animation.current?.cancel(); if (timer.current) clearTimeout(timer.current); };
+    return () => { mounted.current = false; if (chargeTimer.current) clearTimeout(chargeTimer.current); stopScreenShake(); animation.current?.cancel(); if (timer.current) clearTimeout(timer.current); };
   }, []);
+  function stopScreenShake() {
+    if (screenShakeTimer.current) clearTimeout(screenShakeTimer.current);
+    screenShakeTimer.current = null;
+    screenShake.current?.cancel(); screenShake.current = null;
+  }
   function clearCharge() {
+    stopScreenShake();
     if (chargeTimer.current) clearTimeout(chargeTimer.current);
     chargeTimer.current = null; charged.current = false;
     if (mounted.current) setBoosted(false);
@@ -87,11 +100,13 @@ export function useAircraftLaunch(button: RefObject<HTMLButtonElement | null>, o
     const plane = button.current?.querySelector<HTMLElement>('.seri-aircraft-motion');
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || !plane?.animate) { reset(); openRef.current(); return; }
     const fast = charged.current;
+    stopScreenShake();
     if (chargeTimer.current) clearTimeout(chargeTimer.current);
     chargeTimer.current = null;
     locked.current = true; setPhase('shaking');
+    const pull = button.current?.style.getPropertyValue('--seri-pull') || '0px';
     const shake = plane.animate([
-      { transform: 'translate3d(0,0,0) rotate(0deg)' },
+      { transform: `translate3d(0,${pull},0) rotate(-6deg)` },
       { transform: 'translate3d(-3px,1px,0) rotate(-7deg)' },
       { transform: 'translate3d(3px,-1px,0) rotate(6deg)' },
       { transform: 'translate3d(-2px,0,0) rotate(-4deg)' },
@@ -148,7 +163,7 @@ export function useAircraftLaunch(button: RefObject<HTMLButtonElement | null>, o
         clearCharge();
         suppressClick.current = false;
         const plane = button.current?.querySelector('.seri-aircraft-motion')?.getBoundingClientRect();
-        gesture.current = { id: event.pointerId, y: event.clientY, distance: 0, room: plane ? Math.max(0, window.innerHeight - plane.bottom - 4) : 18 };
+        gesture.current = { id: event.pointerId, y: event.clientY, distance: 0, room: plane ? Math.max(0, window.innerHeight - plane.bottom - 4) : 18, touch: event.pointerType === 'touch', feltReady: false, shookScreen: false };
         event.currentTarget.setPointerCapture?.(event.pointerId);
       },
       onPointerMove(event: PointerEvent<HTMLButtonElement>) {
@@ -158,10 +173,26 @@ export function useAircraftLaunch(button: RefObject<HTMLButtonElement | null>, o
         if (Math.abs(current.distance) < 5) { clearCharge(); return; }
         suppressClick.current = true;
         setPhase('pulling');
+        if (current.distance >= 24 && !current.feltReady) { current.feltReady = true; haptic(12, current.touch); }
+        if (current.distance >= 24 && !screenShakeTimer.current && !current.shookScreen && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+          screenShakeTimer.current = setTimeout(() => {
+            screenShakeTimer.current = null;
+            if (!mounted.current || gesture.current !== current || current.distance < 24 || disabledRef.current || document.hidden || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+            current.shookScreen = true;
+            const root = document.getElementById('root');
+            // Individual translate avoids replacing the page's existing transform.
+            screenShake.current = root?.animate?.([
+              {translate:'0px 0px'}, {translate:'-3px 1px'}, {translate:'3px -1px'},
+              {translate:'-4px 0px'}, {translate:'4px 1px'}, {translate:'-2px -1px'},
+              {translate:'2px 0px'}, {translate:'0px 0px'},
+            ], {duration:420,iterations:Infinity,easing:'ease-in-out'}) ?? null;
+            haptic([22, 40, 22], current.touch);
+          }, 4500);
+        }
         if (current.distance >= 24 && !chargeTimer.current && !charged.current && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
           chargeTimer.current = setTimeout(() => {
             chargeTimer.current = null;
-            if (gesture.current === current && current.distance >= 24 && !disabledRef.current) { charged.current = true; setBoosted(true); }
+            if (gesture.current === current && current.distance >= 24 && !disabledRef.current) { charged.current = true; setBoosted(true); haptic([18, 45, 24], current.touch); }
           }, 1200);
         } else if (current.distance < 24) clearCharge();
         event.currentTarget.style.setProperty('--seri-pull', `${Math.min(Math.max(0, current.distance) * .35, 26, current.room)}px`);
@@ -172,8 +203,7 @@ export function useAircraftLaunch(button: RefObject<HTMLButtonElement | null>, o
         const pulled = current.distance >= 24;
         gesture.current = null;
         event.currentTarget.releasePointerCapture?.(event.pointerId);
-        button.current?.style.removeProperty('--seri-pull');
-        if (pulled) { suppressClick.current = true; launch(); } else reset();
+        if (pulled) { suppressClick.current = true; haptic(charged.current ? [24, 35, 12] : 18, current.touch); launch(); } else reset();
       },
       onPointerCancel() { suppressClick.current = true; reset(); },
       onLostPointerCapture() { if (gesture.current) { suppressClick.current = true; reset(); } },

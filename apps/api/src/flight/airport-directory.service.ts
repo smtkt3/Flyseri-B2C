@@ -4,7 +4,7 @@ import type {AirportDirectoryEntry} from '@flyseri/types';
 import {ApiException} from '../api-exception.js';
 
 type AirportSource=Omit<AirportDirectoryEntry,'countryName'|'cityLabel'>;
-const normalize=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const normalize=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f‘’']/g,'').toLowerCase().trim();
 const popularCodes=['KUL','PEN','SIN','BKK','HND','NRT','KIX','ICN','DXB','LHR'];
 @Injectable()
 export class AirportDirectoryService implements OnModuleInit {
@@ -43,5 +43,14 @@ export class AirportDirectoryService implements OnModuleInit {
   async details(codes:string[]){
     const wanted=new Set(codes);const airports=await this.load();
     return Object.fromEntries(airports.filter(airport=>wanted.has(airport.code)).map(airport=>[airport.code,{city:airport.cityLabel,name:airport.name}]));
+  }
+  async resolve(name:string):Promise<string|null>{
+    const matches=await this.suggestions(name);
+    const code=matches.find(item=>item.code===name.trim().toUpperCase());
+    if(code)return code.code;
+    const normalized=normalize(name);
+    const exact=matches.filter(item=>item.scheduled && [item.city,item.cityLabel,item.name].some(value=>normalize(value)===normalized));
+    const large=exact.filter(item=>item.type==='large_airport');
+    return large.length===1 ? large[0]!.code : exact.length===1 ? exact[0]!.code : null;
   }
 }

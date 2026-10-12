@@ -89,6 +89,18 @@ export interface FlightPassengerPrice {
   totalAmount: string;
   currency: string;
 }
+/** Supplier rules for this particular service, flight and traveler association.
+ * Weight bands describe the service, not a maximum purchasable extra quantity. */
+export interface FlightAncillaryRules {
+  source: 'SABRE_ATPCO';
+  feeApplicationMethod: string | null;
+  weightLimits: { value: number; unit: 'KG' | 'LB'; relation: 'UP_TO' | 'OVER' }[];
+  quotedQuantity: number | null;
+  feeMayChange: boolean | null;
+  refundabilityCode: string | null;
+  serviceType: string | null;
+  requiresWeightConfirmation: boolean;
+}
 export interface FlightAncillaryResponse {
   quoteId?: string;
   expiresAt?: string;
@@ -98,6 +110,7 @@ export interface FlightAncillaryResponse {
   services: { offerItemId: string | null; sellable?: boolean | null; serviceCode: string; name: string;
     /** Airline service group, when supplied by Sabre (for example BG or ML). */
     groupCode?: string | null;
+    rules?: FlightAncillaryRules;
     amount: string | null; currency: string | null;
     segmentLabels: string[]; passengerIndexes: number[] }[];
 }
@@ -129,6 +142,7 @@ export interface FlightAncillaryRequest {
   name: string;
   serviceCode: string;
   groupCode?: string | null;
+  rules?: FlightAncillaryRules;
   category: 'FOOD' | 'BAGGAGE' | 'SEATS' | 'OTHER';
   segmentLabels: string[];
   passengerIndexes: number[];
@@ -262,6 +276,7 @@ export interface OrderSummary {
   fulfillmentStatus: 'NOT_STARTED' | 'REVALIDATION_REQUIRED' | 'COMPLETED';
   currency: string;
   totalAmount: string;
+  discountAmount?: string;
   expiresAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -298,6 +313,7 @@ export interface OrderReceipt {
   paidAt: string;
   currency: string;
   totalAmount: string;
+  discountAmount?: string;
   items: OrderItem[];
   documentKind: 'PAYMENT_RECEIPT';
 }
@@ -624,3 +640,5 @@ export interface VisaAssistanceRequestDetail extends VisaAssistanceRequestSummar
 }
 export type { HolidayPackage, HolidayBookingInput, HolidayBooking } from './holiday.js';
 export type { FareWatch, SupportStage, SupportUpdate, TravelSupportRequest } from './travel.js';
+export type { PointsRules, PointsActivity, PointsWallet, PointsQuote } from './rewards.js';
+export { FLYSERI_POINTS_RULES } from './rewards.js';

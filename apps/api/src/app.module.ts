@@ -11,6 +11,8 @@ import { CommerceModule } from './commerce/commerce.module.js';
 import { SeriModule } from './seri/seri.module.js';
 import { HolidayModule } from './holiday/holiday.module.js';
 import { TravelModule } from './travel/travel.module.js';
+import { PointsModule } from './rewards/points.module.js';
+import { WeatherModule } from './weather/weather.module.js';
 
-@Module({ imports: [InfrastructureModule, HealthModule, CustomerModule, TripModule, DocumentModule, VisaModule, FlightModule, CommerceModule, AdminModule, SeriModule, HolidayModule, TravelModule] })
+@Module({ imports: [InfrastructureModule, HealthModule, CustomerModule, TripModule, DocumentModule, VisaModule, FlightModule, CommerceModule, AdminModule, SeriModule, HolidayModule, TravelModule, PointsModule, WeatherModule] })
 export class AppModule {}

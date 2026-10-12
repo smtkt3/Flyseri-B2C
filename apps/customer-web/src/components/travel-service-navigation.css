@@ -1,0 +1,32 @@
+.flyseri-services-drawer{display:flex;flex-direction:column}
+.flyseri-services-drawer nav{display:flex;flex-direction:column;gap:24px}
+.flyseri-services-drawer .premium-service-group{display:grid;gap:5px}
+.flyseri-services-drawer .premium-service-group-label{display:block;margin:0 10px 7px;color:#70859b;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.flyseri-services-drawer .premium-service-sidebar-item{display:flex;align-items:center;border:1px solid transparent;border-radius:11px;font-size:13px;color:#4a627c;text-decoration:none}
+.flyseri-services-drawer .premium-service-sidebar-label{font-weight:550}
+.flyseri-services-drawer .premium-service-sidebar-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;color:#7790a9}
+.flyseri-services-drawer .premium-service-sidebar-icon svg{width:20px;height:20px}
+.flyseri-services-drawer .premium-service-sidebar-item.active .premium-service-sidebar-icon{background:#d8eaff;color:#2a82e4}
+.flyseri-services-drawer .premium-service-sidebar-item.active .premium-service-sidebar-label{font-weight:750}
+.flyseri-services-drawer .premium-service-sidebar-item.unavailable{color:#7b8ea2;cursor:default}
+.flyseri-services-drawer .premium-service-sidebar-item small{padding:3px 6px;border-radius:5px;background:#edf2f7;color:#70859b;font-size:10px}
+.flyseri-services-drawer .premium-service-sidebar-footer{margin-top:auto;padding-top:24px;border-top:1px solid #e4edf5}
+:is(.flyseri-services-drawer,.premium-service-sidebar) .is-upcoming summary{padding:10px;border-radius:10px;color:#61768d;font-size:11px;line-height:1.5;cursor:pointer;list-style:none}
+:is(.flyseri-services-drawer,.premium-service-sidebar) .is-upcoming summary::-webkit-details-marker{display:none}
+:is(.flyseri-services-drawer,.premium-service-sidebar) .is-upcoming summary:hover{background:#edf4fb}
+:is(.flyseri-services-drawer,.premium-service-sidebar) :is(summary,a,button):focus-visible{outline:3px solid #92c4fa;outline-offset:2px}
+.flyseri-services-drawer .premium-service-sidebar-toggle-chevron{width:18px;height:18px}
+html body .flyseri-site-navbar .premium-mobile-services-toggle.is-standalone{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid #dcecf7;border-radius:10px;color:#315778}
+html body .flyseri-site-navbar .premium-mobile-services-toggle.is-standalone svg{width:19px;height:19px}
+.service-more-short{display:none}
+.flyseri-services-overlay .flyseri-services-drawer{width:min(288px,85vw);padding:22px 16px 18px;border:0;border-radius:0 22px 22px 0;background:#fbfdff;box-shadow:12px 0 50px #163d6640}
+.flyseri-services-overlay .flyseri-services-drawer nav{display:flex;gap:26px;margin-top:24px}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-toggle{display:flex;align-items:center;min-height:46px;padding:10px;gap:10px;border:0;border-radius:10px;background:#edf4fb;color:#42617f;box-shadow:none}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-toggle-text{font-size:13px;font-weight:750;color:#243e5d}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-toggle-icon svg{width:20px;height:20px}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-item{min-height:50px;padding:8px 10px;gap:11px;font-weight:550}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-label{font-size:14px;font-weight:550}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-item.active{background:#e8f2ff;border-color:#d4e6fc;color:#2378d4}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-item.active .premium-service-sidebar-label{font-weight:750}
+.flyseri-services-overlay .flyseri-services-drawer .premium-service-sidebar-item[href]:hover{background:#edf4fb;color:#2275c9}
+@media(min-width:1367px){.premium-home-layout:not(.services-open) .premium-service-sidebar .service-more-full{display:none}.premium-home-layout:not(.services-open) .premium-service-sidebar .service-more-short{display:block;text-align:center}.premium-home-layout:not(.services-open) .premium-service-sidebar .is-upcoming summary{padding-inline:0}}

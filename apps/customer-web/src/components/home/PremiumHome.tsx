@@ -1,13 +1,15 @@
+import { TravelServiceNavigation } from '../TravelServiceNavigation';
 import { Chevron } from '../Chevron';
 import { Translated } from '../../travel/language';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import type { CustomerProfile, DocumentSummary, FlightBookingIntent, OrderSummary, PaymentSummary, TripSummary, VisaApplicationSummary } from '@flyseri/types';
+import type { CustomerProfile, OrderSummary, PaymentSummary } from '@flyseri/types';
 import type { HomeAirlineOffer } from './AirlineOfferDetails';
 import { GroupFareDetails } from './GroupFareDetails';
 import { useOfferAutoSlide } from './useOfferAutoSlide';
 import { activeGroupFare, groupFareMoney } from './groupFares';
+import { DestinationWeatherBadge, useDestinationWeather } from './DestinationWeatherBadge';
 import { useHomeSearchField } from './homeSearchDraft';
 import { HomeFeatureBoundary, HomeFeatureLoading } from './HomeFeatureBoundary';
 import { DeferredHomeSeriSearch } from './DeferredHomeSeriSearch';
@@ -15,11 +17,7 @@ import { useBackStepState } from '../useBackStepState';
 import { HeroDestinations } from './HeroDestinations';
 import { useAuth } from '../../auth/AuthProvider';
 import { customerService } from '../../services/customerService';
-import { tripService } from '../../services/tripService';
 import { commerceService } from '../../services/commerceService';
-import { documentService } from '../../services/documentService';
-import { visaService } from '../../services/visaService';
-import { flightService } from '../../services/flightService';
 import { AirportPicker } from '../../flight/AirportPicker';
 import { HistoryCalendarDateField as CalendarDateField } from '../CalendarDateField';
 import { homeSearchValidation } from './homeSearchValidation';
@@ -29,7 +27,6 @@ import { PremiumNavbar } from '../PremiumNavbar';
 import { BrandMark } from '../BrandMark';
 import { destinations } from './marketingContent';
 import { HolidayPackages } from '../../holiday/HolidayPackages';
-import { tripGroup } from '../../trip/tripPresentation';
 import './premium-home.css';
 import './premium-reference.css';
 import './premium-services.css';
@@ -47,42 +44,29 @@ import './flight-inspiration.css';
 
 const ExploreFareMap = lazy(() => import('./ExploreFareMap').then(module => ({ default: module.ExploreFareMap })));
 
-type Overview = { profile: CustomerProfile | null; trips: TripSummary[]; orders: OrderSummary[]; payments: PaymentSummary[];
-  documents: DocumentSummary[]; visas: VisaApplicationSummary[]; intent: FlightBookingIntent | null };
-const empty: Overview = { profile: null, trips: [], orders: [], payments: [], documents: [], visas: [], intent: null };
+type Overview = { profile: CustomerProfile | null; orders: OrderSummary[]; payments: PaymentSummary[] };
+const empty: Overview = { profile: null, orders: [], payments: [] };
 async function safe<T>(promise: Promise<T>, fallback: T): Promise<{ value: T; failed: boolean }> {
   try { return { value: await promise, failed: false }; } catch { return { value: fallback, failed: true }; }
-}
-function relevantTrip(trips: TripSummary[]) {
-  const rank = (trip: TripSummary) => tripGroup(trip) === 'Upcoming' ? 0 : tripGroup(trip) === 'Planning' ? 1 : 2;
-  return [...trips].sort((a, b) => rank(a) - rank(b) || (a.startDate ?? '9999').localeCompare(b.startDate ?? '9999'))[0];
 }
 function useOverview(enabled: boolean) {
   const [data, setData] = useState<Overview>(empty);
   const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState({ orders:false, payments:false });
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!enabled) { setData(empty); setLoading(false); setError(false); return; }
+    if (!enabled) { setData(empty); setLoading(false); setError({ orders:false, payments:false }); return; }
     let active = true;
-    setLoading(true); setError(false);
+    setLoading(true);
     void (async () => {
-      const [profile, trips, orders, payments, documents] = await Promise.all([
-        safe(customerService.me(), null), safe(tripService.list(), [] as TripSummary[]),
+      const [profile, orders, payments] = await Promise.all([
+        safe(customerService.me(), null),
         safe(commerceService.orders(), [] as OrderSummary[]), safe(commerceService.payments(), [] as PaymentSummary[]),
-        safe(documentService.list(), [] as DocumentSummary[]),
       ]);
-      const trip = relevantTrip(trips.value);
-      const [visas, intents] = trip ? await Promise.all([
-        safe(visaService.list(trip.id), [] as VisaApplicationSummary[]),
-        safe(flightService.intentsForTrip(trip.id), [] as FlightBookingIntent[]),
-      ]) : [{ value: [] as VisaApplicationSummary[], failed: false }, { value: [] as FlightBookingIntent[], failed: false }];
       if (!active) return;
-      const intent = [...intents.value].filter((item) => !['CANCELLED', 'EXPIRED'].includes(item.status))
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
-      setData({ profile: profile.value, trips: trips.value, orders: orders.value, payments: payments.value,
-        documents: documents.value, visas: visas.value, intent });
-      setError([profile, trips, orders, payments, documents, visas, intents].some((item) => item.failed));
+      setData(previous => ({ profile:profile.failed ? previous.profile : profile.value,
+        orders:orders.failed ? previous.orders : orders.value, payments:payments.failed ? previous.payments : payments.value }));
+      setError({ orders:orders.failed, payments:payments.failed });
       setLoading(false);
     })();
     return () => { active = false; };
@@ -98,20 +82,7 @@ function MenuIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
 }
 
-type ServiceKind = 'flight' | 'hotels' | 'attractions' | 'packages' | 'visa' | 'esim';
-function ServiceIcon({ kind }: { kind: ServiceKind }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {kind === 'flight' && <><path d="m21 3-8.5 18-2.7-7-6.8-2.5L21 3Z" /><path d="M9.8 14 21 3" /></>}
-    {kind === 'hotels' && <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h2m4 0h2M8 11h2m4 0h2M10 21v-5h4v5" /></>}
-    {kind === 'attractions' && <path d="m12 2 2.3 7.7L22 12l-7.7 2.3L12 22l-2.3-7.7L2 12l7.7-2.3L12 2Z" />}
-    {kind === 'packages' && <><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Z" /><path d="m3 7 9 4 9-4M12 11v10" /></>}
-    {kind === 'visa' && <><rect x="4" y="2.5" width="16" height="19" rx="2" /><circle cx="12" cy="12" r="3.5" /><path d="M8.5 12h7M12 8.5c1.5 2 1.5 5 0 7" /></>}
-    {kind === 'esim' && <><rect x="5" y="2" width="14" height="20" rx="3" /><rect x="8" y="7" width="8" height="8" rx="1" /><path d="M10 18h4" /></>}
-  </svg>;
-}
-
-
-function ServiceSidebar({ expanded, compact, onToggle, onNavigate }: { expanded: boolean; compact: boolean; onToggle: () => void; onNavigate: () => void }) {
+function ServiceSidebar({ expanded, compact, onToggle }: { expanded: boolean; compact: boolean; onToggle: () => void }) {
   const sidebar = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!expanded || !compact) return;
@@ -121,7 +92,7 @@ function ServiceSidebar({ expanded, compact, onToggle, onNavigate }: { expanded:
     const focusFrame = window.requestAnimationFrame(() => sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true }));
     const trapFocus = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
-      const controls = sidebar.current?.querySelectorAll<HTMLElement>('button, a[href]');
+      const controls = sidebar.current?.querySelectorAll<HTMLElement>('button, a[href], summary');
       if (!controls?.length) return;
       const first = controls[0]!, last = controls[controls.length - 1]!;
       if (!sidebar.current?.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); return; }
@@ -136,24 +107,9 @@ function ServiceSidebar({ expanded, compact, onToggle, onNavigate }: { expanded:
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
     };
   }, [expanded, compact]);
-  const services: Array<{ name: string; kind: ServiceKind; active?: boolean; soon?: boolean; to?: string }> = [
-    { name: 'Flight', kind: 'flight', active: true },
-    { name: 'Hotels', kind: 'hotels', soon: true },
-    { name: 'Attractions', kind: 'attractions', soon: true },
-    { name: 'Packages', kind: 'packages', to: '/holidays' },
-    { name: 'Visa', kind: 'visa', to: '/app/visa' },
-    { name: 'E-SIM', kind: 'esim', soon: true },
-  ];
-  function renderService(service: typeof services[number]) {
-    const content = <><span className="premium-service-sidebar-icon"><ServiceIcon kind={service.kind} /></span><span className="premium-service-sidebar-label">{service.name}</span>{service.soon && <small>Soon</small>}</>;
-    return service.to ? <Link key={service.name} to={service.to} className="premium-service-sidebar-item" aria-label={service.name} title={service.name} onClick={onNavigate}>{content}</Link>
-      : service.active ? <a key={service.name} href="#book" className="premium-service-sidebar-item active" aria-label={service.name} title={service.name} aria-current="page" onClick={onNavigate}>{content}</a>
-        : <div key={service.name} className="premium-service-sidebar-item unavailable" aria-disabled="true" aria-label={service.name + ', coming soon'} title={service.name + ' · Coming soon'}>{content}</div>;
-  }
   return <aside ref={sidebar} className="premium-service-sidebar" role={compact && expanded ? 'dialog' : undefined} aria-modal={compact && expanded ? true : undefined} aria-label="Travel services" onTransitionEnd={event => { if (compact && expanded && event.target === event.currentTarget && event.propertyName === 'transform') sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true }); }}>
     <button type="button" className="premium-service-sidebar-toggle" onClick={onToggle} title={expanded ? 'Collapse travel services' : 'Expand travel services'} aria-label={expanded ? 'Collapse travel services' : 'Expand travel services'} aria-expanded={expanded} aria-controls="premium-services-nav"><span className="premium-service-sidebar-toggle-icon"><MenuIcon /></span><span className="premium-service-sidebar-toggle-text">Travel services</span><svg className="premium-service-sidebar-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 7-5 5 5 5"/></svg></button>
-    <nav id="premium-services-nav" aria-label="Travel services"><div className="premium-service-group"><p className="premium-service-group-label">Explore</p>{services.filter(service => !service.soon).map(renderService)}</div><details className="premium-service-group is-upcoming"><summary>More services · coming soon</summary>{services.filter(service => service.soon).map(renderService)}</details></nav>
-    <div className="premium-service-sidebar-footer"><Link to="/app/support" className="premium-service-sidebar-item" aria-label="Help and support" title="Help and support" onClick={onNavigate}><span className="premium-service-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.7-2.5 1.8-2.5 3.5M12 17h.01"/></svg></span><span className="premium-service-sidebar-label">Help & support</span></Link></div>
+    <TravelServiceNavigation id="premium-services-nav"/>
   </aside>;
 }
 
@@ -267,24 +223,7 @@ function ExclusiveAirlineOffers() {
   const [selectedOffer, setSelectedOffer] = useState<HomeAirlineOffer | null>(null);
   const offersViewport = useRef<HTMLDivElement>(null);
   useOfferAutoSlide(offersViewport, selectedOffer !== null);
-  const [navigation, setNavigation] = useState({ previous: false, next: true });
-  useEffect(() => {
-    const viewport = offersViewport.current;
-    if (!viewport) return;
-    const update = () => setNavigation({ previous: viewport.scrollLeft > 8, next: viewport.scrollLeft + viewport.clientWidth < viewport.scrollWidth - 8 });
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
-    observer?.observe(viewport);
-    viewport.addEventListener('scroll', update, { passive: true });
-    update();
-    return () => { observer?.disconnect(); viewport.removeEventListener('scroll', update); };
-  }, []);
-  const browse = (direction: number) => {
-    const viewport = offersViewport.current;
-    if (!viewport) return;
-    const card = viewport.querySelector<HTMLElement>('.journey-card');
-    const step = card ? card.getBoundingClientRect().width + (parseFloat(getComputedStyle(viewport.querySelector('.journey-track')!).columnGap) || 0) : viewport.clientWidth;
-    viewport.scrollBy({ left: direction * step, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-  };
+  const weather = useDestinationWeather();
   const routes = [
     { city: 'Bangkok', country: 'Thailand', code: 'BKK', airline: 'TG', name: 'Thai Airways', price: '', mood: 'Culture & city lights', image: 'photo-1563492065599-3520f775eeed' },
     { city: 'Kuala Lumpur', country: 'Malaysia', code: 'KUL', airline: 'MH', name: 'Malaysia Airlines', price: '', mood: 'A vibrant city escape', image: 'photo-1596422846543-75c6fc197f07' },
@@ -294,16 +233,15 @@ function ExclusiveAirlineOffers() {
   ];
   return <Glass className="premium-exclusive-offers premium-inspiration">
     <div className="journey-section-heading">
-      <div><span className="journey-eyebrow">FIND YOUR NEXT ESCAPE</span><h2>Special Flight Offers</h2><p>Explore flight offers and find your next journey.</p></div>
-      <div className="journey-header-actions"><Link to="/app/price-alerts" className="journey-alert-link">Set a price alert</Link><div className="journey-navigation" aria-label="Browse destinations"><button type="button" aria-label="Previous destinations" disabled={!navigation.previous} onClick={() => browse(-1)}>Previous</button><button type="button" aria-label="Next destinations" disabled={!navigation.next} onClick={() => browse(1)}>Next</button></div></div>
+      <div><h2>Special Flight Offers</h2></div>
+      <div className="journey-header-actions"><Link to="/app/price-alerts" className="journey-alert-link">Set a price alert</Link></div>
     </div>
     <div ref={offersViewport} className="journey-viewport" role="region" aria-label="Special flight offers" tabIndex={0}>
       <div className="journey-track">{routes.map(route => ({ ...route, fare: activeGroupFare(route.code) })).map(offer => <button type="button" className="journey-card" key={offer.code} onClick={() => setSelectedOffer(offer)} aria-label={'View special flight offer for ' + offer.city}>
-        <span className="journey-photo"><img src={'https://images.unsplash.com/' + offer.image + '?w=640&q=75&fit=crop&auto=format'} srcSet={[400, 640, 960].map(width => 'https://images.unsplash.com/' + offer.image + '?w=' + width + '&q=75&fit=crop&auto=format ' + width + 'w').join(', ')} sizes="(max-width: 600px) 86vw, (max-width: 1000px) 46vw, (min-width: 1600px) 24vw, 31vw" width={720} height={420} decoding="async" alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }} /><span className="journey-country">{offer.country}</span>{offer.fare?.demo && <span className="journey-demo-badge">Demo</span>}<span className="journey-destination"><strong>{offer.city}</strong><span>{offer.mood}</span></span></span>
-        <span className="journey-card-content"><span className="journey-route"><span><small>From Dhaka</small><strong>DAC <span aria-hidden="true">—</span> {offer.code}</strong></span><span className="journey-airline"><img src={'/airlines/' + offer.airline + '.png'} alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }}/><span>{offer.name}</span></span></span><span className="journey-fare"><span><small>{offer.fare ? 'From / person' : 'Special offer'}</small><strong>{offer.fare ? groupFareMoney(offer.fare!) : 'Quote on request'}</strong></span></span><span className="journey-card-action">View fare details <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 12h14m-5-5 5 5-5 5" /></svg></span></span>
+        <span className="journey-photo"><img src={'https://images.unsplash.com/' + offer.image + '?w=640&q=75&fit=crop&auto=format'} srcSet={[400, 640, 960].map(width => 'https://images.unsplash.com/' + offer.image + '?w=' + width + '&q=75&fit=crop&auto=format ' + width + 'w').join(', ')} sizes="(max-width: 600px) 86vw, (max-width: 1000px) 46vw, (min-width: 1600px) 24vw, 31vw" width={720} height={420} decoding="async" alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }} /><span className="journey-country">{offer.country}</span><DestinationWeatherBadge weather={weather[offer.code]} city={offer.city} /><span className="journey-destination"><strong>{offer.city}</strong><span>{offer.mood}</span></span></span>
+        <span className="journey-card-content"><span className="journey-airline"><span className="journey-airline-logo"><img src={'/airlines/' + offer.airline + '.png'} alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }}/></span><span>{offer.name}</span></span><span className="journey-route"><small>From Dhaka</small><strong>DAC <span aria-hidden="true">—</span> {offer.code}</strong></span><span className="journey-fare"><span><small>{offer.fare?.demo ? 'Demo fare / person' : offer.fare ? 'From / person' : 'Special offer'}</small><strong>{offer.fare ? groupFareMoney(offer.fare!) : 'Quote on request'}</strong></span></span><span className="journey-card-action">View fare details <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 12h14m-5-5 5 5-5 5" /></svg></span></span>
       </button>)}</div>
     </div>
-    <div className="journey-section-note"><span>Demo offers · illustrative prices and conditions, not bookable airline inventory.</span><span>Offers are subject to airline confirmation</span></div>
     {selectedOffer && <GroupFareDetails offer={selectedOffer} onClose={() => setSelectedOffer(null)} />}
   </Glass>;
 }
@@ -327,6 +265,8 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
   const [searchMode, setSearchMode] = useBackStepState<'flights' | 'map' | 'ai'>('home-search', 'flights');
   const compactSearch = true;
+  const [compactServices,setCompactServices]=useState(()=>window.matchMedia('(max-width:1366px)').matches);
+  useEffect(()=>{const media=window.matchMedia('(max-width:1366px)');const sync=()=>setCompactServices(media.matches);sync();media.addEventListener('change',sync);return()=>media.removeEventListener('change',sync);},[]);
   const [mapRequested, setMapRequested] = useState(searchMode === 'map');
   useEffect(() => { if (searchMode === 'map') setMapRequested(true); }, [searchMode]);
   const searchTabs = useRef<HTMLDivElement>(null);
@@ -384,7 +324,7 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
   const name = data.profile?.displayName?.trim() || session?.user.email?.split('@')[0] || null;
   const pending = data.payments.filter((payment) => ['CREATED', 'PENDING', 'PROCESSING', 'UNKNOWN'].includes(payment.status)).length;
   return <div className={`premium-site${embedded ? ' premium-embedded' : ''}`}>
-    <div className={`premium-home-layout${embedded ? ' is-embedded' : ''}${servicesExpanded ? ' services-open' : ''}`}>{!embedded && <><ServiceSidebar expanded={servicesExpanded} compact={compactSearch} onToggle={() => setServicesExpanded((value) => !value)} onNavigate={() => setServicesExpanded(false)} /><button type="button" className="premium-service-backdrop" aria-label="Close travel services" onClick={() => setServicesExpanded(false)} /></>}<div className="premium-home-main" data-search-mode={compactSearch ? searchMode : 'all'}>
+    <div className={`premium-home-layout${embedded ? ' is-embedded' : ''}${servicesExpanded ? ' services-open' : ''}`}>{!embedded && <><ServiceSidebar expanded={servicesExpanded} compact={compactServices} onToggle={() => setServicesExpanded((value) => !value)} /><button type="button" className="premium-service-backdrop" aria-label="Close travel services" onClick={() => setServicesExpanded(false)} /></>}<div className="premium-home-main" data-search-mode={compactSearch ? searchMode : 'all'}>
     {!embedded && <PremiumNavbar name={name} servicesExpanded={servicesExpanded} onToggleServices={() => setServicesExpanded((value) => !value)} />}
     <main>
       <section className="premium-hero" id="book"><HeroDestinations /><div className="premium-hero-content"><p className="premium-eyebrow">DISCOVER A BRIGHTER TOMORROW</p><h1>Your Journey<br /><em>Starts with Flyseri</em></h1><p className="premium-hero-full-copy">Beautiful journeys begin with a simple idea. Search flights, shape your plans, and keep every detail close.</p><p className="premium-hero-short-copy"><Translated text="Your next journey, made smarter." /></p><div className="premium-trust"><span>✓ Find your next flight</span><span>✓ Your plans in one place</span><span>✓ Travel documents together</span></div></div><div className="premium-hero-script" aria-hidden="true">More<br />than a Trip <span>↗</span><small>New Places<br />Brighter Stories</small></div></section>
@@ -404,16 +344,15 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
       </div>
       <div className="premium-container premium-main">
         <div {...panelProps('ai')}><DeferredHomeSeriSearch active={searchMode === 'ai'} /></div>
-        {session && error && <div className="premium-inline-error" role="alert">Some of your travel details could not be loaded. <button onClick={reload}><Translated text="Try again" /></button></div>}
         <div className="premium-journey-grid"><div {...panelProps('map')}>{(mapRequested || searchMode === 'map') && <HomeFeatureBoundary name="Map search"><Suspense fallback={<HomeFeatureLoading name="map search"/>}><ExploreFareMap active={searchMode === 'map'}/></Suspense></HomeFeatureBoundary>}</div><ExclusiveAirlineOffers /></div>
         <HomeAdBanner />
 
         <div id="deals"><HolidayPackages /></div>
         <section className="premium-partners" aria-labelledby="home-partners-title">
-          <h2 id="home-partners-title">Airlines & travel technology</h2>
+          <h2 id="home-partners-title">Airlines & Travel Partners</h2>
           <ul className="premium-partner-grid">
             {[
-              { name: 'Sabre', logo: '/partners/sabre.png' },
+              { name: 'Sabre', logo: '/partners/sabre.svg' },
               { name: 'Malaysia Airlines', logo: '/airlines/MH.png' },
               { name: 'US-Bangla Airlines', logo: '/airlines/BS.png' },
               { name: 'Biman Bangladesh Airlines', logo: '/airlines/BG.png' },
@@ -423,17 +362,10 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
               { name: 'Batik Air', logo: '/airlines/OD.svg' },
             ].map(partner => <li key={partner.name}><img src={partner.logo} alt={partner.name} loading="lazy" decoding="async" width={145} height={60} onError={event => { event.currentTarget.hidden = true; event.currentTarget.nextElementSibling?.removeAttribute('hidden'); }} /><span className="partner-logo-fallback" hidden>{partner.name}</span></li>)}
           </ul>
-        </section>        {session && !loading && (data.orders.length > 0 || pending > 0) && <section className="premium-commerce"><Heading eyebrow="YOUR ACCOUNT" title="Orders & payments" action="View orders" to="/app/orders" /><Glass><div><strong>{loading ? 'Loading your account…' : `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}`}</strong><span>{loading ? 'Checking payment status…' : pending ? `${pending} payment${pending === 1 ? '' : 's'} awaiting an update` : 'No pending payment updates'}</span></div><Link className="premium-outline" to="/app/payments">View payments →</Link></Glass></section>}
+        </section>        {session && !loading && (data.orders.length > 0 || pending > 0 || error.orders || error.payments) && <section className="premium-commerce"><Heading eyebrow="YOUR ACCOUNT" title="Orders & payments" action="View orders" to="/app/orders" /><Glass><div><strong>{error.orders ? 'Order summary temporarily unavailable' : `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}`}</strong><span>{error.payments ? 'Payment updates temporarily unavailable' : pending ? `${pending} payment${pending === 1 ? '' : 's'} awaiting an update` : 'No pending payment updates'}</span>{(error.orders || error.payments) && <p role="status">Your saved bookings have not changed. <button type="button" className="account-link" onClick={reload}>Retry account summary</button></p>}</div><Link className="premium-outline" to="/app/payments">View payments →</Link></Glass></section>}
 
       </div>
-    </main>{!embedded && <footer className="premium-footer premium-footer-refined">
-      <div className="premium-container premium-footer-content">
-        <div className="premium-footer-brand"><Link to="/" className="premium-logo" aria-label="Flyseri home"><BrandMark /></Link><p><Translated text="Your next journey, made smarter." /></p><small className="premium-footer-brand-attribution">Flyseri <span aria-hidden="true">—</span> A brand of Seri Mechan Travel</small></div>
-        <nav aria-label="Footer travel navigation"><h2>Explore</h2><Link to="/flights">Find flights</Link><Link to="/holidays">Holiday packages</Link><Link to="/plan-budget"><Translated text="Trip budget" /></Link><Link to="/app/visa">Visa assistance</Link><Link to="/app/trips"><Translated text="My trips" /></Link></nav>
-        <nav aria-label="Footer account navigation"><h2>Your Flyseri</h2><Link to="/app/orders">My orders</Link><Link to="/app/documents">Travel documents</Link><Link to="/app/travellers"><Translated text="Travellers" /></Link><Link to="/app/profile"><Translated text="Profile" /></Link></nav>
-        <div className="premium-footer-help"><span className="premium-footer-help-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1M5 12H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2v-6H5Zm14 0h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2v-6h1ZM18 18c0 2-2 3-5 3h-1"/></svg></span><h2>Here to help</h2><p>Booking questions, payment guidance and ways to reach our team.</p><Link to="/help">Visit the help centre</Link></div>
-      </div>
-      <div className="premium-container premium-booking-guidance">
+    </main>{!embedded && <>      <section className="premium-container premium-booking-guidance premium-prefooter" aria-label="Booking and policy information">
         <section className="premium-footer-info-group" aria-labelledby="footer-travel-info">
           <header><h2 id="footer-travel-info">Travel information</h2><p>Get to know Flyseri and find help with your booking.</p></header>
           <details><summary>About Flyseri</summary><div className="premium-footer-detail-content"><p>Flyseri is a brand of Seri Mechan Travel. Explore destinations, plan your journey and manage your travel details in one place.</p></div></details>
@@ -444,7 +376,14 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
           <details><summary>Privacy notice · demo</summary><div className="premium-footer-detail-content"><p>Use sample traveller names in demo checkout. Demo booking records and countdowns are stored in this browser tab’s session. Entered names are not sent to an airline or payment provider.</p></div></details>
           <details><summary>Booking, cancellation & refunds · demo</summary><div className="premium-footer-detail-content"><p>Demo bookings, payments, documents, cancellations and refunds are simulated. No airline seat is reserved or money collected. The five-minute payment window expires automatically. Check the approved booking terms before using live services.</p></div></details>
         </section>
+      </section>
+<footer className="premium-footer premium-footer-refined">
+      <div className="premium-container premium-footer-content">
+        <div className="premium-footer-brand"><Link to="/" className="premium-logo" aria-label="Flyseri home"><BrandMark /></Link><p><Translated text="Your next journey, made smarter." /></p><small className="premium-footer-brand-attribution">Flyseri <span aria-hidden="true">—</span> A brand of Seri Mechan Travel</small></div>
+        <nav aria-label="Footer travel navigation"><h2>Explore</h2><Link to="/flights">Find flights</Link><Link to="/holidays">Holiday packages</Link><Link to="/plan-budget"><Translated text="Trip budget" /></Link><Link to="/app/visa">Visa assistance</Link><Link to="/app/bookings">My travel</Link></nav>
+        <nav aria-label="Footer account navigation"><h2>Your Flyseri</h2><Link to="/app/points">Flyseri Points</Link><Link to="/app/profile?section=documents">My documents</Link><Link to="/app/travellers"><Translated text="Travellers" /></Link><Link to="/app/profile">Profile &amp; settings</Link></nav>
+        <div className="premium-footer-help"><span className="premium-footer-help-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1M5 12H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2v-6H5Zm14 0h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2v-6h1ZM18 18c0 2-2 3-5 3h-1"/></svg></span><h2>Here to help</h2><p>Booking questions, payment guidance and ways to reach our team.</p><Link to="/help">Visit the help centre</Link></div>
       </div>
-      <div className="premium-container premium-footer-bottom"><small>© {new Date().getFullYear()} Flyseri. All rights reserved.</small><nav aria-label="Company and policy information"><Link to="/help#contact-support">About & contact</Link><Link to="/help#booking-information">Booking information</Link><Link to="/help#policies">Policies & privacy</Link></nav><a href="#book">Back to top <span aria-hidden="true">↑</span></a></div>
-    </footer>}</div></div></div>;
+      <div className="premium-container premium-footer-bottom"><small>© {new Date().getFullYear()} Flyseri. All rights reserved.</small><nav aria-label="Company and policy information"><Link to="/help#contact-support">About & contact</Link><Link to="/help#booking-information">Booking information</Link><Link to="/help#policies">Policies & privacy</Link><a href="https://api.met.no/doc/License" target="_blank" rel="noreferrer">Weather data: MET Norway</a></nav><a href="#book">Back to top <span aria-hidden="true">↑</span></a></div>
+    </footer></>}</div></div></div>;
 }

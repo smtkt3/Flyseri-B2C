@@ -1,0 +1,14 @@
+@media(max-width:800px){
+  .customer-site-shell .account-mobile-bottom{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));width:auto;max-width:540px;margin-inline:auto;padding:6px;border:1px solid #ffffff;border-radius:23px;background:#fffffff2;box-shadow:0 8px 30px #234c7420,0 2px 6px #234c7409;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+  .customer-site-shell .account-mobile-bottom a{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-height:54px;padding:2px 0;border-radius:12px;background:transparent;color:#687f97;text-decoration:none;font-size:11px;font-weight:550;line-height:16px;-webkit-tap-highlight-color:transparent}
+  .customer-site-shell .account-mobile-bottom a .account-bottom-icon{display:grid;place-items:center;width:36px;height:30px;border-radius:11px;font-size:inherit;line-height:1;background:transparent;transition:background .15s,color .15s,transform .15s}
+  .account-bottom-icon svg{display:block;width:22px;height:22px}
+  .customer-site-shell .account-mobile-bottom a .account-bottom-label{font-size:11px;line-height:16px;white-space:nowrap;letter-spacing:0}
+  .customer-site-shell .account-mobile-bottom a.active{background:#edf5ff;color:#196bc5;font-weight:750;border-radius:17px}
+  .customer-site-shell .account-mobile-bottom a.active .account-bottom-icon{background:linear-gradient(135deg,#1976ed,#4099f5);color:#fff;box-shadow:0 3px 8px #247be52b}
+  .customer-site-shell .account-mobile-bottom a:hover .account-bottom-icon{background:#edf5fd}
+  .customer-site-shell .account-mobile-bottom a.active:hover .account-bottom-icon{background:#1976ed}
+  .customer-site-shell .account-mobile-bottom a:active .account-bottom-icon{transform:scale(.94)}
+  .customer-site-shell .account-mobile-bottom a:focus-visible{outline:2px solid #3588d8;outline-offset:-2px;background:#f0f7ff}
+}
+@media(prefers-reduced-motion:reduce){.account-mobile-bottom .account-bottom-icon{transition:none!important}}

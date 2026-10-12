@@ -9,6 +9,12 @@ export function preferredCurrency(): string {
   try { const value = localStorage.getItem('flyseri.currency'); return value && codes.includes(value) ? value : 'BDT'; } catch { return 'BDT'; }
 }
 export const currencyPreferenceEvent = 'flyseri:currency';
+export const currencyCodes = codes;
+export function saveCurrencyPreference(code:string) {
+  if(!codes.includes(code)) return;
+  try { localStorage.setItem('flyseri.currency',code); } catch { /* Apply for this page even when storage is unavailable. */ }
+  window.dispatchEvent(new CustomEvent(currencyPreferenceEvent,{detail:code}));
+}
 
 export function LocaleMenu() {
   const { language, setLanguage } = useLanguage();
@@ -24,8 +30,7 @@ export function LocaleMenu() {
   function close() { dialog.current?.close(); trigger.current?.focus(); }
   function select(code: string) {
     setCurrency(code);
-    try { localStorage.setItem('flyseri.currency', code); } catch { /* Preference still applies for this page. */ }
-    window.dispatchEvent(new CustomEvent(currencyPreferenceEvent, { detail: code })); close();
+    saveCurrencyPreference(code); close();
   }
   const choice = (code: string) => <button type="button" key={code} className={currency === code ? 'is-selected' : ''} aria-pressed={currency === code} onClick={() => select(code)} title={`${code} - ${labels[code] ?? names.of(code) ?? code}`}><strong>{code}</strong> - {labels[code] ?? names.of(code) ?? code}</button>;
   return <><button type="button" ref={trigger} className="navbar-locale-trigger" aria-label={`Language and currency, ${currency}`} aria-haspopup="dialog" onClick={() => {setTab('currency'); dialog.current?.showModal();}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 7h14M5 17h14"/></svg><span>{currency}</span></button>

@@ -26,3 +26,12 @@ it('supports adding the first extra, changing its price and removing the last ex
   expect(screen.queryByText('Extra baggage')).toBeNull();
   expect(onEstimatedTripTotal).toHaveBeenLastCalledWith(null);
 });
+
+it('does not add a weight rate to the payable or estimated trip total', () => {
+  const onEstimatedTripTotal = vi.fn();
+  const extra: FlightAncillaryRequest = { id: 'bag', name: 'PER KG BAGGAGE', serviceCode: 'BAG', category: 'BAGGAGE', segmentLabels: ['DAC → CXB'], passengerIndexes: [0], amount: '150.00', currency: 'MYR', status: 'REQUESTED', rules: { source: 'SABRE_ATPCO', feeApplicationMethod: 'PER_1KG_OVER_FREE_BAGGAGE_ALLOWANCE', weightLimits: [], quotedQuantity: 1, feeMayChange: null, refundabilityCode: null, serviceType: 'C', requiresWeightConfirmation: true } };
+  render(<FlightSelectedExtras requests={[extra]} airfare={{ amount: '200.00', currency: 'MYR' }} onEstimatedTripTotal={onEstimatedTripTotal}/>);
+  expect(screen.getByText('Awaiting weight quote')).toBeTruthy();
+  expect(screen.queryByText('Estimated trip with extras')).toBeNull();
+  expect(onEstimatedTripTotal).toHaveBeenLastCalledWith(null);
+});

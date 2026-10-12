@@ -63,6 +63,7 @@ export class FlightAncillaryPurchaseService {
     return names;
   }
   private async quote(offer: FlightOffer, current: PurchaseBooking, requests: FlightAncillaryRequest[], checkoutCurrency: string) {
+    if (requests.some(request => request.rules?.requiresWeightConfirmation || /\bPER\s+(?:KG|KILO(?:GRAM)?)\b/i.test(request.name))) throw conflict('Extra baggage weight needs an airline quote before purchase. Contact Flyseri to confirm kilograms, the maximum weight and the final total, or continue with ticket only.');
     const plans: AncillaryPurchasePlan[] = [];
     let quote: FlightAncillaryResponse;
     if (offer.ndcContext) {

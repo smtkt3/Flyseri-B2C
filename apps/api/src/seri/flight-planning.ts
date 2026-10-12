@@ -1,5 +1,5 @@
 import type { FlightSearchRequest } from '@flyseri/types';
-import { flightPlanningDraft } from './travel-intent.js';
+import { flightPlanningDraft, userTravelText } from './travel-intent.js';
 
 /** Stored in owned conversation messages, independent of the model's context window. */
 export type FlightPlan = {
@@ -19,6 +19,7 @@ export function readFlightPlan(value: unknown): FlightPlan | null {
   return p;
 }
 export function updateFlightPlan(text: string, previous: FlightPlan | null): { plan: FlightPlan; changed: boolean } | null {
+  text = userTravelText(text).replace(/[‘’]/g, "'");
   if (/\b(hotels?|accommodation|refund|cancel|payment|visa)\b/i.test(text)) return null;
   const route = flightPlanningDraft(text) ?? (previous && !/\b(change|destination|origin|instead|please|want|like)\b/i.test(text) && /^[\p{L} .'-]{2,60}\s+to\s+[\p{L} .'-]{2,60}$/iu.test(text.trim()) ? flightPlanningDraft(`from ${text}`) : null);
   // A mention of a flight alone is not a request to start a new search. Keep
@@ -88,5 +89,5 @@ export function flightPlanQuestion(p: FlightPlan): string | null {
   if(p.tripType==='ROUND_TRIP' && (!p.returnDate || !validDate(p.returnDate) || (p.departureDate && p.returnDate<p.departureDate)))questions.push('What is your return date, including the year?');
   if(p.adults===undefined)questions.push('How many adults, children and infants are travelling?');
   else if(p.adults<1 || p.adults>9 || (p.children??0)<0 || (p.infants??0)<0 || p.adults+(p.children??0)+(p.infants??0)>9 || (p.infants??0)>p.adults)questions.push('Please confirm a valid passenger count (up to 9 travellers, with at least one adult).');
-  return questions.length ? `${p.origin ?? '?'} → ${p.destination ?? '?'}. ${questions.join(' ')}` : null;
+  return questions.length ? `${p.origin && p.destination ? `${p.origin} → ${p.destination}. ` : ''}${questions.join(' ')}` : null;
 }

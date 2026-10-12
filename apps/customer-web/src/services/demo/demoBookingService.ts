@@ -22,9 +22,12 @@ function save(values: DemoBooking[], store: Store) {
   try { store.setItem(key, JSON.stringify(values)); }
   catch { throw new Error('Demo storage is unavailable or full. Enable browser storage and try again.'); }
 }
+/** Resets only simulated booking records; account and live booking data are untouched. */
+export function resetDemoBookings(store = storage()): void { save([], store); }
 export function createDemoBooking(input: Pick<DemoBooking, 'destination' | 'city' | 'departure' | 'travellers' | 'amountPerPerson' | 'currency'>, options: { now?: number; expiresAt?: number; store?: Store } = {}): DemoBooking {
   const now = options.now ?? Date.now(); const store = options.store ?? storage();
-  if (!/^[A-Z]{3}$/.test(input.destination) || !input.city || !/^\d{4}-\d{2}-\d{2}$/.test(input.departure) || !Number.isFinite(Date.parse(input.departure)) || input.departure < new Date(now).toISOString().slice(0,10) || !Number.isInteger(input.travellers) || input.travellers < 1 || input.travellers > 9 || !Number.isSafeInteger(Math.round(input.amountPerPerson * input.travellers * 100)) || input.amountPerPerson <= 0 || !/^[A-Z]{3}$/.test(input.currency)) throw new Error('Check the demo route, date, travellers and fare.');
+  const parsedDate = Date.parse(input.departure);
+  if (!/^[A-Z]{3}$/.test(input.destination) || !input.city || !/^\d{4}-\d{2}-\d{2}$/.test(input.departure) || !Number.isFinite(parsedDate) || new Date(parsedDate).toISOString().slice(0,10) !== input.departure || input.departure < new Date(now).toISOString().slice(0,10) || !Number.isInteger(input.travellers) || input.travellers < 1 || input.travellers > 9 || !Number.isSafeInteger(Math.round(input.amountPerPerson * input.travellers * 100)) || input.amountPerPerson <= 0 || !/^[A-Z]{3}$/.test(input.currency)) throw new Error('Check the demo route, date, travellers and fare.');
   const expiresAt = options.expiresAt ?? now + 300000;
   if (expiresAt <= now || expiresAt > now + 300000) throw new Error('The demo hold has expired. Start a new selection.');
   const value: DemoBooking = { ...input, id: 'DEMO-' + crypto.randomUUID().toUpperCase(), status: 'HELD', createdAt: now, expiresAt, paymentAttempts: 0, history: [{ at: now, text: 'Demo reservation created · five-minute payment window' }] };

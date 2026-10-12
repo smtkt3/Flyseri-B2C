@@ -13,14 +13,15 @@ import { AirlineIdentity, airlineName } from './AirlineIdentity';
 import { flightService } from '../services/flightService';
 import { travellerService } from '../services/travellerService';
 import { countries } from '../trip/tripPresentation';
-import { checkoutPassengerError, checkoutPassportError, matchingCheckoutTraveller } from './checkoutContinuation';
+import { checkoutPassengerError, checkoutPassportError, matchingCheckoutTraveller, sameCheckoutFare } from './checkoutContinuation';
 import { ApiClientError } from '../lib/api/client';
 import { randomUUID } from '../lib/randomUUID';
 import { FlightPriceDetails } from './FlightPriceDetails';
 import { BookingProgress } from './BookingProgress';
 import { BoundedSelect } from '../components/BoundedSelect';
 import { useCheckoutShoppingFare } from './useCheckoutShoppingFare';
-import { clearCheckoutDraft, keepCheckoutDraft, readCheckoutDraft } from './checkoutDrafts';
+import { checkoutJourneyDraftKey, clearCheckoutDraft, keepCheckoutDraft, readCheckoutDraft } from './checkoutDrafts';
+import './checkout-fare-recovery.css';
 import { flightBrowseReturn, flightBrowseSearchQuery, type FlightBrowseReturn } from './flightSearchBrowsing';
 import { seriReturnPath } from '../seri/seriFlightReturn';
 import { useDialogFocus } from '../components/useDialogFocus';
@@ -81,7 +82,15 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   const { session } = useAuth();
   const { offer, searchRequest } = checkout;
   const draftKey = `guest:${checkout.searchId}:${offer.offerId}`;
-  const [draft] = useState(() => readCheckoutDraft<GuestDraft>(draftKey, session?.user.id ?? null));
+  const journeyDraftKey = checkoutJourneyDraftKey(searchRequest);
+  const [draft] = useState(() => {
+    const owner = session?.user.id ?? null;
+    const exact = readCheckoutDraft<GuestDraft>(draftKey, owner);
+    if (exact) return exact;
+    const saved = readCheckoutDraft<GuestDraft>(journeyDraftKey, owner);
+    // Carry people and contact details to a new quote, never old extras or booking IDs.
+    return saved ? {...saved,passengers:saved.passengers.map(person=>({...person,confirmed:false})),selectedExtras:[],submissionKey:randomUUID(),submittedAttemptId:null} : undefined;
+  });
   const [passengers, setPassengers] = useState(() => draft?.passengers ?? passengersFor(searchRequest));
   const [savedPeople,setSavedPeople]=useState<TravellerProfile[]>([]);
   const [savedSelections,setSavedSelections]=useState<Record<number,string>>({});
@@ -120,7 +129,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     // Guest details may follow the sign-in overlay; switching away from an
     // existing account clears private fields before another owner can save them.
     if (draftOwner.current !== null && draftOwner.current !== owner) {
-      clearCheckoutDraft(draftKey); draftOwner.current = owner;
+      clearCheckoutDraft(draftKey); clearCheckoutDraft(journeyDraftKey); draftOwner.current = owner;
       setPassengers(passengersFor(searchRequest)); setContact({ name: '', email: '', dialCode: '+60', phone: '' });
       setServicePreferences(passengersFor(searchRequest).map(() => emptyServicePreferences()));
       setContactNameManuallyEdited(false); setSubmittedAttemptId(null); submissionKey.current = randomUUID();
@@ -128,6 +137,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     }
     draftOwner.current = owner;
     keepCheckoutDraft(draftKey, owner, { passengers, contact, servicePreferences, selectedExtras, contactNameManuallyEdited, submissionKey: submissionKey.current, submittedAttemptId });
+    keepCheckoutDraft(journeyDraftKey, owner, { passengers, contact, servicePreferences, contactNameManuallyEdited });
   }, [draftKey, session?.user.id, passengers, contact, servicePreferences, selectedExtras, contactNameManuallyEdited, submittedAttemptId, searchRequest]);
   const sending = useRef(false);
   const route = legsOf(offer).map((leg) => `${leg.segments[0]?.origin ?? '—'} → ${leg.segments.at(-1)?.destination ?? '—'}`).join(' · ');
@@ -135,7 +145,22 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   const detailsReady=passengers.every(person=>person.confirmed&&validPassenger(person,searchRequest.departureDate,lastTravelDate)&&!checkoutPassportError(person,lastTravelDate))&&!!contact.name.trim()&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim())&&contact.phone.replace(/\D/g,'').length>=6;
   const {selection:latestSelection,checking:checkingFare,error:fareCheckError,ensure:ensureShoppingFare,clear:clearShoppingFare}=useCheckoutShoppingFare(offer,searchRequest,session?.user.id??null,detailsReady,submitting||!!submittedAttemptId);
   const pricedOffer = latestSelection?.offer ?? offer;
+  const bookingClasses = [...new Set(legsOf(pricedOffer).flatMap(leg=>leg.segments.map(segment=>segment.bookingClass).filter(Boolean)))].join(' / ');
   const priceChanged=!!latestSelection&&(latestSelection.offer.currency!==offer.currency||Number(latestSelection.offer.totalAmount)!==Number(offer.totalAmount));
+  const fareChanged = priceChanged || !!latestSelection?.replacement;
+  const [fareNotificationDismissed,setFareNotificationDismissed] = useState(false);
+  useEffect(()=>setFareNotificationDismissed(false),[latestSelection]);
+  const fareExplanation = latestSelection?.replacement
+    ? 'The latest airline search no longer returned your selected fare class. This is the closest available fare on the same flights. Compare its class, baggage and conditions before accepting.'
+    : 'The airline returned an updated price when we checked again. Fares can change before a reservation is confirmed; this does not by itself mean your flight is sold out.';
+  async function recheckFare() {
+    if (checkingFare || submitting || submittedAttemptId) return;
+    setCheckoutNotice('');
+    try {
+      const checked = await ensureShoppingFare(true);
+      if (sameCheckoutFare(offer,checked.offer) && checked.offer.currency===offer.currency && Number(checked.offer.totalAmount)===Number(offer.totalAmount)) setCheckoutNotice(`Latest shopping price checked: ${money(checked.offer.totalAmount,checked.offer.currency)}. Your seat is not reserved yet.`);
+    } catch { /* The fare checker displays the error once. */ }
+  }
   const travelers = passengers.length;
   const tripDescription = searchRequest.tripType === 'ROUND_TRIP' ? 'Round trip' : searchRequest.tripType === 'MULTI_CITY' ? 'Multi-city' : 'One way';
   function markDetailsChanged() {
@@ -213,7 +238,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     setCheckoutNotice('');
     try {
       const selection=await ensureShoppingFare();
-      if(selection.offer.currency!==pricedOffer.currency||Number(selection.offer.totalAmount)!==Number(pricedOffer.totalAmount)){
+      if(!sameCheckoutFare(selection.offer,pricedOffer)||selection.offer.currency!==pricedOffer.currency||Number(selection.offer.totalAmount)!==Number(pricedOffer.totalAmount)){
         setCheckoutNotice('The fare has changed. Review the updated total, then continue.');
         return;
       }
@@ -257,7 +282,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
         <section className="guest-checkout-main">
           <section className="guest-checkout-card">
             <div className="guest-checkout-card-heading"><div><span className="guest-checkout-eyebrow">YOUR FLIGHT</span><h2>{route}</h2></div><span className="guest-checkout-pill">{tripDescription}</span></div>
-            <div className="guest-checkout-airline"><AirlineIdentity codes={offer.airlineCodes} /><strong>{offer.cabin?.replace(/_/g, ' ').toLowerCase() ?? 'Cabin not specified'}{offer.fareBrand ? ` · ${offer.fareBrand}` : ''}</strong></div>
+            <div className="guest-checkout-airline"><AirlineIdentity codes={pricedOffer.airlineCodes} /><strong>{pricedOffer.cabin?.replace(/_/g, ' ').toLowerCase() ?? 'Cabin not specified'}{pricedOffer.fareBrand ? ` · ${pricedOffer.fareBrand}` : ''}{bookingClasses ? ` · Booking class ${bookingClasses}` : ''}</strong></div>
             {legsOf(offer).map((leg, index) => <div className="guest-checkout-leg" key={`${leg.segments[0]?.origin}-${index}`}>
               <span>{offer.multiCityLegs ? `Flight ${index + 1}` : index === 0 ? 'Depart' : 'Return'}</span>
               <div>{leg.segments.map((segment) => <div className="guest-checkout-segment" key={`${segment.marketingCarrier}-${segment.flightNumber}-${segment.departureAt}`}>
@@ -307,8 +332,8 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
 
           <section className="guest-checkout-card guest-checkout-baggage">
             <div className="guest-checkout-card-heading"><div><span className="guest-checkout-eyebrow">FARE INFORMATION</span><h2>Baggage allowance</h2></div></div>
-            <FlightBaggageDetails offer={offer} />
-            {offer.baggageCharge && <p className="guest-checkout-note">Sabre returned an additional baggage charge: {money(offer.baggageCharge.amount, offer.baggageCharge.currency)}{offer.baggageCharge.description ? ` · ${offer.baggageCharge.description}` : ''}. Purchase isn’t available here.</p>}
+            <FlightBaggageDetails offer={pricedOffer} />
+            {pricedOffer.baggageCharge && <p className="guest-checkout-note">Sabre returned an additional baggage charge: {money(pricedOffer.baggageCharge.amount, pricedOffer.baggageCharge.currency)}{pricedOffer.baggageCharge.description ? ` · ${pricedOffer.baggageCharge.description}` : ''}. Purchase isn’t available here.</p>}
           </section>
 
           <section className="guest-checkout-card">
@@ -322,14 +347,15 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
             <p className="guest-checkout-note">Available airline baggage, seats and meals are on the next step.</p>
           </section>
 
-          <section className="guest-checkout-finish" aria-label="Checkout total">
+          <section className="guest-checkout-finish" id="checkout-fare-review" aria-label="Checkout total">
             <p className="guest-checkout-acknowledgment">The fare shown is a shopping price and may change when checked again. A reservation is created only after Sabre confirms a PNR; ticket issuance is a separate step.</p>
             <div className="guest-checkout-finish-card">
               <div className="guest-checkout-finish-total"><strong>{selectedExtras.length?'Estimated total with extras':'Total'}</strong><strong>{selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'Awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}</strong></div>
-              {priceChanged && <p className="guest-checkout-next-notice">Fare updated from {money(offer.totalAmount,offer.currency)} to {money(pricedOffer.totalAmount,pricedOffer.currency)}. Review the total before continuing.</p>}
-              <button className="guest-checkout-next" type="button" onClick={() => void handleNext()} disabled={submitting || checkingFare}>{submitting ? 'Preparing checkout…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : priceChanged ? 'Accept updated fare & continue' : 'Continue to extras'}</button>
+              {fareChanged && <div className="guest-checkout-next-notice"><strong>{latestSelection?.replacement ? 'Alternative fare for your review' : 'Fare updated'} · {money(pricedOffer.totalAmount,pricedOffer.currency)}</strong><p>{fareExplanation}</p><small>Previously {money(offer.totalAmount,offer.currency)} · {pricedOffer.cabin?.replace(/_/g,' ') ?? 'Cabin not supplied'}{pricedOffer.fareBrand ? ` · ${pricedOffer.fareBrand}` : ''}. Review the fare details above.</small></div>}
+              <button className="guest-checkout-next" type="button" onClick={() => void handleNext()} disabled={submitting || checkingFare}>{submitting ? 'Preparing checkout…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept updated fare & continue' : 'Continue to extras'}</button>
+              <div className="checkout-fare-links"><button type="button" disabled={checkingFare || submitting || !!submittedAttemptId} onClick={()=>void recheckFare()}>{checkingFare ? 'Rechecking price…' : 'Recheck latest price'}</button><Link to={returnTo ? returnTo.pathname+returnTo.search : seriReturnTo ?? '/flights'+flightBrowseSearchQuery(searchRequest)} state={returnTo ? {flightBrowseKey:returnTo.key} : {resumeSeri:!!seriReturnTo}}>Choose another flight</Link><small>Your traveler details stay saved in this tab for 30 minutes.</small></div>
               {fareCheckError && <p className="guest-checkout-next-notice" role="status">{fareCheckError}</p>}
-              {checkoutNotice && <p className="guest-checkout-next-notice" role="status">{checkoutNotice}</p>}
+              {checkoutNotice && checkoutNotice !== fareCheckError && <p className="guest-checkout-next-notice" role="status">{checkoutNotice}</p>}
             </div>
             <div className="guest-checkout-assurance" aria-label="Checkout information"><span>✓ Guest details</span><span>✓ Fare breakdown</span><span>✓ No payment taken yet</span></div>
           </section>
@@ -343,7 +369,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
           <strong>{selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'Awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}</strong>
           <span>Price details <i aria-hidden="true" /></span>
         </button>
-        <button type="button" className="btn-primary" disabled={submitting || checkingFare} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : priceChanged ? 'Accept & continue' : 'Continue to extras'}</button>
+        <button type="button" className="btn-primary" disabled={submitting || checkingFare} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept & continue' : 'Continue to extras'}</button>
       </div>
       {mobilePriceDetailsOpen && <div className="checkout-mobile-price-layer">
         <button type="button" className="checkout-mobile-price-scrim" aria-label="Close price details" onClick={() => setMobilePriceDetailsOpen(false)} />
@@ -351,6 +377,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
           <FlightPriceDetails offer={pricedOffer} search={searchRequest} requests={servicePreferences} selectedExtras={selectedExtras} onClose={() => setMobilePriceDetailsOpen(false)} onEstimatedTripTotal={reportAncillaryTotal} />
         </section>
       </div>}
+      {fareChanged && !fareNotificationDismissed && <aside className="checkout-fare-notification" role="status" aria-label="Fare update"><button type="button" aria-label="Dismiss fare update" onClick={()=>setFareNotificationDismissed(true)}>×</button><strong>{latestSelection?.replacement ? 'Your selected fare is no longer returned' : 'Your fare has changed'}</strong><p>{fareExplanation}</p><b>{money(offer.totalAmount,offer.currency)} → {money(pricedOffer.totalAmount,pricedOffer.currency)}</b><span>{pricedOffer.cabin?.replace(/_/g,' ') ?? 'Cabin not supplied'}{pricedOffer.fareBrand ? ` · ${pricedOffer.fareBrand}` : ''} · Total for all travelers</span><a href="#checkout-fare-review">Review before continuing ↓</a></aside>}
     </main>
   </div>;
 }

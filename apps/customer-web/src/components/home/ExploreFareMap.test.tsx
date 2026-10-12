@@ -9,6 +9,7 @@ import { flightService } from '../../services/flightService';
 vi.mock('../../services/flightService', () => ({ flightService: { popularCachedFares: vi.fn().mockResolvedValue([]) } }));
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   updateHomeSearch(emptyHomeSearch);
   vi.mocked(flightService.popularCachedFares).mockResolvedValue([]);
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => window.setTimeout(() => callback(performance.now()), 16));
@@ -27,6 +28,42 @@ function setup() {
   return { map, origin };
 }
 describe('interactive fare map', () => {
+  it('uses the cheapest unexpired fare and excludes unknown prices from a budget', async () => {
+    const fare = { destination: 'BKK', currency: 'BDT', departureDate: '2099-11-12', searchedAt: '2026-10-08T00:00:00Z', expiresAt: '2099-10-08T00:05:00Z', stops: 0 };
+    vi.mocked(flightService.popularCachedFares).mockResolvedValue([
+      { ...fare, price: '12000' }, { ...fare, price: '22000' },
+      { ...fare, destination: 'KUL', price: '500', expiresAt: '2000-01-01T00:00:00Z' },
+      { ...fare, destination: 'DXB', price: 'NaN' },
+    ]);
+    setup();
+    expect(await screen.findByRole('button', { name: 'Select Bangkok, BDT 12,000' })).toBeTruthy();
+    fireEvent.change(screen.getByRole('slider', { name: 'Maximum cached fare' }), { target: { value: '15000' } });
+    expect(screen.getByRole('article', { name: 'Selected destination' }).textContent).toContain('BDT 12,000');
+    expect(screen.queryByRole('button', { name: 'Select Dubai airport DXB' })).toBeNull();
+    fireEvent.change(screen.getByRole('slider', { name: 'Maximum cached fare' }), { target: { value: '1000' } });
+    expect(screen.queryByRole('article', { name: 'Selected destination' })).toBeNull();
+    expect(screen.getByText(/No recent fares match these filters/)).toBeTruthy();
+  });
+  it('requires known non-stop fares and restores filters and map position after remount', async () => {
+    setup();
+    fireEvent.click(screen.getByRole('switch', { name: 'Non-stop fares only' }));
+    fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'Thailand' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Show full world map' }));
+    expect(screen.queryByRole('article', { name: 'Selected destination' })).toBeNull();
+    cleanup(); setup();
+    expect((screen.getByRole('switch', { name: 'Non-stop fares only' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText('Country') as HTMLSelectElement).value).toBe('Thailand');
+    expect(screen.getByRole('button', { name: 'Zoom out map' }).hasAttribute('disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    expect(screen.getByRole('article', { name: 'Selected destination' })).toBeTruthy();
+  });
+  it('keeps exploration available after a price service failure without a status strip', async () => {
+    vi.mocked(flightService.popularCachedFares).mockRejectedValueOnce(new Error('offline'));
+    setup();
+    await waitFor(() => expect(flightService.popularCachedFares).toHaveBeenCalled());
+    expect(screen.queryByText(/recent destination fares/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'View flights' })).toBeTruthy();
+  });
   it('skips offline or hidden polling and avoids overlapping requests', async () => {
     vi.useFakeTimers();
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
@@ -61,7 +98,7 @@ describe('interactive fare map', () => {
     finally { vi.useRealTimers(); }
   });
   it('changes departure airport, clears old quotes, and uses the new origin in flight search', async () => {
-    vi.mocked(flightService.popularCachedFares).mockResolvedValueOnce([{ destination: 'BKK', currency: 'BDT', price: '12000', departureDate: '2026-11-12', searchedAt: '2026-10-08T00:00:00Z', expiresAt: '2026-10-08T00:05:00Z' }]);
+    vi.mocked(flightService.popularCachedFares).mockResolvedValueOnce([{ destination: 'BKK', currency: 'BDT', price: '12000', departureDate: '2026-11-12', searchedAt: '2026-10-08T00:00:00Z', expiresAt: '2099-10-08T00:05:00Z' }]);
     setup();
     expect(await screen.findByRole('button', { name: 'Select Bangkok, BDT 12,000' })).toBeTruthy();
     expect(screen.getByText('Travel 2026-11-12').getAttribute('title')).toContain('Checked');

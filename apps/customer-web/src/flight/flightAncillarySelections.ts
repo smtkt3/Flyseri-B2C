@@ -9,7 +9,7 @@ export function ancillaryKey(service: Pick<Service, 'name' | 'serviceCode' | 'gr
 export function requestedExtra(service: Service): FlightAncillaryRequest {
   return { id: ancillaryKey(service), name: service.name, serviceCode: service.serviceCode, groupCode: service.groupCode,
     category: airlineServiceCategory(service), segmentLabels: service.segmentLabels, passengerIndexes: service.passengerIndexes,
-    amount: service.amount, currency: service.currency, status: 'REQUESTED' };
+    amount: service.amount, currency: service.currency, ...(service.rules ? { rules: service.rules } : {}), status: 'REQUESTED' };
 }
 export function ancillarySelectionInputs(selected: FlightAncillaryRequest[], quote: FlightAncillaryResponse): FlightAncillarySelectionInput[] {
   if (!selected.length) return [];
@@ -17,6 +17,7 @@ export function ancillarySelectionInputs(selected: FlightAncillaryRequest[], quo
   return selected.map(extra => {
     const serviceIndex = quote.services.findIndex(service => ancillaryKey(service) === ancillaryKey(extra) && service.amount === extra.amount && service.currency === extra.currency);
     if (serviceIndex < 0) throw new Error('An extra has changed or is no longer available. Refresh offers and review your choices.');
+    if (selected.length && JSON.stringify(extra.rules ?? null) !== JSON.stringify(quote.services[serviceIndex]!.rules ?? null)) throw new Error('The airline rules for an extra changed. Remove it and review the refreshed offer before selecting it again.');
     return { quoteId: quote.quoteId!, serviceIndex };
   });
 }

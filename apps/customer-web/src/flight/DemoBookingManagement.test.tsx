@@ -1,13 +1,36 @@
 // @vitest-environment jsdom
 import { afterEach,beforeEach,expect,it,vi } from 'vitest';
-import { cleanup,fireEvent,render,screen } from '@testing-library/react';
+import { act,cleanup,fireEvent,render,screen } from '@testing-library/react';
 import { MemoryRouter,Route,Routes } from 'react-router-dom';
 import { DemoBookingManagement } from './DemoBookingManagement';
 import { createDemoBooking,readDemoBookings } from '../services/demo/demoBookingService';
 vi.mock('../components/PremiumNavbar',()=>({PremiumNavbar:()=>null}));
 vi.mock('../lib/downloadText',()=>({downloadText:vi.fn()}));
-beforeEach(()=>{sessionStorage.clear();});afterEach(cleanup);
+beforeEach(()=>{sessionStorage.clear();});afterEach(()=>{cleanup();vi.useRealTimers();});
 function open(path='/demo/bookings'){render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/demo/bookings" element={<DemoBookingManagement/>}/><Route path="/demo/bookings/:demoId" element={<DemoBookingManagement/>}/></Routes></MemoryRouter>);}
+it('provides guarded recovery from corrupt local demo records',()=>{
+  sessionStorage.setItem('flyseri.demo-bookings.v1','broken');
+  sessionStorage.setItem('flyseri.account.preferences','keep');
+  open();
+  expect(screen.getByRole('alert')).toBeTruthy();
+  expect((screen.getByRole('button',{name:'Reset demo bookings'}) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByLabelText('Clear this tab’s simulated bookings.'));
+  fireEvent.click(screen.getByRole('button',{name:'Reset demo bookings'}));
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByText('No demo bookings yet.')).toBeTruthy();
+  expect(sessionStorage.getItem('flyseri.account.preferences')).toBe('keep');
+});
+it('closes expired reservations and offers recovery for missing booking references',()=>{
+  vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-11T00:00:00Z'));
+  const value=createDemoBooking({destination:'BKK',city:'Bangkok',departure:'2026-11-12',travellers:1,amountPerPerson:18900,currency:'BDT'});
+  open('/demo/bookings/'+value.id);
+  act(()=>vi.advanceTimersByTime(300000));
+  expect(screen.getByText('Payment window expired')).toBeTruthy();
+  expect(screen.queryByRole('button',{name:/^Pay .*demo$/})).toBeNull();
+  cleanup();open('/demo/bookings/DEMO-MISSING');
+  expect(screen.getByRole('heading',{name:'Demo booking not found'})).toBeTruthy();
+  expect(screen.getByRole('link',{name:'Start a new demo'}).getAttribute('href')).toBe('/demo/bookings');
+});
 it('completes reservation → demo payment → document → refund and restores the saved result',async()=>{
   open();fireEvent.change(screen.getByLabelText('Travel date'),{target:{value:screen.getByLabelText('Travel date').querySelectorAll('option')[1]!.value}});
   fireEvent.click(screen.getByRole('button',{name:'Reserve demo flight'}));

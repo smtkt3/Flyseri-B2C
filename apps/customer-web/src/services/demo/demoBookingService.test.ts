@@ -1,11 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createDemoBooking, demoBookingReceipt, readDemoBookings, transitionDemoBooking, updateDemoBooking } from './demoBookingService';
+import { createDemoBooking, demoBookingReceipt, readDemoBookings, resetDemoBookings, transitionDemoBooking, updateDemoBooking } from './demoBookingService';
 const now=Date.parse('2026-10-10T00:00:00Z');
 const input={destination:'KUL',city:'Kuala Lumpur',departure:'2026-11-12',travellers:2,amountPerPerson:22500,currency:'BDT'};
 let values: Map<string,string>;
 const store={getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>{values.set(key,value);}};
 beforeEach(()=>{values=new Map();});
 describe('isolated demo booking lifecycle',()=>{
+  it('rejects impossible calendar dates and recovers only demo records',()=>{
+    expect(()=>createDemoBooking({...input,departure:'2027-02-31'},{store,now})).toThrow('Check the demo route');
+    store.setItem('flyseri.account.preferences','keep');
+    store.setItem('flyseri.demo-bookings.v1','broken');
+    resetDemoBookings(store);
+    expect(readDemoBookings(store)).toEqual([]);
+    expect(store.getItem('flyseri.account.preferences')).toBe('keep');
+  });
   it('persists one payment, separate ticket evidence, receipt and refund without personal or payment details',()=>{
     const value=createDemoBooking(input,{store,now});
     expect(value.expiresAt-now).toBe(300000);

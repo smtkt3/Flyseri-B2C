@@ -32,7 +32,7 @@ $cityCentres = @{}
 $cityGrid = @{}
 $gridSize = 0.5
 $longitudeCellCount = [int](360 / $gridSize)
-foreach ($line in Get-Content -LiteralPath $CitiesPath) {
+foreach ($line in Get-Content -LiteralPath $CitiesPath -Encoding UTF8) {
   $fields = $line.Split("`t")
   if ($fields.Length -lt 15 -or $fields[8] -eq '') { continue }
   $population = 0L
@@ -65,6 +65,7 @@ function Get-CityCentreForAirport([string]$airportCode, [string]$country, [strin
     'KUL' = @{ key = 'MY|kualalumpur'; label = 'Kuala Lumpur' }
     'SZB' = @{ key = 'MY|kualalumpur'; label = 'Kuala Lumpur' }
     'PEN' = @{ key = 'MY|georgetown'; label = 'Penang' }
+    'CXB' = @{ key = 'BD|coxsbazar'; label = "Cox's Bazar" }
   }
   if ($metroAliases.ContainsKey($airportCode) -and $cityCentres.ContainsKey($metroAliases[$airportCode].key)) {
     $knownCentre = $cityCentres[$metroAliases[$airportCode].key]
@@ -129,7 +130,7 @@ function Get-CityCentreForAirport([string]$airportCode, [string]$country, [strin
 
 New-Item -ItemType Directory -Path $directory -Force | Out-Null
 $airports = @(
-  Import-Csv -LiteralPath $CsvPath |
+  Import-Csv -LiteralPath $CsvPath -Encoding UTF8 |
     Where-Object { $_.iata_code -cmatch '^[A-Z]{3}$' -and $_.type -notin @('closed', 'balloonport') } |
     Sort-Object iata_code |
     ForEach-Object {

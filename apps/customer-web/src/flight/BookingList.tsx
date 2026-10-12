@@ -11,7 +11,7 @@ import './booking-management.css';
 import { BookingStatusSummary } from './BookingStatusSummary';
 import { BookingLoading } from './BookingLoading';
 
-export function BookingList() {
+export function BookingList({embedded=false}:{embedded?:boolean}={}) {
   const [items, setItems] = useState<FlightBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ export function BookingList() {
   };
   const filtered = items.filter(item => groups[filter]!(item) && [item.pnr, bookingRoute(item), ...item.passengerNames, item.order?.orderNumber].filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="account-page flight-page booking-management">
-    <div className="booking-management-heading"><CheckoutPageHeader title="My bookings" description="Manage your reservations, payments and airline updates."/><div className="booking-management-heading-actions"><button type="button" className="account-outline-button" disabled={loading} onClick={() => setAttempt(value => value + 1)}>{loading ? 'Refreshing…' : 'Refresh bookings'}</button><Link className="btn-primary" to="/flights">Book a flight</Link></div></div>
+    <div className="booking-management-heading">{!embedded&&<CheckoutPageHeader title="My bookings" description="Manage your reservations, payments and airline updates."/>}<div className="booking-management-heading-actions"><button type="button" className="account-outline-button" disabled={loading} onClick={() => setAttempt(value => value + 1)}>{loading ? 'Refreshing…' : 'Refresh bookings'}</button><Link className="btn-primary" to="/flights">Book a flight</Link></div></div>
     <section className="booking-management-tools" aria-label="Find a booking">
       <p className="account-muted">Testing the process? <Link className="account-link" to="/demo/bookings">Try a demo booking &amp; payment</Link> · No money or airline seats involved.</p>
       <label>Find a booking<input type="search" placeholder="PNR, route, passenger or order number" value={query} onChange={event => setQuery(event.target.value)} /></label>

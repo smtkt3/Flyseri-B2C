@@ -6,6 +6,15 @@ vi.mock('./flightService', () => ({ flightService: { search: api.search } }));
 afterEach(() => vi.clearAllMocks());
 const request = { origin: 'DAC', destination: 'BKK', departureDate: '2027-01-22', tripType: 'ONE_WAY', adults: 1, children: 0, infants: 0, cabin: 'ECONOMY', currency: 'BDT' };
 describe('guest chat flight search', () => {
+  it('explains an empty supplier response without claiming the route has no flights', async () => {
+    api.post.mockResolvedValue({data:{message:{id:'empty',payload:{flightSearchRequest:{...request,destination:'CXB'}}}}});
+    api.search.mockResolvedValue({source:'sabre',searchId:'empty-search',offers:[],expiresAt:'2027-01-01T00:00:00Z'});
+    const reply = await seriService.guestSend("dac to cox's bazar", [], 'BDT');
+    expect(reply.message.content).toContain('supplier coverage');
+    expect(reply.message.content).toContain('Choose another date');
+    expect(reply.message.content).not.toContain('No flights found');
+    expect(reply.message.payload).toMatchObject({searchRequest:{destination:'CXB'},offers:[]});
+  });
   it('gets prices only from the existing flight API and attaches the exact request', async () => {
     api.post.mockResolvedValue({ data: { message: { id: 'm1', role: 'ASSISTANT', content: 'Untrusted price 123', messageType: 'FLIGHT_RESULTS', payload: { flightSearchRequest: request } } } });
     api.search.mockResolvedValue({ searchId: 'real-search', offers: [{ offerId: 'real-offer' }], expiresAt: '2027-01-01T00:00:00Z' });

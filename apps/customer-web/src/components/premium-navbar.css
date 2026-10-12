@@ -80,4 +80,31 @@ html body .flyseri-site-navbar .premium-profile { background:rgba(255,255,255,.6
 .premium-profile-dropdown nav a svg{width:17px;height:17px;flex:none;color:#6c89a9}
 .premium-header .premium-profile-dropdown nav a[aria-current=page]{background:#e7f2ff;color:#1669cb}
 .premium-profile-dropdown nav a[aria-current=page] svg{color:#247bea}
+.premium-profile-dropdown .account-menu-group-title{grid-column:1/-1;margin:12px 10px 4px;color:#70879f;font-size:10px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.premium-profile-dropdown .account-menu-group-title:first-child{margin-top:0}
+.premium-profile>span:first-child{position:relative;overflow:hidden}
+.premium-profile>span:first-child>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 @media(max-width:360px){.premium-header .premium-profile-dropdown nav a{padding-inline:8px;font-size:11px;gap:6px}}
+
+/* A compact account list with a fixed identity and sign-out area. */
+.premium-header .premium-profile-dropdown{display:flex;flex-direction:column;width:min(344px,calc(100vw - 48px));max-height:min(690px,calc(100dvh - 110px));padding:10px;border-radius:20px;background:rgba(255,255,255,.93);border-color:rgba(255,255,255,.85);box-shadow:0 18px 55px #243f612b;backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%);overflow:hidden}
+.account-menu-identity{display:flex;align-items:center;gap:12px;padding:12px 12px 18px;flex:none;border-bottom:1px solid #edf1f6;margin-bottom:8px;min-width:0}
+.account-menu-avatar{display:grid;place-items:center;position:relative;overflow:hidden;flex:none;width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,#daedff,#dff5ee);color:#2377c5;font-size:18px;font-weight:750}
+.account-menu-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.account-menu-identity>div{min-width:0}.account-menu-identity small{display:block;color:#6c8198;font-size:11px;line-height:1.5;margin-bottom:3px}.account-menu-identity strong{display:block;color:#203957;font-size:15px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+.premium-header .premium-profile-dropdown nav{display:flex;flex-direction:column;gap:2px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#cedbe8 transparent;padding:2px}
+.premium-header .premium-profile-dropdown nav a{position:relative;gap:12px;flex:none;min-height:44px;padding:7px 10px;border-radius:11px;font-size:13px;font-weight:600}
+.premium-profile-dropdown .account-menu-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:10px;background:#f2f6fa;color:#6a839e}
+.premium-profile-dropdown .account-menu-label{min-width:0}.premium-profile-dropdown .account-menu-label strong{display:block;font-size:13px;font-weight:650;line-height:1.5}.premium-profile-dropdown .account-menu-label small{display:block;margin-top:2px;color:#74869a;font-size:11px;font-weight:400;line-height:1.5}
+.premium-header .premium-profile-dropdown nav a.account-menu-feature{min-height:62px}
+.premium-header .premium-profile-dropdown nav a.account-menu-divider{margin-top:6px}
+.premium-header .premium-profile-dropdown nav a.account-menu-divider::before{content:'';position:absolute;top:-5px;left:10px;right:10px;height:1px;background:#edf1f6}
+.premium-header .premium-profile-dropdown nav a[aria-current=page]{background:#edf5ff;color:#1f70cd}
+.premium-profile-dropdown nav a[aria-current=page] .account-menu-icon{background:#dcecff}.premium-profile-dropdown nav a[aria-current=page] .account-menu-label small{color:#557da6}
+.premium-header .premium-profile-dropdown>button{flex:none;min-height:44px;margin:8px 2px 0;width:calc(100% - 4px);border:0;border-top:1px solid #e8eef5;border-radius:0;padding:13px 12px 7px;justify-content:flex-start;background:transparent;color:#a24f55;font-size:12px;font-weight:600}
+.premium-header .premium-profile-dropdown>button:hover{background:#fff6f6;color:#b23443;border-radius:10px}
+/* A filtered ancestor isolates the menu's backdrop from the page behind it. */
+html body .premium-header.flyseri-site-navbar:has(.premium-profile-dropdown){backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(247,252,255,.92)!important}
+.premium-header .premium-profile-dropdown{background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(244,250,255,.86));backdrop-filter:blur(28px) saturate(135%);-webkit-backdrop-filter:blur(28px) saturate(135%);border-color:rgba(255,255,255,.95);box-shadow:0 20px 56px #233f6126,inset 0 1px 0 #fff}
+.premium-profile-dropdown .account-menu-label small,.account-menu-identity small{color:#5d738b}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.premium-header .premium-profile-dropdown{background:#f8fcff}}

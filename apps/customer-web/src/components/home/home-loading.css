@@ -1,47 +1,14 @@
-/* Inlined into index.html by Vite and loaded by React: the first paint needs no remote font. */
-.home-loading {
-  box-sizing: border-box;
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  min-height: 100svh;
-  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-  background: radial-gradient(ellipse at 15% 15%, #d9f0ff 0, transparent 60%), radial-gradient(ellipse at 90% 85%, #dcf5ed 0, transparent 55%), #f7fbff;
-  color: #1c3556;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-.home-loading *, .home-loading *::before, .home-loading *::after { box-sizing: border-box; }
-.home-loading-card {
-  width: min(100%, 540px);
-  padding: 42px 32px 32px;
-  text-align: center;
-  border: 1px solid #fff;
-  border-radius: 28px;
-  background: #ffffffd9;
-  box-shadow: 0 20px 70px #225d8a0d;
-}
-.home-loading-logo { display: block; width: 170px; height: 50px; object-fit: cover; margin: 0 auto; }
-.home-loading-journey { height: 88px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #267be9; }
-.home-loading-point { width: 9px; height: 9px; border: 2px solid #76bdcf; border-radius: 50%; }
-.home-loading-trail { width: 90px; height: 1px; background: repeating-linear-gradient(90deg, #b1cfe8 0 5px, transparent 5px 10px); }
-.home-loading-journey svg { width: 30px; height: 30px; animation: home-loading-flight 2.4s ease-in-out infinite; }
-.home-loading h1 { margin: 0; color: #1c3556; font-size: clamp(22px, 4.8vw, 28px); line-height: 1.3; letter-spacing: -.7px; font-weight: 700; }
-.home-loading p { margin: 14px 0 28px; color: #526d8b; font-size: 14px; line-height: 1.7; }
-.home-loading-dots { display: inline-flex; gap: 3px; margin-left: 5px; vertical-align: middle; }
-.home-loading-dots i { width: 3px; height: 3px; border-radius: 50%; background: #267be9; animation: home-loading-dot 1.4s ease-in-out infinite; }
-.home-loading-dots i:nth-child(2) { animation-delay: .16s; }
-.home-loading-dots i:nth-child(3) { animation-delay: .32s; }
-.home-loading-search { display: grid; grid-template-columns: 1fr 1fr .8fr .7fr; gap: 10px; padding: 14px; border: 1px solid #e3edf8; border-radius: 16px; background: #fff; }
-.home-loading-search span { height: 32px; border-radius: 7px; background: #edf3f9; }
-.home-loading-search span:last-child { background: #d4e8ff; }
-@keyframes home-loading-flight { 0%, 100% { transform: translate(-2px, 2px); } 50% { transform: translate(2px, -2px); } }
-@keyframes home-loading-dot { 0%, 80%, 100% { opacity: .3; } 40% { opacity: 1; } }
-@media (max-width: 480px) {
-  .home-loading-card { padding: 32px 20px 24px; border-radius: 24px; }
-  .home-loading-logo { width: 153px; height: 45px; }
-  .home-loading-search { gap: 7px; padding: 10px; }
-  .home-loading p { font-size: 13px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-loading-journey svg, .home-loading-dots i { animation: none; }
-}
+/* Shared by the first HTML paint and React's page fallback. */
+.home-loading{box-sizing:border-box;display:grid;place-items:center;min-height:100vh;min-height:100svh;padding:0;overflow:hidden;background:radial-gradient(ellipse at 15% 15%,#d9f0ff,transparent 60%),radial-gradient(ellipse at 90% 85%,#dcf5ed,transparent 55%),#f7fbff}
+.home-loading-journey{--flight-distance:100vw;position:relative;width:100%;height:140px;overflow:hidden}
+.home-loading-aircraft{position:absolute;top:25px;left:0;width:96px;height:90px;animation:home-loading-fly 1.2s linear infinite;will-change:transform;backface-visibility:hidden}
+.home-loading-aircraft img{position:relative;z-index:1;display:block;width:96px;height:96px;object-fit:contain;transform:rotate(45deg);filter:drop-shadow(0 3px 3px #28649a20)}
+.home-loading-smoke{position:absolute;left:52px;top:32px;width:12px;height:10px;border-radius:50%;background:#9eafbf;filter:blur(2px);animation:home-loading-smoke .85s linear infinite;will-change:transform,opacity}
+.home-loading-smoke:nth-child(2){top:64px;animation-delay:-.25s}
+.home-loading-smoke:nth-child(3){animation-delay:-.43s}
+.home-loading-smoke:nth-child(4){top:64px;animation-delay:-.68s}
+/* Clear both the rotated wings and the entire smoke trail before wrapping. */
+@keyframes home-loading-fly{from{transform:translate3d(-140px,0,0)}to{transform:translate3d(calc(var(--flight-distance) + 160px),0,0)}}
+@keyframes home-loading-smoke{0%{transform:translate3d(0,0,0) scale(.5);opacity:0}15%{opacity:.5}100%{transform:translate3d(-100px,0,0) scale(2.5);opacity:0}}
+@media(prefers-reduced-motion:reduce){.home-loading-aircraft{animation:none;left:calc(50% - 48px);will-change:auto}.home-loading-smoke{display:none}}
+@media(max-width:600px) and (prefers-reduced-motion:no-preference){.home-loading-aircraft{animation-duration:.85s}}

@@ -17,6 +17,7 @@ import { BookingProgress } from '../flight/BookingProgress';
 import { BookingLoading } from '../flight/BookingLoading';
 import { usePreferredDisplayPrices } from '../flight/usePreferredDisplayPrices';
 import { clearPaymentAttempt, keepPaymentAttempt, readPaymentAttempt } from './paymentRecovery';
+import { PointsCheckout } from '../rewards/PointsCheckout';
 
 export function OrderDetailPage() {
   const { orderId } = useParams();
@@ -33,6 +34,7 @@ export function OrderDetailPage() {
   const [checkoutAvailable, setCheckoutAvailable] = useState(false);
   const [ticketingAvailable, setTicketingAvailable] = useState(false);
   const [startingPayment, setStartingPayment] = useState(false);
+  const [updatingPoints,setUpdatingPoints]=useState(false);
   const [paymentNotice, setPaymentNotice] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [needsPaymentCheck, setNeedsPaymentCheck] = useState(() => !!orderId && !!readPaymentAttempt(orderId)?.uncertain);
@@ -74,7 +76,7 @@ export function OrderDetailPage() {
     try { await commerceService.payment(current.payment.id); return await commerceService.order(id); }
     catch { return current; }
   }
-  useEffect(() => { if (!orderId) return; let active = true; setNeedsPaymentCheck(!!readPaymentAttempt(orderId)?.uncertain); setCheckoutAvailable(false); setStartingPayment(false); setRefreshing(false); setLoading(true); setOrder(null); setReceipt(null); setError(false); setPaymentNotice(''); setPaymentConfirmed(false); void loadOrder(orderId).then((value) => {
+  useEffect(() => { if (!orderId) return; let active = true; setNeedsPaymentCheck(!!readPaymentAttempt(orderId)?.uncertain); setCheckoutAvailable(false); setStartingPayment(false); setUpdatingPoints(false); setRefreshing(false); setLoading(true); setOrder(null); setReceipt(null); setError(false); setPaymentNotice(''); setPaymentConfirmed(false); void loadOrder(orderId).then((value) => {
     if (active) setOrder(value); }, () => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); });
     void commerceService.paymentCapabilities().then((value) => { if (active) setCheckoutAvailable(value.checkoutAvailable); }, () => {});
     return () => { active = false; }; }, [orderId]);
@@ -96,7 +98,7 @@ export function OrderDetailPage() {
   async function refresh() { if (!orderId || refreshing) return; const id=orderId;setRefreshing(true); try { const value=await loadOrder(id);if(activeOrderId.current===id){setOrder(value);setError(false);setPaymentConfirmed(false);if(value.payment?.status==='FAILED'||['PAID','CANCELLED','EXPIRED'].includes(value.status))clearPaymentAttempt(id);if(!value.payment||!['UNKNOWN','CREATED'].includes(value.payment.status)){setNeedsPaymentCheck(false);if(readPaymentAttempt(id))keepPaymentAttempt(id,false);}} } catch { if(activeOrderId.current===id)setError(true); } finally { if(activeOrderId.current===id)setRefreshing(false); } }
   async function showReceipt() { if (!orderId) return; const id=orderId;try { const value=await commerceService.receipt(id);if(activeOrderId.current===id)setReceipt(value); } catch { if(activeOrderId.current===id)setPaymentNotice('The receipt could not be loaded. Check payment status and try again.'); } }
   async function beginPayment() {
-    if (!orderId || sending.current || !paymentConfirmed || !canPay) return;
+    if (!orderId || sending.current || updatingPoints || !paymentConfirmed || !canPay) return;
     sending.current = true;
     const id=orderId;
     setStartingPayment(true); setPaymentNotice('');
@@ -146,20 +148,21 @@ export function OrderDetailPage() {
             : checkoutAvailable ? <p>Your reservation is ready for secure test payment. A PNR is not a ticket.</p>
               : <p>Online payment is not available yet. No charge has been made through Flyseri for this order. A PNR is not a ticket.</p>}
       {canPay && <section className="checkout-payment-methods"><h3>Choose your payment method on Stripe</h3><div><span>Cards</span><span>Digital wallets</span><span>QR &amp; local payments</span></div><p>Stripe shows the methods available for your currency and location.</p></section>}
+      {order.flightBookingId && <PointsCheckout orderId={order.id} locked={startingPayment || pending || paid || mustCheckPayment} onChanged={refresh} onBusy={value=>{if(activeOrderId.current===order.id){setUpdatingPoints(value);setPaymentConfirmed(false);}}}/>}
       {canPay && <><p className="checkout-charge-amount"><span>Payment total · {order.currency}</span><strong>{formatMoney(order.totalAmount, order.currency)}</strong></p><label className="checkout-confirmation"><input type="checkbox" checked={paymentConfirmed} onChange={event => setPaymentConfirmed(event.target.checked)} /><span>I reviewed the total{order.flightBookingId ? ' and traveler details' : ''}. I understand this is a test payment.</span></label></>}
       <div className="checkout-actions">{canPay &&
-        <button className="btn-primary account-submit" type="button" disabled={startingPayment || !paymentConfirmed} onClick={() => { void beginPayment(); }}>
+        <button className="btn-primary account-submit" type="button" disabled={startingPayment || updatingPoints || !paymentConfirmed} onClick={() => { void beginPayment(); }}>
           {startingPayment ? 'Opening secure checkout…' : pending ? 'Resume Stripe checkout →' : `Pay ${formatMoney(order.totalAmount, order.currency)} with Stripe →`}
         </button>}
       {paymentNotice && <p role="status">{paymentNotice}</p>}
       {order.visaAssistanceRequestId && order.status !== "PAID" && <Link className="account-link" to={"/app/visa/assistance/" + order.visaAssistanceRequestId + "/payment"}>Back to visa payment →</Link>}{!mustCheckPayment&&<button className="account-outline-button" type="button" disabled={refreshing || startingPayment} onClick={() => { void refresh(); }}>{refreshing ? 'Checking payment…' : 'Check payment status'}</button>}</div>
       <div className="checkout-next"><h3>{paid ? 'What happens next?' : 'Need help with this order?'}</h3><p>{paid && order.flightBookingId ? 'You can view your reservation and download the payment receipt. Airline service requests remain pending until confirmed by the carrier.' : 'Keep your order number when contacting Flyseri. If payment is being checked, review its status before starting another booking.'}</p><Link className="account-link" to={order.flightBookingId ? `/app/support?bookingId=${encodeURIComponent(order.flightBookingId)}` : '/app/support'}>Contact Flyseri →</Link></div>
-      {receipt && <div className="commerce-receipt" role="status"><h2>Payment receipt</h2><p>{receipt.orderNumber} · Paid {formatTimestamp(receipt.paidAt)}</p><p>{formatMoney(receipt.totalAmount, receipt.currency)}</p><small>Payment receipt, not a tax invoice.</small><p><button className="account-outline-button" type="button" onClick={() => downloadText(`Flyseri-receipt-${receipt.orderNumber.replace(/[^A-Za-z0-9-]/g, '')}.txt`, ['Flyseri payment receipt', receipt.orderNumber, `Paid: ${receipt.paidAt}`, ...receipt.items.map(item => `${item.description}: ${item.currency} ${item.totalAmount}`), `Total: ${receipt.currency} ${receipt.totalAmount}`, 'This payment receipt is not an airline ticket or a tax invoice.', order.payment?.provider === 'STRIPE_TEST' ? 'Stripe sandbox payment. No real payment collected.' : ''].join('\n'))}>Download receipt</button></p></div>}
+      {receipt && <div className="commerce-receipt" role="status"><h2>Payment receipt</h2><p>{receipt.orderNumber} · Paid {formatTimestamp(receipt.paidAt)}</p><p>{formatMoney(receipt.totalAmount, receipt.currency)}</p><small>Payment receipt, not a tax invoice.</small><p><button className="account-outline-button" type="button" onClick={() => downloadText(`Flyseri-receipt-${receipt.orderNumber.replace(/[^A-Za-z0-9-]/g, '')}.txt`, ['Flyseri payment receipt', receipt.orderNumber, `Paid: ${receipt.paidAt}`, ...receipt.items.map(item => `${item.description}: ${item.currency} ${item.totalAmount}`), ...(Number(receipt.discountAmount)>0 ? [`Discounts: -${receipt.currency} ${receipt.discountAmount}`] : []), `Total: ${receipt.currency} ${receipt.totalAmount}`, 'This payment receipt is not an airline ticket or a tax invoice.', order.payment?.provider === 'STRIPE_TEST' ? 'Stripe sandbox payment. No real payment collected.' : ''].join('\n'))}>Download receipt</button></p></div>}
     </section><aside className="account-panel checkout-summary" aria-label="Order summary"><p className="account-eyebrow">YOUR TRIP</p><h2>{paid ? 'Booking summary' : 'Payment summary'}</h2><dl><div><dt>Order</dt><dd>{order.orderNumber}</dd></div>{booking && <>{paid && <div><dt>Booking reference</dt><dd className="checkout-reference">{booking.pnr ?? 'Awaiting confirmation'}</dd></div>}<div><dt>Travelers</dt><dd>{booking.passengerNames.length}</dd></div></>}</dl>
-      {order.items.map((item,index) => <div className="commerce-line" key={item.id}><span>{item.description}</span><strong>{displayPrice(index+1)}</strong></div>)}<div className="commerce-line commerce-total"><strong>{paid ? 'Paid' : 'Total'}</strong><strong>{displayPrice(0)}</strong></div><small>Includes the flights and extras listed above.</small>{display.prices[0]?.estimated && <small>Converted estimate. Payment is collected as {formatMoney(order.totalAmount,order.currency)}.</small>}
+      {order.items.map((item,index) => <div className="commerce-line" key={item.id}><span>{item.description}</span><strong>{displayPrice(index+1)}</strong></div>)}{Number(order.discountAmount)>0&&<div className="commerce-line"><span>Discounts applied</span><strong>−{formatMoney(order.discountAmount!,order.currency)}</strong></div>}<div className="commerce-line commerce-total"><strong>{paid ? 'Paid' : 'Total'}</strong><strong>{displayPrice(0)}</strong></div><small>Includes the flights and extras listed above.</small>{display.prices[0]?.estimated && <small>Converted estimate. Payment is collected as {formatMoney(order.totalAmount,order.currency)}.</small>}
       {booking?.ancillaryPurchase && ['CONFIRMED','FULFILLMENT_PENDING','FULFILLED'].includes(booking.ancillaryPurchase.status) && <details className="checkout-service-details"><summary>Your selected extras</summary><FlightAncillaryPurchasePanel booking={booking} readOnly /></details>}
       {booking?.ancillaryRequests?.length && !['CONFIRMED','FULFILLMENT_PENDING','FULFILLED'].includes(booking.ancillaryPurchase?.status ?? '') && <div className="checkout-next"><h3>Extras not included</h3><p>Your selected extra requests were not purchased. No extra charge is included in this payment.</p><ul>{booking.ancillaryRequests.map(extra=><li key={extra.id}>{extra.name} · {extra.segmentLabels.join(' / ')}</li>)}</ul></div>}
       </aside></div></>}
-    {order && canPay && <div className="checkout-mobile-bar" aria-label="Continue payment"><div><small>{paymentConfirmed ? `Payment total · ${order.currency}` : 'Review and confirm above'}</small><strong>{formatMoney(order.totalAmount,order.currency)}</strong></div><button type="button" className="btn-primary" disabled={startingPayment || !paymentConfirmed} onClick={() => void beginPayment()}>{startingPayment ? 'Opening…' : 'Continue payment'}</button></div>}
+    {order && canPay && <div className="checkout-mobile-bar" aria-label="Continue payment"><div><small>{paymentConfirmed ? `Payment total · ${order.currency}` : 'Review and confirm above'}</small><strong>{formatMoney(order.totalAmount,order.currency)}</strong></div><button type="button" className="btn-primary" disabled={startingPayment || updatingPoints || !paymentConfirmed} onClick={() => void beginPayment()}>{startingPayment ? 'Opening…' : 'Continue payment'}</button></div>}
   </div>;
 }

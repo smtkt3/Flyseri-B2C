@@ -1,7 +1,23 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AirportPicker } from './AirportPicker';
+import type { AirportDirectoryEntry } from '@flyseri/types';
+
+vi.mock('../services/airportService', () => ({
+  cachedAirportSuggestions: () => undefined,
+  loadAirportDetails: vi.fn(),
+  airportSuggestions: async (query: string) => {
+    const airports: AirportDirectoryEntry[] = [
+      ['KUL', 'Kuala Lumpur', 'Kuala Lumpur International Airport', 'Malaysia'],
+      ['SZB', 'Kuala Lumpur', 'Sultan Abdul Aziz Shah Airport', 'Malaysia'],
+      ['NRT', 'Tokyo', 'Narita International Airport', 'Japan'],
+      ['HND', 'Tokyo', 'Haneda Airport', 'Japan'],
+      ['PEN', 'Penang', 'Penang International Airport', 'Malaysia'],
+    ].map(([code, city, name, country]) => ({ code: code!, city: city!, cityLabel: city!, name: name!, country: country!, countryName: country!, type: 'large_airport', scheduled: true, keywords: '', latitude: 3, longitude: 102, cityCenterLatitude: 3.1, cityCenterLongitude: 102.1 }));
+    return airports.filter(airport => airport.code === query.toUpperCase() || airport.city.toLowerCase() === query.toLowerCase());
+  },
+}));
 
 describe('AirportPicker', () => {
   afterEach(cleanup);

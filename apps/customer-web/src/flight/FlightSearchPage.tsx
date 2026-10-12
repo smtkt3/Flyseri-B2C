@@ -1,4 +1,6 @@
 import { Chevron } from '../components/Chevron';
+import { createPortal } from 'react-dom';
+import { useViewportPopover } from '../components/useViewportPopover';
 import { BoundedSelect } from '../components/BoundedSelect';
 import { Translated } from '../travel/language';
 import { FlightBaggageDetails, FlightServiceDetails, hasIncludedCheckedBaggage, hasKnownBaggage, hasKnownServices } from './FlightFareInformation';
@@ -136,6 +138,8 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
   }, [departureDate, returnDate]);
   const passengerPicker = useRef<HTMLDivElement>(null);
   const passengerTrigger = useRef<HTMLButtonElement>(null);
+  const passengerPopover = useRef<HTMLElement>(null);
+  const passengerPopoverStyle = useViewportPopover(passengerPickerOpen, passengerTrigger, { width:390, height:430, mobileSheet:true, align:'end' });
   const submitting = useRef(false);
   const selecting = useRef(false);
   const selectionKey = useRef('');
@@ -170,7 +174,7 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     if (!passengerPickerOpen) return;
-    const dismiss = (event: MouseEvent) => { if (!passengerPicker.current?.contains(event.target as Node)) setPassengerPickerOpen(false); };
+    const dismiss = (event: MouseEvent) => { if (!passengerPicker.current?.contains(event.target as Node) && !passengerPopover.current?.contains(event.target as Node)) setPassengerPickerOpen(false); };
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') { setPassengerPickerOpen(false); passengerTrigger.current?.focus(); } };
     document.addEventListener('mousedown', dismiss);
     document.addEventListener('keydown', onKeyDown);
@@ -507,10 +511,10 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
         </>}
         <div className="flight-passenger-control" ref={passengerPicker}>
           <button ref={passengerTrigger} type="button" className="flight-passenger-trigger" aria-haspopup="dialog" aria-expanded={passengerPickerOpen} onClick={() => setPassengerPickerOpen((open) => !open)}><span className="flight-passenger-icon" aria-hidden="true">♙</span><span>{passengerLabel}<small>{cabinOptions.find((option) => option.value === cabin)?.label ?? 'Economy'}</small></span><span className="flight-passenger-chevron" aria-hidden="true"><Chevron/></span></button>
-          {passengerPickerOpen && <section className="flight-passenger-popover" role="dialog" aria-label="Passengers and cabin"><div className="flight-passenger-popover-head"><strong>{passengerLabel}</strong><span>{cabinOptions.find((option) => option.value === cabin)?.label}</span></div><p>Please select the exact number of passengers.</p>
+          {passengerPickerOpen && createPortal(<section ref={passengerPopover} style={passengerPopoverStyle} className="flight-passenger-popover flight-passenger-portal" role="dialog" aria-label="Passengers and cabin"><div className="flight-passenger-popover-head"><strong>{passengerLabel}</strong><span>{cabinOptions.find((option) => option.value === cabin)?.label}</span></div><p>Please select the exact number of passengers.</p>
             {[{ key: 'adults' as const, label: 'Adults', age: '12+ years old', count: adults, min: 1, max: 9 - children - infants },{ key: 'children' as const, label: 'Children', age: '2–11 years old', count: children, min: 0, max: Math.min(8, 9 - adults - infants) },{ key: 'infants' as const, label: 'Infants on lap', age: 'Under 2 years old', count: infants, min: 0, max: Math.min(adults, 9 - adults - children) }].map((item) => <div className="flight-passenger-row" key={item.key}><span><strong>{item.label}</strong><small>{item.age}</small></span><div><button type="button" aria-label={`Remove ${item.label.toLowerCase()}`} disabled={item.count <= item.min} onClick={() => updatePassenger(item.key, -1)}>−</button><output aria-label={item.label}>{item.count}</output><button type="button" aria-label={`Add ${item.label.toLowerCase()}`} disabled={item.count >= item.max} onClick={() => updatePassenger(item.key, 1)}>＋</button></div></div>)}
             <label className="flight-passenger-cabin"><Translated text="Cabin" /><select value={cabin} onChange={(event) => setCabin(event.target.value as FlightCabin)}>{cabinOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><button type="button" className="flight-passenger-done" onClick={() => { setPassengerPickerOpen(false); passengerTrigger.current?.focus(); }}>Done</button>
-          </section>}
+          </section>, document.body)}
         </div>
         <button className="btn-primary account-submit flight-query-submit" type="submit" disabled={loading || tripLoading || !!tripError}>{loading ? 'Searching…' : '⌕ Search'}</button>
       </div>

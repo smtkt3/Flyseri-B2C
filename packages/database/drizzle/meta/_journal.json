@@ -211,6 +211,13 @@
       "when": 1791580000000,
       "tag": "0029_travel_assistance",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791670000000,
+      "tag": "0030_flyseri_points",
+      "breakpoints": true
     }
   ]
 }

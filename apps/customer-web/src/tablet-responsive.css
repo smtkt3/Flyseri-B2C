@@ -1,0 +1,59 @@
+/* Tablet layouts keep the same visual language with room for touch and rotation. */
+@media (min-width:601px) and (max-width:1366px) {
+  .customer-site-shell .account-page { padding-inline:24px; }
+  .customer-site-shell .account-workspace-hero { padding:26px; gap:20px; }
+  .customer-site-shell .account-workspace-tabs { margin-block:20px; }
+  .customer-site-shell .profile-settings-card,
+  .customer-site-shell .profile-photo-card { padding:24px; }
+  .customer-site-shell :is(.account-form-grid,.profile-settings-grid,.vault-detail-grid,.trip-card-grid)>* { min-width:0; }
+  .customer-site-shell .booking-management-heading-actions { flex-wrap:wrap; gap:10px; }
+  :is(.customer-site-shell,.premium-home-main,.guest-checkout-shell) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size:16px; }
+  .premium-header.flyseri-site-navbar .premium-mobile-services-toggle,
+  .premium-header.flyseri-site-navbar .navbar-locale-trigger,
+  .premium-header.flyseri-site-navbar .premium-profile { min-height:44px; }
+  .premium-header.flyseri-site-navbar .premium-mobile-services-toggle { min-width:44px; }
+  .premium-header.flyseri-site-navbar .premium-profile-dropdown { max-height:calc(100dvh - 110px); overflow-y:auto; }
+  .flyseri-services-drawer { max-width:calc(100vw - 48px); }
+  .flight-passenger-popover .flight-passenger-row button { width:44px; height:44px; flex:none; }
+  .premium-passenger-popover .premium-passenger-row button { min-width:44px; min-height:44px; }
+  .premium-home-main .premium-footer-refined :is(nav a,.premium-footer-help>a) { min-height:44px; }
+  .flight-search-form .flight-query-swap { min-width:34px; min-height:44px; }
+  .customer-site-shell .vault-dialog { max-height:calc(100dvh - 36px); }
+  .customer-site-shell .vault-card { flex-wrap:wrap; }
+  .customer-site-shell .vault-card .vault-status { margin-left:57px; }
+  #seri-floating-chat .seri-floating-close { width:44px; height:44px; flex:none; }
+  #seri-floating-chat .premium-seri-chat { min-height:0; }
+  #seri-floating-chat .home-seri-transcript { min-height:0; overscroll-behavior:contain; }
+}
+
+@media (min-width:601px) and (max-width:1100px) {
+  .premium-header.flyseri-site-navbar { width:calc(100% - 40px); gap:16px; }
+  .premium-header.flyseri-site-navbar nav.navbar-utility-links { display:none!important; }
+  .premium-header.flyseri-site-navbar .premium-logo { margin-right:auto; }
+  .premium-header.flyseri-site-navbar .premium-header-actions { margin-left:0; gap:16px; }
+  .guest-checkout-shell .guest-checkout-layout,
+  .customer-site-shell .checkout-layout { grid-template-columns:minmax(0,1fr); }
+  .guest-checkout-shell .guest-checkout-price-card,
+  .customer-site-shell .checkout-layout .checkout-summary { position:static; grid-row:auto; order:0; }
+  .guest-checkout-shell .guest-checkout-content { width:calc(100% - 48px); }
+}
+
+@media (min-width:601px) and (max-width:900px) {
+  .customer-site-shell .profile-settings-grid,
+  .customer-site-shell .vault-detail-grid,
+  .holiday-page .holiday-detail-grid { grid-template-columns:minmax(0,1fr); }
+  .holiday-page .holiday-booking-panel { position:static; }
+  .customer-site-shell .profile-resource-links { grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+  .customer-site-shell .profile-resource-links a { align-items:flex-start; border-bottom:0; padding-block:12px; }
+  .customer-site-shell .profile-resource-links small { line-height:1.6; }
+  .customer-site-shell .account-workspace-mark { width:64px; height:64px; flex:none; }
+  .customer-site-shell .account-page { padding-bottom:calc(110px + env(safe-area-inset-bottom)); }
+}
+
+/* Short landscape tablets must leave dialog content scrollable above the keyboard. */
+@media (min-width:601px) and (max-width:1366px) and (max-height:700px) {
+  #seri-floating-chat.seri-floating-panel { height:calc(100dvh - 120px - env(safe-area-inset-bottom)); max-height:530px; }
+  #seri-floating-chat .premium-seri-entry-heading { padding:10px 16px; }
+  #seri-floating-chat .seri-chat-team { padding-block:6px; }
+  .premium-home-main .group-fare-dialog { max-height:calc(100dvh - 32px); overflow-y:auto; }
+}

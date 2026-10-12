@@ -51,7 +51,7 @@ describe('flight selection inside Seri', () => {
   });
   it('handles no availability and rejects malformed flight cards', () => {
     const result = data(); result.offers = []; mount(result);
-    expect(screen.getByText(/No flights found/)).toBeTruthy();
+    expect(screen.getByText(/airline search returned no fares/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Select flight' })).toBeNull();
     expect(chatFlights({ ...data(), offers: [{ offerId: 'bad' }] })?.offers).toEqual([]);
     expect(chatFlights({ offers: [] })).toBeNull();

@@ -26,7 +26,7 @@ describe('customer account screens', () => {
       <Route path="/app/profile" element={<ProtectedRoute><div>Private profile</div></ProtectedRoute>} />
       <Route path="/sign-in" element={<div>Sign in screen</div>} />
     </Routes></AuthProvider></MemoryRouter>);
-    expect(screen.getByRole('status').textContent).toContain('Checking your session');
+    expect(screen.getByRole('status', { name: 'Checking your session…' })).toBeTruthy();
     resolve(null);
     expect(await screen.findByText('Sign in screen')).toBeTruthy();
     expect(screen.queryByText('Private profile')).toBeNull();

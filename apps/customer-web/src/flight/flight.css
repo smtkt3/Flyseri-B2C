@@ -555,6 +555,7 @@
 .flight-passenger-trigger small { color:#7287a0; font-size:.67rem; font-weight:500; }
 .flight-passenger-chevron { margin-left:auto; color:#536b87; font-size:1.1rem; }
 .flight-passenger-popover { position:absolute; z-index:25; top:calc(100% + .65rem); right:0; width:min(390px,calc(100vw - 2rem)); padding:1rem; border:1px solid #e0eaf4; border-radius:14px; background:#fff; box-shadow:0 16px 38px rgba(25,53,83,.18); }
+.flight-passenger-popover.flight-passenger-portal { z-index:1000; box-sizing:border-box; overflow-y:auto; overscroll-behavior:contain; }
 .flight-passenger-popover-head { display:flex; justify-content:space-between; gap:.8rem; padding-bottom:.65rem; border-bottom:1px solid #e8eef5; color:#243d5d; font-size:.85rem; }
 .flight-passenger-popover-head span,.flight-passenger-popover>p { color:#7286a0; font-size:.74rem; }
 .flight-passenger-popover>p { margin:.65rem 0; }

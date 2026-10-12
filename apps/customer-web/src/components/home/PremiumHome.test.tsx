@@ -105,7 +105,48 @@ describe('premium homepage', () => {
     renderHome();
     expect(await screen.findByText('Ain')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Orders & payments' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'My orders' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'My travel' }).getAttribute('href')).toBe('/app/bookings');
+  });
+  it('does not load unrelated travel services or show their failures on the homepage', async () => {
+    auth.restore.mockResolvedValue({ user: { email: 'ain@example.com' } } as Session);
+    customer.me.mockResolvedValue({ displayName: 'Ain' });
+    orders.orders.mockResolvedValue([]); orders.payments.mockResolvedValue([]);
+    trips.list.mockRejectedValue(new Error('Trips unavailable'));
+    documents.list.mockRejectedValue(new Error('Documents unavailable'));
+    visas.list.mockRejectedValue(new Error('Visa unavailable'));
+    flights.intentsForTrip.mockRejectedValue(new Error('Intents unavailable'));
+    renderHome();
+    expect(await screen.findByText('Ain')).toBeTruthy();
+    expect(trips.list).not.toHaveBeenCalled();
+    expect(documents.list).not.toHaveBeenCalled();
+    expect(visas.list).not.toHaveBeenCalled();
+    expect(flights.intentsForTrip).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Some of your travel details/)).toBeNull();
+    expect(screen.queryByRole('heading', { name:'Orders & payments' })).toBeNull();
+  });
+  it('shows a payment failure only in the account summary and recovers on retry', async () => {
+    auth.restore.mockResolvedValue({ user: { email:'ain@example.com' } } as Session);
+    customer.me.mockResolvedValue({ displayName:'Ain' });
+    orders.orders.mockResolvedValue([{ id:'order-1' }]);
+    orders.payments.mockRejectedValueOnce(new Error('Payment service unavailable')).mockResolvedValue([{ status:'PENDING' }]);
+    renderHome();
+    expect(await screen.findByText('Payment updates temporarily unavailable')).toBeTruthy();
+    expect(screen.getByText('1 order')).toBeTruthy();
+    expect(screen.queryByText('No pending payment updates')).toBeNull();
+    expect(screen.getByRole('button', { name:'Search flights' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name:'Retry account summary' }));
+    expect(await screen.findByText('1 payment awaiting an update')).toBeTruthy();
+    expect(screen.queryByText('Payment updates temporarily unavailable')).toBeNull();
+  });
+  it('keeps the homepage usable when the optional display name cannot load', async () => {
+    auth.restore.mockResolvedValue({ user:{ email:'ain@example.com' } } as Session);
+    customer.me.mockRejectedValue(new Error('Profile unavailable'));
+    orders.orders.mockResolvedValue([]); orders.payments.mockResolvedValue([]);
+    renderHome();
+    await waitFor(()=>expect(orders.payments).toHaveBeenCalled());
+    expect(screen.queryByText(/Some of your travel details/)).toBeNull();
+    expect(screen.queryByRole('button', { name:'Retry account summary' })).toBeNull();
+    expect(screen.getByRole('button', { name:'Search flights' })).toBeTruthy();
   });
   it('switches compact search modes without losing flight dates or AI drafts', async () => {
     auth.restore.mockResolvedValue(null);
@@ -174,8 +215,8 @@ describe('premium homepage', () => {
   it('shows many destinations and only displays prices returned by the cached fare service', async () => {
     auth.restore.mockResolvedValue(null);
     flights.popularCachedFares.mockResolvedValue([
-      { destination: 'BKK', departureDate: '2026-11-12', price: '499', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
-      { destination: 'NRT', departureDate: '2026-11-20', price: '1299', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2026-10-02T00:00:00.000Z' },
+      { destination: 'BKK', departureDate: '2026-11-12', price: '499', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2099-10-02T00:00:00.000Z' },
+      { destination: 'NRT', departureDate: '2026-11-20', price: '1299', currency: 'BDT', searchedAt: '2026-10-01T00:00:00.000Z', expiresAt: '2099-10-02T00:00:00.000Z' },
     ]);
     renderHome();
     fireEvent.click(screen.getByRole('tab', { name: 'Map Search' }));

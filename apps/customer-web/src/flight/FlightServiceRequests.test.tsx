@@ -6,10 +6,10 @@ afterEach(cleanup);
 it('captures each service request and an optional note for the selected traveller', () => {
   const onChange = vi.fn();
   render(<FlightServiceRequestFields value={emptyServicePreferences()} onChange={onChange} disabled={false} label="Traveller 1" />);
-  fireEvent.change(screen.getByLabelText('Meal preference'), { target: { value: 'HALAL' } });
-  fireEvent.change(screen.getByLabelText('Baggage request'), { target: { value: 'EXTRA_CHECKED' } });
-  fireEvent.change(screen.getByLabelText('Wheelchair assistance'), { target: { value: 'STAIRS' } });
-  fireEvent.change(screen.getByLabelText('Other assistance'), { target: { value: 'VISION' } });
+  for (const [label, option] of [['Meal preference', 'Halal meal'], ['Baggage request', 'Request extra checked baggage'], ['Wheelchair assistance', 'Assistance with distances and stairs'], ['Other assistance', 'Vision assistance']]) {
+    fireEvent.click(screen.getByRole('button', { name: label }));
+    fireEvent.click(screen.getByRole('option', { name: option }));
+  }
   fireEvent.change(screen.getByLabelText(/Additional request/), { target: { value: 'Confirm extra baggage.' } });
   expect(onChange.mock.calls.map(call => call[0])).toEqual([{ meal: 'HALAL' }, { baggage: 'EXTRA_CHECKED' }, { wheelchair: 'STAIRS' }, { assistance: 'VISION' }, { note: 'Confirm extra baggage.' }]);
   expect(hasServiceRequest(emptyServicePreferences())).toBe(false);

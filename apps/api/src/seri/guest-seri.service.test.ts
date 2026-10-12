@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { parseConfig } from '@flyseri/config';
 import { GuestSeriService } from './guest-seri.service.js';
+import { AirportDirectoryService } from '../flight/airport-directory.service.js';
 
 function setup() {
   const provider = { name: 'GEMINI' as const, generate: vi.fn().mockResolvedValue({ text: 'Where would you like to travel?', calls: [], inputTokens: 10, outputTokens: 10 }) };
@@ -9,6 +10,34 @@ function setup() {
   return { provider, redis, config, service: new GuestSeriService(config, provider, redis as never) };
 }
 describe('guest Seri', () => {
+  it('asks for an airport choice for an ambiguous city and remembers the code answer', async () => {
+    const {config,provider,redis} = setup();
+    const service = new GuestSeriService(config,provider,redis as never,new AirportDirectoryService());
+    const route = 'Dhaka to London on 22 January 2027 one way 1 adult';
+    const first = await service.send({message:route,history:[]},'127.0.0.1');
+    expect(first.message.content).toContain('Which airport would you like for London?');
+    expect(first.message.payload).toBeNull();
+    const result = await service.send({message:'LHR',history:[{role:'USER',content:route},{role:'ASSISTANT',content:first.message.content}]},'127.0.0.1');
+    expect(result.message.payload).toMatchObject({flightSearchRequest:{origin:'DAC',destination:'LHR'}});
+    expect(provider.generate).not.toHaveBeenCalled();
+  });
+  it('asks for a route when asked to find flights without confirmed destinations', async () => {
+    const {service,provider} = setup();
+    const result = await service.send({message:'Find flights',history:[]},'127.0.0.1');
+    expect(result.message.content).toContain('departing from');
+    expect(result.message.payload).toBeNull();
+    expect(provider.generate).not.toHaveBeenCalled();
+  });
+  it('keeps a guest route through follow-ups and prepares the correct domestic search without the model', async () => {
+    const {config,provider,redis} = setup();
+    const service = new GuestSeriService(config,provider,redis as never,new AirportDirectoryService());
+    const first = await service.send({message:"dac to cox's bazar",history:[]},'127.0.0.1');
+    expect(first.message.content).toContain('What date');
+    expect(first.message.payload).toBeNull();
+    const result = await service.send({message:'22 January 2027 one way, 1 adult',history:[{role:'USER',content:"dac to cox's bazar"}],currency:'BDT'},'127.0.0.1');
+    expect(result.message.payload).toMatchObject({flightSearchRequest:{origin:'DAC',destination:'CXB',departureDate:'2027-01-22',adults:1}});
+    expect(provider.generate).not.toHaveBeenCalled();
+  });
   it('replies without a customer record and provides no account tools to the model', async () => {
     const { service, provider, redis } = setup();
     const result = await service.send({ message: 'November', history: [{ role: 'USER', content: 'Plan a trip from Dhaka' }, { role: 'ASSISTANT', content: 'What month?' }], currency: 'BDT' }, '127.0.0.1');
@@ -35,14 +64,14 @@ describe('guest Seri', () => {
     const { service, provider } = setup();
     const request = { origin: 'DAC', destination: 'BKK', departureDate: '2027-01-22', tripType: 'ONE_WAY', adults: 2, children: 1, infants: 0, cabin: 'ECONOMY', currency: 'BDT' };
     provider.generate.mockResolvedValue({ text: 'Made up fare 100', calls: [{ name: 'prepareFlightSearch', args: request }] });
-    const result = await service.send({ message: 'Find flights', history: [] }, '127.0.0.1');
+    const result = await service.send({ message: 'Check availability', history: [] }, '127.0.0.1');
     expect(result.message.payload).toEqual({ flightSearchRequest: request });
     expect(result.message.content).not.toContain('100');
   });
   it('asks for corrected details when return dates or passenger counts are invalid', async () => {
     const { service, provider } = setup();
     provider.generate.mockResolvedValue({ text: '', calls: [{ name: 'prepareFlightSearch', args: { origin: 'DAC', destination: 'BKK', departureDate: '2027-01-22', tripType: 'ROUND_TRIP', adults: 1, children: 0, infants: 2, cabin: 'ECONOMY', currency: 'BDT' } }] });
-    const result = await service.send({ message: 'Find flights', history: [] }, '127.0.0.1');
+    const result = await service.send({ message: 'Check availability', history: [] }, '127.0.0.1');
     expect(result.message.payload).toBeNull();
     expect(result.message.content).toContain('Please confirm');
   });

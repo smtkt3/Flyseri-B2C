@@ -87,3 +87,11 @@
 .flight-extra-purchase-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .flight-extra-purchase-actions button{min-height:44px;padding:10px 14px;font-size:12px}
 @media(max-width:650px){.flight-extra-purchase-actions{display:grid;grid-template-columns:1fr}.flight-extra-purchase-actions button{width:100%}}
+
+.flight-airline-rules{min-width:0;margin:0 0 12px;padding:12px;border:1px solid #dce9f5;border-radius:10px;background:#f5f9fd;color:#405e80;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.flight-airline-rules>strong{display:block;color:#203a5d;font-size:12px}
+.flight-airline-rules p{margin:6px 0 0!important;font-size:12px!important;line-height:1.6}
+.flight-airline-rules ul{margin:6px 0 0;padding-left:18px}
+.flight-airline-rules-pending{color:#344f70}
+.flight-selected-extra .flight-airline-rules{margin:8px 0 0}
+@media(max-width:380px){.flight-airline-rules{padding:9px}.flight-selected-extra:has(.flight-airline-rules){flex-wrap:wrap}.flight-selected-extra:has(.flight-airline-rules)>div{flex-basis:100%}.flight-selected-extra:has(.flight-airline-rules)>span{max-width:100%;text-align:left}}

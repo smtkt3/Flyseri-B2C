@@ -102,6 +102,7 @@ export class FlightAncillariesService {
       if (!receipt || receipt.until <= Date.now()) throw new ApiException('OFFER_EXPIRED', 'Refresh airline extras before saving your selection.', 410);
       if (receipt.owner !== customerId || receipt.searchId !== scope.searchId || receipt.offerId !== scope.offerId || receipt.intentId !== scope.intentId) throw new ApiException('CONFLICT', 'These extras belong to a different flight selection.', 409);
       const service = receipt.result.services[selection.serviceIndex];
+      if (service?.rules && ['A', 'B', 'E'].includes(service.rules.serviceType ?? '')) throw new ApiException('VALIDATION_ERROR', 'This airline entry describes an allowance or restriction, not an extra to add.', 400);
       const id = `${selection.quoteId}:${selection.serviceIndex}`;
       const serviceKey = service ? JSON.stringify([service.name, service.serviceCode, service.groupCode, service.segmentLabels, service.passengerIndexes]) : '';
       if (!service || seen.has(serviceKey) || !service.segmentLabels.length || !service.passengerIndexes.length) throw new ApiException('VALIDATION_ERROR', 'Choose each airline extra once with its flight and traveler association.', 400);
@@ -112,7 +113,7 @@ export class FlightAncillariesService {
         /\b(BAGGAGE|LUGGAGE|BAG|BAGS|EXCESS WEIGHT|EXTRA WEIGHT|SPORTS EQUIPMENT)\b/.test(name) ? 'BAGGAGE' :
         /\b(SEAT|SEATS|SEATING|LEGROOM|LEG ROOM)\b/.test(name) ? 'SEATS' :
         /\b(MEAL|MEALS|FOOD|DRINK|DRINKS|BEVERAGE|BEVERAGES|SNACK|SNACKS|COFFEE|TEA|JUICE|WATER|COCONUTWATER|SODA|COLA|WINE|BEER|SANDWICH|CHICKEN|RICE|NOODLES|PASTA|BREAKFAST|LUNCH|DINNER|VEGETARIAN|VEGAN)\b/.test(name) ? 'FOOD' : 'OTHER';
-      return { id, name: service.name, serviceCode: service.serviceCode, groupCode: service.groupCode, category,
+      return { id, name: service.name, serviceCode: service.serviceCode, groupCode: service.groupCode, category, ...(service.rules ? { rules: service.rules } : {}),
         segmentLabels: [...service.segmentLabels], passengerIndexes: [...service.passengerIndexes], amount: service.amount, currency: service.currency, status: 'REQUESTED' as const };
     });
     for (let index = 0; index < requests.length; index++) {

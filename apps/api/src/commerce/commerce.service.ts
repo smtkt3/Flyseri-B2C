@@ -55,6 +55,6 @@ export class CommerceService {
       throw new ApiException('CONFLICT', 'A receipt is available after payment is confirmed.', 409);
     }
     return { orderNumber: order.orderNumber, paidAt: order.paidAt, currency: order.currency,
-      totalAmount: order.totalAmount, items: order.items, documentKind: 'PAYMENT_RECEIPT' };
+      totalAmount: order.totalAmount, discountAmount: order.discountAmount, items: order.items, documentKind: 'PAYMENT_RECEIPT' };
   }
 }

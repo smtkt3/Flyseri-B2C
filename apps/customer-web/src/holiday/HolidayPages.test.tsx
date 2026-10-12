@@ -19,7 +19,7 @@ describe('holiday customer flow', () => {
     mocks.list.mockRejectedValue(new Error('Setup pending'));
     try {
       render(<MemoryRouter><HolidayPackages/></MemoryRouter>);
-      expect(await screen.findByText('Sample packages · not bookable')).toBeTruthy();
+      expect(await screen.findByText('Destination ideas · sample content, not bookable')).toBeTruthy();
       expect(screen.getByRole('region', { name: 'Holiday tour packages slideshow' })).toBeTruthy();
       expect(screen.queryByText('Packages are temporarily unavailable')).toBeNull();
       cleanup();

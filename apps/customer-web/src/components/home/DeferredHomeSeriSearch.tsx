@@ -25,7 +25,7 @@ function EntryLauncher({ open, loading = false }: { open: () => void; loading?: 
       setHidden(editing || (!!window.visualViewport && fullHeight - window.visualViewport.height > 120));
       const rect = launcher.current?.getBoundingClientRect();
       if (!rect) return;
-      const left = rect.right - (window.innerWidth <= 767 ? 214 : 230);
+      const left = rect.right - (window.innerWidth <= 800 ? 72 : 230);
       setCompact(Array.from(document.querySelectorAll<HTMLElement>('main input,main select,main textarea,main button,main [role="combobox"]')).some(element => {
         const box = element.getBoundingClientRect();
         return box.width > 0 && box.height > 0 && box.left < rect.right && box.right > left && box.top < rect.bottom && box.bottom > rect.top;
@@ -36,7 +36,7 @@ function EntryLauncher({ open, loading = false }: { open: () => void; loading?: 
     window.addEventListener('resize', schedule); window.visualViewport?.addEventListener('resize', schedule);
     return () => { cancelAnimationFrame(frame); document.removeEventListener('scroll', schedule, true); document.removeEventListener('focusin', schedule); document.removeEventListener('focusout', schedule); window.removeEventListener('resize', schedule); window.visualViewport?.removeEventListener('resize', schedule); };
   }, []);
-  return createPortal(<button ref={launcher} type="button" hidden={hidden} className={'seri-floating-launcher' + (compact ? ' is-compact' : '')} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} title="Tap to chat. Pull down for smoke; hold to boost, then release to fly." aria-label={loading ? 'Opening Seri chat' : 'Chat with us'} aria-busy={loading || aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} disabled={loading} {...aircraft.handlers}>{!compact && <span className="seri-launcher-label"><strong>{loading ? 'Opening chat…' : 'Chat with us'}</strong><small>AI & travel support</small></span>}<AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!hidden && !compact && !loading}/><ChatAircraftMotion/></button>, document.body);
+  return createPortal(<button ref={launcher} type="button" hidden={hidden} className={'seri-floating-launcher' + (compact ? ' is-compact' : '')} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} title="Tap to chat. Pull down for smoke; hold to boost, then release to fly." aria-label={loading ? 'Opening Seri chat' : 'Chat with us'} aria-busy={loading || aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} disabled={loading} {...aircraft.handlers}>{!compact && <span className="seri-launcher-label"><strong>{loading ? 'Opening chat…' : 'Chat with us'}</strong><small>AI & travel support</small></span>}<AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!hidden && !loading}/><ChatAircraftMotion/></button>, document.body);
 }
 export function DeferredHomeSeriSearch({ active, floatingOnly=false }: { active: boolean; floatingOnly?:boolean }) {
   const location = useLocation();

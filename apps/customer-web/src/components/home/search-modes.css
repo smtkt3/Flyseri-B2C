@@ -162,9 +162,15 @@
 /* Tablets share the mobile search flow, with roomier controls. */
 @media (min-width:761px) and (max-width:1366px) {
   .premium-home-layout:not(.is-embedded) .premium-hero {
-    min-height:440px;
-    padding:125px 40px 95px;
+    box-sizing:border-box;
+    height:clamp(320px,38svh,360px);
+    min-height:0;
+    padding:88px 40px 48px;
+    display:flex;
+    align-items:center;
   }
+  .premium-home-main .premium-hero-script { display:none; }
+  .premium-home-main .premium-hero .premium-hero-note { right:24px; bottom:20px; }
   .premium-home-main .premium-header.flyseri-site-navbar nav.navbar-utility-links { display:none!important; }
   .premium-home-main .premium-header.flyseri-site-navbar .premium-header-actions { margin-left:auto; }
   .premium-home-layout:not(.is-embedded) .premium-home-main .premium-container { width:calc(100% - 40px); }
@@ -188,6 +194,12 @@
   #home-search-map .explore-map-filter-title { display:flex; justify-content:space-between; align-items:center; }
   #home-search-map .explore-map-filter-title button { border:0; background:none; font-size:22px; color:#55708c; cursor:pointer; }
   .premium-home-main .premium-journey-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media (min-width:761px) and (max-width:1366px) and (orientation:landscape) {
+  .premium-home-layout:not(.is-embedded) .premium-hero {
+    height:clamp(260px,42svh,300px);
+    padding:80px 40px 40px;
+  }
 }
 @media (prefers-reduced-motion:reduce) {
   .premium-search-mode-switch > button { transition:none; }
@@ -244,6 +256,9 @@
   .premium-home-main .premium-hero-note img { width:26px; height:26px; }
   .premium-home-main .premium-hero-note b { width:18px; height:18px; }
 }
+.premium-hero-motion{position:absolute;right:3%;bottom:180px;z-index:2;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid #ffffffd9;border-radius:50%;background:#ffffffe0;color:#27517e;box-shadow:0 3px 12px #2868b81a;cursor:pointer}
+.premium-hero-motion:focus-visible{outline:3px solid #1675ed;outline-offset:3px}
+@media(max-width:767px){.premium-hero-motion{right:16px;bottom:20px}}
 /* Mobile headers scroll with the page rather than covering search fields. */
 @media(max-width:767px){
  .premium-home-layout:not(.is-embedded) .premium-header.flyseri-site-navbar{position:relative;top:auto}

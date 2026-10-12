@@ -1,11 +1,9 @@
 /* Focused homepage refinements, preserving the existing mobile composition. */
 @media(min-width:1024px) and (max-width:1366px){
- .premium-home-layout:not(.is-embedded) .premium-home-main .premium-hero{box-sizing:border-box;min-height:280px;padding:96px 40px 44px}
  .premium-home-main .premium-hero h1{font-size:clamp(40px,4.1vw,54px)}
  .premium-home-main .premium-hero .premium-hero-note{bottom:18px;right:3%}
 }
 @media(min-width:1024px) and (max-width:1366px) and (max-height:800px){
- .premium-home-layout:not(.is-embedded) .premium-home-main .premium-hero{min-height:216px;padding-top:80px;padding-bottom:20px}
  .premium-home-main .premium-hero h1{font-size:44px;margin:8px 0}
 }
 .premium-search-fields .home-field-error{display:block;font-size:12px;line-height:1.5;color:#a62e43;padding:6px 10px 2px;font-weight:550;text-align:left;white-space:normal}
@@ -33,3 +31,5 @@
  #home-search-ai .home-seri-welcome.seri-welcome-design{height:auto;min-height:350px}
  .premium-home-main .premium-main #home-search-ai:not([hidden]) + .premium-journey-grid{margin-top:20px}
 }
+.premium-home-main .premium-search-fields input:is(:focus,:focus-visible){outline:0;box-shadow:none}
+.premium-home-main .premium-search-fields .airport-picker:not(:has([aria-invalid="true"])):focus-within{border-color:#79b4ee;box-shadow:0 0 0 2px #4b99e51a;background:#fff}

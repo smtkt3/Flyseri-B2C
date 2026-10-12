@@ -32,6 +32,22 @@ export function sameCheckoutFare(left: FlightOffer, right: FlightOffer): boolean
   return signature(left) === signature(right);
 }
 
+/** Alternatives must keep every flight, date and carrier; only the fare may change. */
+export function sameCheckoutItinerary(left: FlightOffer, right: FlightOffer): boolean {
+  const itinerary = (offer: FlightOffer) => (offer.multiCityLegs ?? [offer.outbound, ...(offer.inbound ? [offer.inbound] : [])]).map(leg => leg.segments.map(segment => [segment.origin, segment.destination, segment.departureAt, segment.arrivalAt, segment.marketingCarrier, segment.flightNumber, segment.operatingCarrier ?? segment.marketingCarrier]));
+  return Boolean(left.ndcContext) === Boolean(right.ndcContext) && left.outbound.segments.length > 0 && JSON.stringify(itinerary(left)) === JSON.stringify(itinerary(right));
+}
+
+export function closestCheckoutFare(original: FlightOffer, offers: FlightOffer[]): FlightOffer | undefined {
+  const valid = offers.filter(offer => offer.currency === original.currency && Number.isFinite(Number(offer.totalAmount)) && Number(offer.totalAmount) > 0);
+  const exact = valid.filter(offer => sameCheckoutFare(original, offer));
+  // Suppliers can return duplicate fare rows. They are not evidence of a sold-out class.
+  if (exact.length) return exact.sort((a,b) => Number(a.totalAmount) - Number(b.totalAmount) || a.offerId.localeCompare(b.offerId))[0];
+  const cabins = ['ECONOMY','PREMIUM_ECONOMY','BUSINESS','FIRST'];
+  const distance = (offer: FlightOffer) => offer.cabin === original.cabin ? 0 : offer.cabin && original.cabin && cabins.includes(offer.cabin) && cabins.includes(original.cabin) ? Math.abs(cabins.indexOf(offer.cabin) - cabins.indexOf(original.cabin)) : 10;
+  return valid.filter(offer => sameCheckoutItinerary(original, offer)).sort((a,b) => distance(a) - distance(b) || Math.abs(Number(a.totalAmount) - Number(original.totalAmount)) - Math.abs(Number(b.totalAmount) - Number(original.totalAmount)) || Number(a.totalAmount) - Number(b.totalAmount))[0];
+}
+
 export function matchingCheckoutTraveller(person: TravellerProfile, input: {
   givenNames: string; surname: string; birthDate: string; gender: string; nationality: string;
 }): boolean {

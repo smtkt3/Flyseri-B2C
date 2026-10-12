@@ -1,5 +1,32 @@
-import { foreignKey, check, date, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core';
+import { foreignKey, check, date, index, integer, bigint, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+
+export const pointsAccounts = pgTable('points_accounts', {
+  customerId: uuid('customer_id').primaryKey().references(()=>customers.id),
+  adjustmentDue: integer('adjustment_due').notNull().default(0),
+}, t=>[check('points_accounts_adjustment_due_check',sql`${t.adjustmentDue} >= 0`)]);
+export const pointsLots = pgTable('points_lots', {
+  id:uuid('id').primaryKey().defaultRandom(),customerId:uuid('customer_id').notNull().references(()=>pointsAccounts.customerId),
+  orderId:uuid('order_id').unique().references(()=>orders.id),eligibleMinor:bigint('eligible_minor',{mode:'bigint'}).notNull().default(0n),
+  refundedMinor:bigint('refunded_minor',{mode:'bigint'}).notNull().default(0n),points:integer('points').notNull(),remaining:integer('remaining').notNull().default(0),expiredPoints:integer('expired_points').notNull().default(0),
+  state:varchar('state',{length:16}).notNull(),rulesVersion:varchar('rules_version',{length:32}).notNull(),
+  completedAt:timestamp('completed_at',{withTimezone:true}),availableAt:timestamp('available_at',{withTimezone:true}),expiresAt:timestamp('expires_at',{withTimezone:true}),
+  createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+},t=>[index('points_lots_wallet_idx').on(t.customerId,t.state,t.expiresAt),check('points_lots_eligible_minor_check',sql`${t.eligibleMinor}>=0`),
+  check('points_lots_refunded_minor_check',sql`${t.refundedMinor}>=0 and ${t.refundedMinor}<=${t.eligibleMinor}`),check('points_lots_points_check',sql`${t.points}>=0`),
+  check('points_lots_remaining_check',sql`${t.remaining}>=0 and ${t.remaining}<=${t.points}`),check('points_lots_expired_points_check',sql`${t.expiredPoints}>=0 and ${t.expiredPoints}<=${t.points}`),check('points_lots_state_check',sql`${t.state} in ('PENDING','AVAILABLE','REVERSED')`)]);
+export const pointsRedemptions=pgTable('points_redemptions',{
+  orderId:uuid('order_id').primaryKey().references(()=>orders.id),customerId:uuid('customer_id').notNull().references(()=>pointsAccounts.customerId),
+  points:integer('points').notNull(),restored:integer('restored').notNull().default(0),refundedMinor:bigint('refunded_minor',{mode:'bigint'}).notNull().default(0n),
+  state:varchar('state',{length:16}).notNull(),allocations:jsonb('allocations').notNull(),expiresAt:timestamp('expires_at',{withTimezone:true}).notNull(),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+},t=>[index('points_redemptions_wallet_idx').on(t.customerId,t.state),check('points_redemptions_points_check',sql`${t.points}>0`),
+  check('points_redemptions_restored_check',sql`${t.restored}>=0 and ${t.restored}<=${t.points}`),check('points_redemptions_refunded_minor_check',sql`${t.refundedMinor}>=0`),
+  check('points_redemptions_state_check',sql`${t.state} in ('RESERVED','CAPTURED','RELEASED')`),check('points_redemptions_allocations_check',sql`jsonb_typeof(${t.allocations})='array'`)]);
+export const pointsLedger=pgTable('points_ledger',{
+  id:uuid('id').primaryKey().defaultRandom(),customerId:uuid('customer_id').notNull().references(()=>pointsAccounts.customerId),orderId:uuid('order_id').references(()=>orders.id),
+  eventKey:varchar('event_key',{length:180}).notNull().unique(),kind:varchar('kind',{length:24}).notNull(),points:integer('points').notNull(),description:varchar('description',{length:300}).notNull(),
+  staffId:uuid('staff_id'),evidence:varchar('evidence',{length:500}),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+},t=>[index('points_ledger_customer_idx').on(t.customerId,t.createdAt.desc(),t.id.desc()),check('points_ledger_kind_check',sql`${t.kind} in ('PENDING','EARNED','RESERVED','RELEASED','REDEEMED','EXPIRED','REFUND','ADJUSTMENT')`)]);
 
 export const fareWatches = pgTable('fare_watches', {
   id: uuid('id').primaryKey().defaultRandom(), customerId: uuid('customer_id').notNull().references(() => customers.id),

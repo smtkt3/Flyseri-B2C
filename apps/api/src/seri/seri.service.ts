@@ -23,6 +23,7 @@ import { SERI_PROMPT_VERSION, SERI_SYSTEM_PROMPT } from './seri.prompt.js';
 import { SabreMcpService } from './sabre-mcp.service.js';
 import { flightPlanQuestion, readFlightPlan, updateFlightPlan } from './flight-planning.js';
 import { AirportDirectoryService } from '../flight/airport-directory.service.js';
+import { flightPlanningDraft, isFlightPlanReset, userTravelText } from './travel-intent.js';
 
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Seri is temporarily unavailable. Your trips and bookings are still safe.', 503);
 const messageError = () => new ApiException('VALIDATION_ERROR', 'Send a message of up to 4,000 characters.', 400);
@@ -124,7 +125,7 @@ export class SeriOrchestratorService {
       }
     }
 
-    if (/^(?:start over|reset(?: my)? (?:flight|trip|search)|forget(?: my)? (?:flight|trip|search))[.!]?$/i.test(normalized)) {
+    if (isFlightPlanReset(normalized)) {
       const answer=await this.store.addMessage(conversationId,{role:'ASSISTANT',content:'Let’s start a new flight request. Where would you like to fly from and to?',payload:{flightPlanning:{version:1,status:'PLANNING'}}});
       return {conversation,message:answer,deterministic:true,provider:null,promptVersion:SERI_PROMPT_VERSION};
     }
@@ -139,7 +140,7 @@ export class SeriOrchestratorService {
       }
     }
     const update = updateFlightPlan(safePrompt, savedPlan);
-    if (update && (update.changed || (savedPlan?.status === 'PLANNING' && /\b(search|find|try again|continue)\b/i.test(normalized)))) {
+    if (update && (update.changed || flightPlanningDraft(safePrompt) || (savedPlan && /\b(search|find|try again|retry|refresh|continue)\b/i.test(userTravelText(normalized))))) {
       const started = performance.now();
       const plan = update.plan;
       // A direct, dated flight-search request can safely use the form's common
@@ -226,13 +227,7 @@ export class SeriOrchestratorService {
 
   private async resolveAirport(name: string): Promise<string | null> {
     if (!this.airports) return /^[A-Z]{3}$/i.test(name) ? name.toUpperCase() : null;
-    const matches=await this.airports.suggestions(name);
-    const code=matches.find(item=>item.code===name.toUpperCase());
-    if(code)return code.code;
-    const normalized=name.trim().toLowerCase();
-    const exact=matches.filter(item=>item.scheduled && (item.city.toLowerCase()===normalized || item.cityLabel.toLowerCase()===normalized || item.name.toLowerCase()===normalized));
-    const large=exact.filter(item=>item.type==='large_airport');
-    return large.length===1 ? large[0]!.code : exact.length===1 ? exact[0]!.code : null;
+    return this.airports.resolve(name);
   }
 
   private routeDeterministic(text: string): { name: string; args: Record<string, unknown> } | null {
@@ -452,7 +447,7 @@ function deterministicText(name: string, result: ToolResult): string {
   if (name === 'getOrder') return `Order ${String(payload.orderNumber)} is ${String(payload.status)} for ${String(payload.currency)} ${String(payload.totalAmount)}.`;
   if (name === 'searchFlights') {
     const offers = Array.isArray(payload.offers) ? payload.offers : [];
-    return offers.length ? `I found ${offers.length} live flight option${offers.length === 1 ? '' : 's'}. Fares and availability can change until checked again.` : 'I couldn’t find live flight options for those details. Try changing the dates or airports.';
+    return offers.length ? `I found ${offers.length} live flight option${offers.length === 1 ? '' : 's'}. Fares and availability can change until checked again.` : 'The airline search returned no fares for these details. Availability depends on the travel date and supplier coverage. Choose another date below, ask me to search again, or contact our team for help.';
   }
   if (name === 'searchHotels') {
     const hotels = Array.isArray(payload.hotels) ? payload.hotels : [];

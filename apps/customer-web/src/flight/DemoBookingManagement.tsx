@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PremiumNavbar } from '../components/PremiumNavbar';
-import { createDemoBooking, demoBookingReceipt, readDemoBookings, updateDemoBooking, type DemoBooking, type DemoBookingAction } from '../services/demo/demoBookingService';
+import { createDemoBooking, demoBookingReceipt, readDemoBookings, resetDemoBookings, updateDemoBooking, type DemoBooking, type DemoBookingAction } from '../services/demo/demoBookingService';
 import { activeGroupFare } from '../components/home/groupFares';
 import { downloadText } from '../lib/downloadText';
 import { formatMoney } from '../account/presentation';
@@ -12,10 +12,16 @@ const labels: Record<DemoBooking['status'], string> = { HELD:'Reserved · demo p
 export function DemoBookingManagement() {
   const { demoId } = useParams(); const navigate = useNavigate();
   const [items, setItems] = useState<DemoBooking[]>([]); const [error,setError] = useState('');
+  const [storageError, setStorageError] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [route,setRoute] = useState('KUL'); const [travellers,setTravellers] = useState(1); const [date,setDate] = useState('');
   const [outcome,setOutcome] = useState<'PAY_SUCCESS'|'PAY_FAILURE'|'PAY_PENDING'>('PAY_SUCCESS');
   const [reviewed,setReviewed] = useState(false); const [confirmCancel,setConfirmCancel] = useState(false); const [now,setNow] = useState(Date.now);
-  function reload() { try { setItems(readDemoBookings()); setError(''); } catch(cause) { setError(cause instanceof Error ? cause.message : 'Demo data is unavailable.'); } }
+  function reload() { try { setItems(readDemoBookings()); setStorageError(false); setError(''); } catch(cause) { setItems([]); setStorageError(true); setError(cause instanceof Error ? cause.message : 'Demo data is unavailable.'); } }
+  function reset() {
+    try { resetDemoBookings(); reload(); setConfirmReset(false); navigate('/demo/bookings'); }
+    catch { setError('Demo storage could not be reset. Enable browser storage and try again.'); }
+  }
   useEffect(() => { reload(); setReviewed(false);setConfirmCancel(false); }, [demoId]);
   const booking = items.find(value => value.id === demoId);
   useEffect(() => {
@@ -47,6 +53,7 @@ export function DemoBookingManagement() {
     <header className="demo-booking-heading"><div><span className="demo-booking-eyebrow">FLYSERI SANDBOX</span><h1>{demoId ? 'Manage demo booking' : 'Try the complete booking flow'}</h1><p>Reservation, payment, documents and cancellation in one place.</p></div><Link to={demoId ? '/demo/bookings' : '/'}>{demoId ? 'All demo bookings' : 'Back to homepage'}</Link></header>
     <aside className="demo-booking-notice"><strong>Demo only · no money or airline seats</strong><p>All outcomes are simulated in this browser tab. Use sample details. Demo records are separate from My bookings, airline systems and Stripe. Closing the tab clears the session.</p></aside>
     {error && <p className="account-error" role="alert">{error}</p>}
+    {storageError && <section className="demo-booking-panel" aria-label="Demo data recovery"><h2>Recover the demo</h2><p>You can retry reading this tab’s records or clear its simulated bookings to start again.</p><button type="button" className="account-outline-button" onClick={reload}>Retry loading demo bookings</button><label className="demo-booking-check"><input type="checkbox" checked={confirmReset} onChange={event=>setConfirmReset(event.target.checked)}/>Clear this tab’s simulated bookings.</label><button type="button" className="account-outline-button" disabled={!confirmReset} onClick={reset}>Reset demo bookings</button></section>}
     {!demoId ? <><section className="demo-booking-panel"><h2>Start a demo reservation</h2><p>Choose a sample offer. The five-minute payment window starts when you reserve.</p><form onSubmit={event=>{event.preventDefault();create();}}><div className="demo-booking-fields"><label>Destination<select value={route} onChange={event=>{setRoute(event.target.value);setDate('');}}>{routes.map(value=><option key={value.code} value={value.code}>{value.city} · DAC → {value.code}</option>)}</select></label><label>Travel date<select required value={date} onChange={event=>setDate(event.target.value)}><option value="">Choose a date</option>{fare?.travelDates?.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label>Travellers<input type="number" required min={1} max={9} value={Number.isNaN(travellers)?'':travellers} onChange={event=>setTravellers(event.target.valueAsNumber)}/></label></div><p className="demo-booking-price">{formatMoney(String((fare?.amountPerPerson??0)*(Number.isFinite(travellers)?travellers:0)),fare?.currency??'BDT')} <small>demo total · taxes included</small></p><button className="btn-primary" type="submit">Reserve demo flight</button></form></section><section aria-label="Saved demo bookings"><h2>Your demo bookings</h2>{items.length ? items.map(value=><Link className="demo-booking-list-card" key={value.id} to={'/demo/bookings/'+value.id}><div><strong>Dhaka → {value.city}</strong><span>{value.departure} · {value.travellers} sample traveller{value.travellers===1?'':'s'}</span><small>{value.id}</small></div><div><strong>{formatMoney(String(value.amountPerPerson*value.travellers),value.currency)}</strong><span>{['HELD','PAYMENT_FAILED'].includes(value.status)&&Date.now()>=value.expiresAt ? labels.EXPIRED : labels[value.status]}</span><b>Manage demo</b></div></Link>) : <p>No demo bookings yet.</p>}</section></> : !booking ? <section className="demo-booking-panel"><h2>Demo booking not found</h2><p>Demo records exist only in the browser tab where you created them.</p><Link to="/demo/bookings">Start a new demo</Link></section> : <>
       <ol className="demo-booking-progress" aria-label="Demo booking progress">{['Reservation','Payment','Documents'].map((value,index)=><li key={value} className={index===0 || index===1&&paid || index===2&&booking.status==='TICKETED' ? 'is-complete' : ''}><span>{index+1}</span>{value}</li>)}</ol>
       <div className="demo-booking-layout"><div><section className="demo-booking-panel"><span className="demo-booking-status" role="status">{labels[booking.status]}</span><h2>Dhaka → {booking.city}</h2><p>DAC → {booking.destination} · One-way · {booking.departure}</p><dl className="demo-booking-facts"><div><dt>Sample passengers</dt><dd>{Array.from({length:booking.travellers},(_,index)=>`Demo traveller ${index+1}`).join(', ')}</dd></div><div><dt>Included baggage</dt><dd>20 kg checked · 7 kg cabin / person · demo allowance</dd></div><div><dt>Demo reference</dt><dd>{booking.id}</dd></div></dl><small>Illustrative offer. No real airline PNR, schedule or ticket is created.</small></section>

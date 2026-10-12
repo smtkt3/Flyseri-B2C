@@ -1,4 +1,8 @@
+import type { FlightSearchRequest } from '@flyseri/types';
 // Private checkout fields stay in tab memory, never localStorage or router history.
+export function checkoutJourneyDraftKey(request: FlightSearchRequest): string {
+  return 'journey:' + JSON.stringify([request.origin,request.destination,request.tripType,request.adults,request.children,request.infants,request.legs?.map(leg=>[leg.origin,leg.destination])]);
+}
 const drafts = new Map<string, { owner: string | null; expiresAt: number; value: unknown }>();
 export function readCheckoutDraft<T>(key: string, owner: string | null): T | undefined {
   const draft = drafts.get(key);

@@ -1,5 +1,5 @@
-.premium-home-main .premium-main .premium-exclusive-offers.premium-inspiration{padding:28px 0 18px;border:1px solid #e0eaf4;border-radius:26px;background:linear-gradient(140deg,#ffffff,#f6faff);box-shadow:0 14px 40px #22486d09;overflow:hidden}
-.journey-section-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 28px 22px}
+.premium-home-main .premium-main .premium-exclusive-offers.premium-inspiration{padding:16px 0 0;border:1px solid #e0eaf4;border-radius:26px;background:linear-gradient(140deg,#ffffff,#f6faff);box-shadow:0 14px 40px #22486d09;overflow:hidden}
+.journey-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 28px 10px}
 .journey-eyebrow{display:block;margin-bottom:8px;color:#477294;font-size:11px;font-weight:750;letter-spacing:.14em}
 .journey-section-heading h2{margin:0;color:#183655;font-size:clamp(25px,2.2vw,34px);line-height:1.15;font-weight:800;letter-spacing:-.04em}
 .journey-section-heading p{margin:9px 0 0;color:#536d86;font-size:14px;line-height:1.6}
@@ -24,36 +24,40 @@
 .journey-destination{position:absolute;z-index:1;right:18px;bottom:18px;left:18px;display:grid;gap:5px;color:#fff;text-shadow:0 1px 6px #0b243b40}
 .journey-destination>strong{font-size:26px;line-height:1.2;font-weight:750;letter-spacing:-.03em}
 .journey-destination>span{font-size:13px;line-height:1.4;color:#f0f6fc}
-.journey-card-content{display:flex;flex-direction:column;gap:16px;padding:18px}
+.journey-card-content{display:flex;flex:1;flex-direction:column;gap:15px;padding:18px;background:linear-gradient(180deg,#fff,#fbfdff)}
 .journey-route{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.journey-route>span:first-child{display:grid;gap:4px;flex:none}
 .journey-route small{color:#60788f;font-size:12px}
 .journey-route strong{font-size:18px;line-height:1.4;letter-spacing:-.02em}
 .journey-route strong>span{color:#a2b7ca;font-size:15px;margin-inline:3px}
-.journey-airline{display:flex;align-items:center;justify-content:flex-end;gap:7px;max-width:48%;min-width:0}
-.journey-airline>img{width:30px;height:30px;flex:none;object-fit:contain}
-.journey-airline>span{font-size:11px;line-height:1.45;color:#536c86}
+.journey-airline{display:flex;align-items:center;gap:12px;min-width:0;min-height:54px}
+.journey-airline-logo{display:grid;place-items:center;box-sizing:border-box;width:82px;height:54px;flex:none;padding:7px;border:1px solid #e3ebf4;border-radius:12px;background:#fff}
+.journey-airline-logo>img{display:block;width:100%;height:100%;object-fit:contain}
+.journey-airline>span:last-child{font-size:15px;line-height:1.35;font-weight:700;color:#233f5c;overflow-wrap:anywhere}
 .journey-card-action{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid #e7eef5;color:#226cc0;font-size:14px;font-weight:700}
 .journey-card-action svg{width:20px;height:20px}
 .journey-section-note{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 28px 0;font-size:12px;line-height:1.6;color:#60758b}
 @media(min-width:1600px){.journey-card{width:calc((100cqw - 54px)/4);max-width:none}.journey-photo{height:195px}}
 @media(max-width:1000px){.journey-card{width:calc((100cqw - 18px)/2);max-width:none}.journey-header-actions{gap:12px}.journey-section-heading{align-items:flex-start}.journey-header-actions{flex-direction:column;align-items:flex-end;gap:4px}.journey-section-note>span:last-child{display:none}}
 @media(max-width:600px){
- .premium-home-main .premium-main .premium-exclusive-offers.premium-inspiration{padding:22px 0 16px;border-radius:22px}
- .journey-section-heading{display:block;padding:0 18px 14px}
+ .premium-home-main .premium-main .premium-exclusive-offers.premium-inspiration{padding:14px 0 0;border-radius:22px}
+ .journey-section-heading{display:flex;align-items:center;padding:0 18px 8px;gap:10px}
  .journey-eyebrow{font-size:10px;margin-bottom:7px}
- .journey-section-heading h2{font-size:26px}
+ .journey-section-heading h2{font-size:21px}
  .journey-section-heading p{font-size:13px;max-width:280px;margin-top:7px}
- .journey-header-actions{flex-direction:row;align-items:center;justify-content:space-between;margin-top:12px;gap:10px}
+ .journey-header-actions{margin-top:0;gap:0;align-items:flex-end}
+ .journey-alert-link{max-width:64px;text-align:right;line-height:1.4}
  .journey-alert-link{font-size:12px}
  .journey-navigation button{padding:8px 11px;font-size:12px;border-radius:10px}
  .journey-navigation{gap:6px}
  .journey-viewport{padding:3px 18px 16px;scroll-padding-inline:18px}
  .journey-track{gap:14px}
  .journey-card{width:86cqw;min-width:0;max-width:none;border-radius:18px}
- .journey-photo{height:180px}
+ .journey-photo{height:174px}
  .journey-destination>strong{font-size:25px}
- .journey-card-content{padding:16px;gap:14px}
+ .journey-card-content{padding:16px;gap:13px}
+ .journey-airline{gap:10px;min-height:48px}
+ .journey-airline-logo{width:76px;height:48px;padding:6px;border-radius:10px}
+ .journey-airline>span:last-child{font-size:14px}
  .journey-route strong{font-size:17px}
  .journey-section-note{padding:0 18px;font-size:11px}
 }
@@ -61,8 +65,9 @@
 .journey-fare{display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:1px solid #e7eef5}
 .journey-fare>span{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .journey-fare small{font-size:11px;line-height:1.5;color:#60778f}
-.journey-fare strong{color:#1f65b2;font-size:19px;font-weight:750;letter-spacing:-.025em;text-align:right}
-.journey-card-action{padding:12px 14px;border:0;border-radius:10px;background:#eef5ff}
+.journey-fare strong{color:#1f65b2;font-size:22px;font-weight:750;letter-spacing:-.025em;text-align:right}
+.journey-card-action{margin-top:auto;min-height:46px;box-sizing:border-box;padding:12px 14px;border:1px solid #d7e8fb;border-radius:12px;background:linear-gradient(115deg,#eaf3ff,#f2f8ff)}
+.journey-card:hover .journey-card-action{background:#e4f0ff;border-color:#b7d5f6}
 .group-fare-quote{padding:20px;border-radius:14px;background:linear-gradient(120deg,#edf5ff,#effaf7);margin:18px 0;color:#214565}
 .group-fare-quote>small{display:block;font-size:12px;color:#546f88}
 .group-fare-quote>strong{display:block;margin-top:5px;font-size:26px;line-height:1.3;color:#205ea4}
@@ -79,7 +84,11 @@
 .home-feature-loading p{flex-basis:100%;margin:0;font-size:14px;line-height:1.6}
 .home-feature-loading button{min-height:44px;padding:10px 18px;border:1px solid #bfd8ef;border-radius:10px;background:white;color:#2469b1;font:inherit}
 .home-loading-dot{width:12px;height:12px;border-radius:50%;background:#3489eb;box-shadow:0 0 0 7px #e0efff}
-.journey-demo-badge{position:absolute;z-index:1;top:14px;right:14px;padding:5px 9px;border:1px solid #ffffff80;border-radius:999px;background:#133a61db;color:#fff;font-size:11px;font-weight:650}
+.journey-weather-badge{position:absolute;z-index:1;top:14px;right:14px;display:grid;gap:2px;padding:7px 10px;border:1px solid #ffffff80;border-radius:13px;background:#133a61e8;color:#fff;text-align:center}
+.journey-weather-badge>span{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:750;line-height:1.2}
+.journey-weather-badge svg{width:17px;height:17px;color:#ffe29a}
+.journey-weather-badge small{font-size:9px;line-height:1.2;color:#e0edf8}
+.journey-photo .journey-country{max-width:calc(100% - 116px);box-sizing:border-box;line-height:1.35}
 .special-offer-demo-label{display:block;margin:16px 0;padding:10px 12px;border:1px solid #dae7f5;border-radius:10px;background:#edf5ff;color:#3e6388;font-size:12px;line-height:1.6}
 .demo-hold-timer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;border:1px solid #cce4df;border-radius:14px;background:#effaf6;color:#245e58}
 .demo-hold-timer>div{display:grid;gap:5px}.demo-hold-timer strong{font-size:14px}.demo-hold-timer span{font-size:12px;line-height:1.5}.demo-hold-timer time{flex:none;font-size:27px;font-weight:750;font-variant-numeric:tabular-nums}

@@ -148,4 +148,5 @@
 # Small web assets must be present in ordinary Git checkouts used by hosting builds.
 apps/customer-web/public/airlines/* -filter -diff -merge -text
 apps/customer-web/src/assets/flyseri-logo.* -filter -diff -merge -text
+apps/customer-web/src/assets/seri-aircraft-render.png -filter -diff -merge -text
 apps/customer-web/src/imports/images__1_.jpg -filter -diff -merge -text

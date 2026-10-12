@@ -168,3 +168,45 @@
 @media(hover:none) and (pointer:coarse){
  .explore-map-canvas,.explore-map-gesture-plane,.explore-map-place,.explore-map-dot{touch-action:pan-y}
 }
+
+/* Readable controls and a destination sheet that leaves the map visible. */
+.explore-map-filters{max-height:calc(100% - 36px);overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.explore-map-filters select{width:100%;min-height:44px;margin:8px 0 16px;padding:8px;border:1px solid #d9e6f3;border-radius:9px;background:#fff;color:#254466;font-size:12px}
+.explore-map-switch{min-height:32px;font-size:11px}
+.explore-map-switch input{flex:none}
+.explore-map-clear{min-height:44px;padding:8px}
+.explore-map-zoom button{width:40px;height:40px}
+.explore-map-place{box-sizing:border-box}
+.explore-map-place>img{flex:none}
+.explore-map-place>span:not(.explore-map-airport-icon){flex:1;overflow:hidden}
+.explore-map-place small{font-size:11px;color:#2866ab;font-weight:600;white-space:nowrap}
+@container(max-width:760px){
+ .explore-map-place{gap:6px;padding:4px 7px 4px 4px}
+ .explore-map-place strong{font-size:10px;line-height:1.3}
+ .explore-map-place small{font-size:10px;line-height:1.3}
+ .explore-map-place .explore-map-airport-icon{width:24px;height:32px;font-size:18px}
+}
+.explore-map-list{bottom:12px}
+.explore-map-list header input{font-size:16px}
+.explore-map-list header button{width:44px;min-height:44px;justify-content:center}
+.explore-map-selection>strong{font-size:15px}
+.explore-map-selection>a{min-height:44px;align-items:center;box-sizing:border-box;font-size:13px}
+@media(max-width:1366px){
+ .explore-map-filters{width:min(260px,calc(100% - 24px));box-sizing:border-box;top:12px;right:12px;max-height:calc(100% - 24px);padding:14px}
+ .explore-map-filter-title{margin-bottom:10px}
+ .explore-map-filter-title button{width:44px;min-height:44px}
+ .explore-map-switch{margin:8px 0;min-height:36px;font-size:12px}
+ .explore-map-filters>p{font-size:10px;margin:8px 0}
+ .explore-map-filter-divider{margin:10px 0}
+ .explore-map-selection{position:relative!important;inset:auto!important;box-sizing:border-box;width:100%!important;max-width:100%;margin:0!important;border-radius:0;border:0;border-top:1px solid #dfebf5;box-shadow:none;padding:16px}
+ .explore-map-selection h3{font-size:16px}
+ .explore-map-selection p{font-size:12px}
+ .explore-map-selection div>span{font-size:11px}
+ .explore-map-zoom button{width:44px;height:44px}
+}
+@media(max-width:400px){.explore-map-selection{padding:12px}.explore-map-zoom button{width:40px;height:44px}}
+
+@media(min-width:768px) and (max-width:1366px){
+ #home-search-map .explore-map{height:auto;max-height:none;display:block}
+ #home-search-map .explore-map-canvas{height:clamp(340px,40svh,460px);min-height:0!important;flex:none}
+}

@@ -8,21 +8,22 @@ afterEach(()=>{cleanup();vi.useRealTimers();});
 function Hint({phase='idle',eligible=true,boosted=false}:{phase?:string;eligible?:boolean;boosted?:boolean}) {
   return <button>Chat<AircraftGestureHint phase={phase} eligible={eligible} boosted={boosted}/></button>;
 }
-it('shows one brief introduction per tab after a quiet delay',()=>{
+it('keeps the introduction visible until interaction, including after remount',()=>{
   const view=render(<MemoryRouter><Hint/></MemoryRouter>);
-  act(()=>vi.advanceTimersByTime(5999));expect(screen.queryByRole('status')).toBeNull();
-  act(()=>vi.advanceTimersByTime(1));expect(screen.getByText('Pull down for takeoff ↓')).toBeTruthy();
+  act(()=>vi.advanceTimersByTime(1199));expect(screen.queryByRole('status')).toBeNull();
+  act(()=>vi.advanceTimersByTime(1));expect(screen.getByText('Pull down to open chat ↓')).toBeTruthy();
   expect(screen.getByText('Or tap to chat')).toBeTruthy();
-  act(()=>vi.advanceTimersByTime(7000));expect(screen.queryByRole('status')).toBeNull();
+  act(()=>vi.advanceTimersByTime(20000));expect(screen.getByRole('status')).toBeTruthy();
   view.unmount();render(<MemoryRouter><Hint/></MemoryRouter>);
-  act(()=>vi.advanceTimersByTime(20000));expect(screen.queryByRole('status')).toBeNull();
+  act(()=>vi.advanceTimersByTime(1200));expect(screen.getByRole('status')).toBeTruthy();
+  fireEvent.pointerDown(screen.getByRole('button'));expect(screen.queryByRole('status')).toBeNull();
 });
 it('dismisses on interaction and gives contextual pull and boost instructions',()=>{
   const view=render(<MemoryRouter><Hint/></MemoryRouter>);
   act(()=>vi.advanceTimersByTime(6000));fireEvent.pointerDown(screen.getByRole('button'));
   expect(screen.queryByRole('status')).toBeNull();
   view.rerender(<MemoryRouter><Hint phase="pulling"/></MemoryRouter>);
-  expect(screen.getByText('Release to fly')).toBeTruthy();expect(screen.getByText('Hold for a boost')).toBeTruthy();
+  expect(screen.getByText('Release to open chat')).toBeTruthy();expect(screen.getByText('Hold for a boost')).toBeTruthy();
   view.rerender(<MemoryRouter><Hint phase="pulling" boosted/></MemoryRouter>);
   expect(screen.getByText('Ready for takeoff!')).toBeTruthy();
   view.rerender(<MemoryRouter><Hint phase="flying"/></MemoryRouter>);

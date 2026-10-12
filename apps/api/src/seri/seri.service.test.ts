@@ -5,6 +5,7 @@ import { SeriOrchestratorService } from './seri.service.js';
 import { SeriToolRegistry } from './seri.tools.js';
 import type { AiProvider } from './ai-provider.js';
 import type { AuthenticatedUserContext } from '../request-context.js';
+import { AirportDirectoryService } from '../flight/airport-directory.service.js';
 
 const customerId = randomUUID();
 const conversationId = randomUUID();
@@ -12,7 +13,7 @@ const requestId = randomUUID();
 const conversation = { id: conversationId, tripId: null, title: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), lastMessageAt: new Date().toISOString() };
 const user: AuthenticatedUserContext = { authUserId: randomUUID(), customerId, profile: { displayName: 'Ain', phoneCountryCode: null, phoneNumber: null, preferredLanguage: 'en', preferredCurrency: 'MYR' } };
 
-function setup(provider?: AiProvider, overrides: Record<string, string | number | undefined> = {}) {
+function setup(provider?: AiProvider, overrides: Record<string, string | number | undefined> = {}, airports?: AirportDirectoryService) {
   const messageRows: Array<{ id: string; role: 'USER' | 'ASSISTANT'; content: string; messageType: 'TEXT'; payload: null; createdAt: string }> = [];
   const store = {
     getConversation: vi.fn(async () => conversation), listConversations: vi.fn(async () => [conversation]), messages: vi.fn(async () => messageRows),
@@ -32,11 +33,31 @@ function setup(provider?: AiProvider, overrides: Record<string, string | number 
     AI_RATE_LIMIT_TOOL_CALLS_PER_MINUTE: 24, AI_MAX_CONTEXT_MESSAGES: 16, AI_MAX_TOOL_CALLS_PER_TURN: 3, ...overrides });
   const redis = { consumeRateLimit: vi.fn(async (): Promise<'allowed' | 'limited' | 'unavailable'> => 'allowed'),
     incrementCounter: vi.fn(async () => 1), readCounter: vi.fn(async () => 0) };
-  const service = new SeriOrchestratorService(config, provider, store as never, redis as never, customer as never, trips as never, visa as never, documents as never, flights as never, intents as never, commerce as never);
+  const service = new SeriOrchestratorService(config, provider, store as never, redis as never, customer as never, trips as never, visa as never, documents as never, flights as never, intents as never, commerce as never, undefined, undefined, airports);
   return { service, store, customer, trips, visa, documents, flights, intents, commerce, redis };
 }
 
 describe('Seri deterministic orchestration and tool boundary', () => {
+  it('recognizes DAC to Cox’s Bazar, collects missing details and searches CXB without model guesses', async () => {
+    const generate = vi.fn();
+    const {service,flights,store} = setup({name:'GEMINI',generate} as unknown as AiProvider, {}, new AirportDirectoryService());
+    const suffix = '\n\nCurrent search (use only where relevant; user instructions take priority): {"destination":"KUL","departure":"2026-10-13"}';
+    const first = await service.send(user,conversationId,'dac to cox’s bazar'+suffix,requestId);
+    expect(first.message.content).toContain('What date');
+    expect(first.message.content).not.toContain('no flight');
+    expect(flights.search).not.toHaveBeenCalled();
+    await service.send(user,conversationId,'22 January 2027'+suffix,requestId);
+    const result = await service.send(user,conversationId,'one way, 2 adults, no children or infants'+suffix,requestId);
+    expect(generate).not.toHaveBeenCalled();
+    expect(flights.search).toHaveBeenCalledOnce();
+    expect(flights.search).toHaveBeenCalledWith(customerId,requestId,expect.objectContaining({origin:'DAC',destination:'CXB',departureDate:'2027-01-22',adults:2}));
+    expect(result.message.content).toContain('supplier coverage');
+    const saved = store.addMessage.mock.calls.at(-1)![1].payload!.flightPlanning;
+    store.flightPlanning.mockResolvedValue(saved as never);
+    await service.send(user,conversationId,'try again'+suffix,requestId);
+    expect(flights.search).toHaveBeenCalledTimes(2);
+    expect(generate).not.toHaveBeenCalled();
+  });
   it('answers payment status from CommerceService without calling the provider', async () => {
     const generate = vi.fn();
     const { service, commerce, store } = setup({ name: 'GEMINI', generate } as unknown as AiProvider);
@@ -209,7 +230,8 @@ describe('Seri deterministic orchestration and tool boundary', () => {
     flights.search.mockResolvedValueOnce({ searchId: randomUUID(), offers: [], source: 'sabre', searchedAt: new Date().toISOString(), expiresAt: new Date().toISOString() });
     const result = await service.send(user, conversationId, 'Find flights from KUL to DAC on 5 January 2027', requestId);
     expect(flights.search).toHaveBeenCalledOnce();
-    expect(result.message.content).toContain('couldn’t find live flight options');
+    expect(result.message.content).toContain('airline search returned no fares');
+    expect(result.message.content).toContain('supplier coverage');
     expect(result.message.content).not.toContain('RM 50');
   });
 

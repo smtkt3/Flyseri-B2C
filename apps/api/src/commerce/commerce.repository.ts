@@ -30,7 +30,7 @@ export function presentOrder(row: OrderRow): OrderSummary {
     ? 'EXPIRED' : row.status;
   return { id: row.id, orderNumber: row.orderNumber, tripId: row.tripId, bookingIntentId: row.bookingIntentId, visaApplicationId: row.visaApplicationId,
     status: status as OrderSummary['status'], fulfillmentStatus: row.fulfillmentStatus as OrderSummary['fulfillmentStatus'],
-    currency: row.currency, totalAmount: row.totalAmount, expiresAt: row.expiresAt?.toISOString() ?? null,
+    currency: row.currency, totalAmount: row.totalAmount, discountAmount: row.discountAmount, expiresAt: row.expiresAt?.toISOString() ?? null,
     paidAt: row.paidAt?.toISOString() ?? null, createdAt: row.createdAt.toISOString() };
 }
 export function presentPayment(row: PaymentRow): PaymentSummary {

@@ -11,7 +11,7 @@ export const seriService = {
     // Use the public, rate-limited search endpoint. The AI never supplies fares.
     try {
       const result = await flightService.search(request);
-      return { message: { ...reply.message, content: `${request.origin} → ${request.destination} · ${request.departureDate}${request.returnDate ? ` · Return ${request.returnDate}` : ''}. ${result.offers.length ? 'Here are your flight options.' : 'No flights found. Try another date or airport.'}`, payload: { ...result, searchRequest: request } } };
+      return { message: { ...reply.message, content: `${request.origin} → ${request.destination} · ${request.departureDate}${request.returnDate ? ` · Return ${request.returnDate}` : ''}. ${result.offers.length ? 'Here are your flight options.' : 'The airline search returned no fares for this date. Availability depends on the date and supplier coverage. Choose another date below, retry the search, or ask our team for help.'}`, payload: { ...result, searchRequest: request } } };
     } catch {
       return { message: { ...reply.message, content: 'I could not check airline availability just now. You can retry this search below.', payload: { searchId: 'unavailable', offers: [], expiresAt: new Date(0).toISOString(), searchRequest: request, searchFailed: true } } };
     }

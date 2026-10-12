@@ -1,14 +1,19 @@
 export type FlightPlanningDraft = { origin: string; destination: string; departureDate: string | null; dayMonth?: string };
 const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-const place = (value: string) => value.trim().replace(/\s+/g, ' ');
+const place = (value: string) => value.trim().replace(/[.!?]+$/, '').trim().replace(/\s+/g, ' ');
+export const userTravelText = (text: string) => text.split('\n\nCurrent search (use only where relevant; user instructions take priority):')[0]!.trim();
+export const isFlightPlanReset = (text: string) => /^(?:start over|reset(?: my)? (?:flight|trip|search)|forget(?: my)? (?:flight|trip|search))[.!]?$/i.test(userTravelText(text));
 
 /** Parse only explicit English route/date statements; never guess ambiguous dates or locations. */
 export function flightPlanningDraft(text: string): FlightPlanningDraft | null {
+  text = userTravelText(text).replace(/[‘’]/g, "'");
   if (/\b(hotels?|accommodation|refund|cancel|payment|visa)\b/i.test(text)) return null;
   const forward = /\b(?:from|(?:go|fly|travel)\s+(?:from|to))\s+([\p{L}\p{M} .'-]{2,70}?)\s+to\s+([\p{L}\p{M} .'-]{2,70}?)(?=\s+(?:on|departing|for|with|in)\b|[,!?]|$)/iu.exec(text)
-    ?? /^\s*([A-Z]{3})\s*(?:to|→|-)\s*([A-Z]{3})(?=\s|[,!?]|$)/i.exec(text);
+    ?? /^\s*(?:please\s+)?(?:(?:find|search(?: for)?|show|compare|book)(?: me)?\s+(?:a\s+)?flights?\s+(?:from\s+)?)?([\p{L}\p{M} .'-]{2,70}?)\s+(?:to|→)\s+([\p{L}\p{M} .'-]{2,70}?)(?=\s+(?:on|departing|for|with|in)\b|[,!?]|$)/iu.exec(text)
+    ?? /^\s*([A-Z]{3})\s*[-→]\s*([A-Z]{3})(?=\s|[,!?]|$)/i.exec(text);
   const reverse = /\b(?:visit|(?:fly|travel|go)\s+to)\s+([\p{L}\p{M} .'-]{2,70}?)\s+from\s+([\p{L}\p{M} .'-]{2,70}?)(?=\s+(?:on|departing|for|with|in)\b|[!?]|$)/iu.exec(text);
   if (!forward && !reverse) return null;
+  if (forward && /^(?:how|what|where|when|want|need|help|is|can|would|tell|change)\b/i.test(forward[1]!)) return null;
   let departureDate: string | null = text.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] ?? null;
   const natural = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December)(?:\s+(\d{4}))?\b/i.exec(text);
   if (!departureDate && natural?.[3]) departureDate = `${natural[3]}-${String(months.indexOf(natural[2]!.toLowerCase()) + 1).padStart(2, '0')}-${natural[1]!.padStart(2, '0')}`;

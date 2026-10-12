@@ -9,6 +9,7 @@ import { PageLoading } from '../components/PageLoading';
 const BudgetPage = lazy(() => import('../travel/TravelPages').then(module => ({ default: module.BudgetPage })));
 const PublicHelpPage = lazy(() => import('../travel/PublicHelpPage').then(module => ({ default: module.PublicHelpPage })));
 const DemoBookingManagement = lazy(() => import('../flight/DemoBookingManagement').then(module => ({ default: module.DemoBookingManagement })));
+const DemoPointsPage=lazy(()=>import('../rewards/DemoPointsPage').then(module=>({default:module.DemoPointsPage})));
 const App = lazy(() => import('../App'));
 const AuthPage = lazy(() => import('./AuthPage').then((module) => ({ default: module.AuthPage })));
 const CustomerShell = lazy(() => import('../account/CustomerShell').then((module) => ({ default: module.CustomerShell })));
@@ -48,6 +49,7 @@ export function AuthRoutes() {
           <Route path="/flights" element={<PublicFlightPage />} />
           <Route path="/flight-checkout" element={<GuestFlightCheckoutPage />} />
           <Route path="/demo/bookings" element={<DemoBookingManagement />} />
+          <Route path="/demo/points" element={<DemoPointsPage/>}/>
           <Route path="/demo/bookings/:demoId" element={<DemoBookingManagement />} />
           <Route path="/holidays" element={<HolidayCataloguePage />} />
           <Route path="/holidays/bookings" element={<ProtectedRoute><HolidayBookingsPage /></ProtectedRoute>} />

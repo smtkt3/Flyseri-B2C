@@ -75,7 +75,15 @@ const money = (fare?: PopularCachedFlightFare) =>
   fare
     ? `${fare.currency} ${Number(fare.price).toLocaleString("en-MY", { maximumFractionDigits: 0 })}`
     : "Check fares"
+const mapStateKey = 'flyseri.explore-map.v1'
+function readMapState() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(mapStateKey) ?? 'null')
+    return saved?.currency === preferredCurrency() ? saved as { currency: string; view?: MapView; faresOnly?: boolean; directOnly?: boolean; country?: string; routes?: boolean; maxPrice?: number } : null
+  } catch { return null }
+}
 export function ExploreFareMap({ active: panelActive = true }: { active?: boolean } = {}) {
+  const [saved] = useState(readMapState)
   const search = useHomeSearchDraft()
   const [originCode, setOriginCode] = useHomeSearchField("origin")
   const originAirport = allPlaces.find((place) => place.code === originCode) ?? allPlaces.find(place => place.code === "DAC")!
@@ -92,7 +100,10 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
   const [departureDate, setDepartureDate] = useHomeSearchField("departure")
   const localToday = new Date()
   const minimumDate = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, "0")}-${String(localToday.getDate()).padStart(2, "0")}`
-  const [view, setView] = useState<MapView>({ lon: 94, lat: 23, zoom: 4 })
+  const [view, setView] = useState<MapView>(() => {
+    const candidate = saved?.view
+    return candidate && [candidate.lon, candidate.lat, candidate.zoom].every(Number.isFinite) && candidate.zoom >= 1 && candidate.zoom <= 32 && Math.abs(candidate.lat) <= 85 && Math.abs(candidate.lon) <= 180 ? candidate : { lon: 94, lat: 23, zoom: 4 }
+  })
   const viewRef = useRef(view)
   const viewportRef = useRef({ width: 810, height: 472 })
   const pointers = useRef(new Map<number, MapPoint>())
@@ -124,33 +135,44 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
     if (frame.current !== null) cancelAnimationFrame(frame.current)
   }, [])
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [faresOnly, setFaresOnly] = useState(false)
-  const [routes, setRoutes] = useState(true)
-  const [maxPrice, setMaxPrice] = useState<number | null>(null)
+  const [faresOnly, setFaresOnly] = useState(saved?.faresOnly === true)
+  const [directOnly, setDirectOnly] = useState(saved?.directOnly === true)
+  const [country, setCountry] = useState(typeof saved?.country === 'string' && allPlaces.some(place => place.country === saved.country) ? saved.country : '')
+  const [routes, setRoutes] = useState(saved?.routes !== false)
+  const [maxPrice, setMaxPrice] = useState<number | null>(() => typeof saved?.maxPrice === 'number' && Number.isFinite(saved.maxPrice) && saved.maxPrice > 0 ? saved.maxPrice : null)
   const budgetLimit = currency === "BDT" ? 500000 : 10000
   const [listOpen, setListOpen] = useState(false)
   useEffect(() => {
-    const update = () => { setCurrency(preferredCurrency()); setFares([]); setMaxPrice(null) }
+    try { sessionStorage.setItem(mapStateKey, JSON.stringify({ currency, view, faresOnly, directOnly, country, routes, maxPrice })) } catch { /* Map works without storage. */ }
+  }, [currency, view, faresOnly, directOnly, country, routes, maxPrice])
+  useEffect(() => {
+    const update = () => {
+      const next = preferredCurrency()
+      if (currency !== next) { setCurrency(next); setFares([]); setMaxPrice(null) }
+    }
     window.addEventListener(currencyPreferenceEvent, update)
     window.addEventListener("storage", update)
     return () => { window.removeEventListener(currencyPreferenceEvent, update); window.removeEventListener("storage", update) }
-  }, [])
+  }, [currency])
   useEffect(() => {
     if (!panelActive) return
+    setFares([])
     let mounted = true
     let pending = false
     const refresh = () => {
-      if (pending || document.hidden || navigator.onLine === false) return
+      if (navigator.onLine === false) return
+      if (pending || document.hidden) return
       pending = true
       void flightService
         .popularCachedFares(originCode, currency)
         .then((items) => {
-          if (mounted)
+          if (mounted) {
             setFares(
               items.filter((item) =>
                 item.currency === currency && (!departureDate || item.departureDate === departureDate) && places.some((place) => place.code === item.destination),
               ),
             )
+          }
         })
         .catch(() => {
           if (mounted) setFares([])
@@ -182,7 +204,7 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
   }, [])
   const mobile = size.width <= 760
   const plotWidth = mobile ? size.width : size.width - 190
-  const plotHeight = mobile ? size.height - 154 : size.height - 48
+  const plotHeight = mobile ? size.height - 24 : size.height - 48
   const viewport = { width: plotWidth, height: plotHeight }
   viewportRef.current = viewport
   useEffect(() => {
@@ -358,14 +380,24 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
       else changeZoom(event.key === "-" ? 1 / 1.5 : 1.5)
     }
   }
-  const byCode = useMemo(() => new Map(fares.filter((fare) => fare.currency === currency && (!departureDate || fare.departureDate === departureDate)).map((fare) => [fare.destination, fare])), [fares, currency, departureDate])
+  const byCode = useMemo(() => {
+    const cheapest = new Map<string, PopularCachedFlightFare>()
+    for (const fare of fares) {
+      if (fare.currency !== currency || (departureDate && fare.departureDate !== departureDate) ||
+        !Number.isFinite(Number(fare.price)) || Number(fare.price) <= 0 ||
+        !(Date.parse(fare.expiresAt) > Date.now()) || fare.departureDate < minimumDate ||
+        (directOnly && fare.stops !== 0)) continue
+      const previous = cheapest.get(fare.destination)
+      if (!previous || Number(fare.price) < Number(previous.price)) cheapest.set(fare.destination, fare)
+    }
+    return cheapest
+  }, [fares, currency, departureDate, minimumDate, directOnly])
   const visible = useMemo(() => places.filter((place) => {
     const fare = byCode.get(place.code)
-    return (
-      (!faresOnly || !!fare) &&
-      (!fare || maxPrice === null || Number(fare.price) <= maxPrice)
-    )
-  }), [places, byCode, faresOnly, maxPrice])
+    return (!country || place.country === country) &&
+      (!(faresOnly || directOnly) || !!fare) &&
+      (maxPrice === null || (!!fare && Number(fare.price) <= maxPrice))
+  }), [places, byCode, faresOnly, directOnly, country, maxPrice])
   const selected =
     visible.find((place) => place.code === (destination || active)) ?? visible[0] ?? places[4]!
   const selectedFare = byCode.get(selected.code)
@@ -392,7 +424,7 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
       ...(!mobile
         ? [{ x: 0, y: size.height - 165, width: 365, height: 165 }]
         : []),
-      { x: 0, y: plotHeight * 0.48, width: 50, height: 110 },
+      { x: 0, y: 0, width: 186, height: 62 },
     ],
   )
   const listed = (selectingOrigin ? allPlaces : visible).filter((place) =>
@@ -417,6 +449,8 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
     setMaxPrice(null)
     setFaresOnly(false)
     setRoutes(true)
+    setDirectOnly(false)
+    setCountry("")
   }
   return (
     <section
@@ -660,6 +694,11 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
               ×
             </button>
           </div>
+          <label htmlFor="map-country">Country</label>
+          <select id="map-country" value={country} onChange={event => setCountry(event.target.value)}>
+            <option value="">Anywhere</option>
+            {[...new Set(places.map(place => place.country))].sort().map(name => <option key={name}>{name}</option>)}
+          </select>
           <label htmlFor="map-price">
             Max price{" "}
             <strong>
@@ -689,6 +728,11 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
             />
           </label>
           <label className="explore-map-switch">
+            Non-stop fares only
+            <input type="checkbox" role="switch" checked={directOnly} onChange={event => setDirectOnly(event.target.checked)} />
+          </label>
+          <p>Budget and non-stop filters use recent fares. Missing prices are excluded.</p>
+          <label className="explore-map-switch">
             Show routes
             <input
               type="checkbox"
@@ -702,10 +746,11 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
           <button type="button" className="explore-map-clear" onClick={reset}>
             Clear all
           </button>
+          {departureDate && <button type="button" className="explore-map-clear" onClick={() => setDepartureDate('')}>Explore any date</button>}
         </aside>
         {visible.length === 0 && (
           <p className="explore-map-no-results" role="status">
-            No recent fares match these filters.{" "}
+            No recent fares match these filters. Try another date or widen your filters.{" "}
             <button type="button" onClick={reset}>
               Show all destinations
             </button>
@@ -791,7 +836,7 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
           </article>
         )}
         <p id="explore-map-instructions" className="sr-only">
-        Drag to explore · Scroll or pinch to zoom · Arrow keys to move · Home
+        Drag to explore · Ctrl/⌘ + scroll or pinch to zoom · Arrow keys to move · Home
         for the world view. Explore destination ideas. Prices, when shown, are
         from recent searches; check live fares before booking.
       </p>

@@ -6,7 +6,7 @@ import { emptyHomeSearch, homeSearchUrl, normalizeHomeSearch, readSavedHomeSearc
 import { SeriRichText } from './SeriRichText';
 import { AirlineOfferDetails } from './AirlineOfferDetails';
 
-beforeEach(() => { localStorage.clear(); updateHomeSearch(emptyHomeSearch); });
+beforeEach(() => { localStorage.clear(); sessionStorage.clear(); updateHomeSearch(emptyHomeSearch); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe('homepage search connections', () => {
   it('keeps mounted search fields synchronized and persists the latest draft', () => {
@@ -32,13 +32,13 @@ describe('homepage search connections', () => {
     expect(container.querySelectorAll('ol li').length).toBe(2); expect(container.querySelector('strong')?.textContent).toBe('Singapore'); expect(container.querySelector('script')).toBeNull();
     expect(screen.getByRole('link', { name: 'Flights to Singapore ↗' }).getAttribute('href')).toContain('destination=SIN'); expect(screen.queryByRole('link', { name: 'Unsafe' })).toBeNull();
   });
-  it('opens an honest sample detail view and carries passenger changes into live search', () => {
+  it('opens an honest inspiration detail view and carries passengers into flight search', () => {
     Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value() { this.setAttribute('open', ''); } });
     const onClose = vi.fn();
     render(<MemoryRouter><AirlineOfferDetails offer={{ city: 'Bangkok', code: 'BKK', airline: 'TG', name: 'Thai Airways', price: '18,900' }} onClose={onClose}/></MemoryRouter>);
-    expect(screen.getByRole('dialog')).toBeTruthy(); expect(screen.getByText(/Sample offer · not bookable/)).toBeTruthy(); expect(screen.getByText('Check live availability')).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy(); expect(screen.getByText(/Destination inspiration · not a bookable offer/)).toBeTruthy(); expect(screen.getByText('Check live availability')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Offer adults'), { target: { value: '2' } });
-    expect(screen.getByRole('link', { name: 'Search live flights ↗' }).getAttribute('href')).toContain('adults=2');
+    expect(screen.getByRole('link', { name: 'Search flights' }).getAttribute('href')).toContain('adults=2');
     fireEvent.click(screen.getByRole('button', { name: 'Close offer details' })); expect(onClose).toHaveBeenCalledOnce();
   });
 });

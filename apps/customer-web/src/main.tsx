@@ -11,13 +11,17 @@ import { AuthProvider } from './auth/AuthProvider'
 import { AuthRoutes } from './auth/AuthRoutes'
 import { LanguageProvider } from './travel/language'
 import { NetworkStatus } from './components/NetworkStatus'
+import { AccountPreferencesSync } from './account/AccountPreferencesSync'
 import './components/frontend-refinements.css'
 import './travel/travel-tools.css'
+import './compact-mobile.css'
+import './tablet-responsive.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <LanguageProvider><AuthProvider>
+        <AccountPreferencesSync />
         <NetworkStatus />
         <AuthRoutes />
       </AuthProvider></LanguageProvider>

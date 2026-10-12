@@ -7,7 +7,7 @@ import { commerceService } from '../services/commerceService';
 import { formatMoney, formatTimestamp, orderStatus } from '../account/presentation';
 import '../flight/booking-checkout.css';
 
-export function OrdersPage() {
+export function OrdersPage({embedded=false}:{embedded?:boolean}={}) {
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -16,7 +16,7 @@ export function OrdersPage() {
   const visible = orders.filter(order => filter === 'ALL' || (filter === 'PAID' ? order.status === 'PAID' : ['PENDING_PAYMENT','PAYMENT_PROCESSING','PAYMENT_FAILED'].includes(order.status)));
   useEffect(() => { let active = true; setLoading(true); setError(false); void commerceService.orders().then((rows) => { if (active) setOrders(rows); },
     () => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [attempt]);
-  return <div className="account-page"><CheckoutPageHeader title={<Translated text="My Orders"/>} description="Continue checkout or view payment status and receipts."/>
+  return <div className="account-page">{!embedded&&<CheckoutPageHeader title={<Translated text="My Orders"/>} description="Continue checkout or view payment status and receipts."/>}
     {loading && <div className="account-panel" role="status">Loading your orders…</div>}
     {!loading && error && <div className="account-panel" role="alert">We couldn't load your orders. <button className="account-link" onClick={() => setAttempt((value) => value + 1)}><Translated text="Retry" /></button></div>}
     {!loading && !error && <><div className="checkout-history-stats" aria-label="Order counts"><div><strong>{orders.length}</strong><span>Total orders</span></div><div><strong>{orders.filter(order => order.status === 'PAID').length}</strong><span>Payment confirmed</span></div><div><strong>{orders.filter(order => ['PENDING_PAYMENT','PAYMENT_PROCESSING','PAYMENT_FAILED'].includes(order.status)).length}</strong><span>Awaiting payment</span></div></div>

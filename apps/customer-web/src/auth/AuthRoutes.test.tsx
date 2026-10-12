@@ -25,17 +25,17 @@ const session = { access_token: 'test-access-token' } as Session;
 afterEach(() => { cleanup(); homeLoad.pending = null; vi.clearAllMocks(); document.body.style.overflow = ''; });
 
 describe('sign-in overlay', () => {
-  it('shows the branded home loader until the homepage is ready, then removes it immediately', async () => {
+  it('shows the aircraft loader until the homepage is ready, then removes it immediately', async () => {
     auth.restore.mockResolvedValue(null);
     let finish!: () => void;
     homeLoad.pending = new Promise<void>(resolve => { finish = resolve; });
     render(<MemoryRouter initialEntries={['/']}><AuthProvider><AuthRoutes /></AuthProvider></MemoryRouter>);
-    expect(screen.getByRole('status').textContent).toBe('Getting your travel search ready');
-    expect(screen.getByRole('img', { name: 'Flyseri' })).toBeTruthy();
+    expect(screen.getByRole('status').getAttribute('aria-label')).toBe('Loading Flyseri');
+    expect(document.querySelector('.home-loading-aircraft img')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
     await act(async () => { homeLoad.pending = null; finish(); });
     expect(await screen.findByText('Home behind sign in')).toBeTruthy();
-    expect(screen.queryByText('Getting your travel search ready')).toBeNull();
+    expect(screen.queryByRole('status', { name:'Loading Flyseri' })).toBeNull();
   });
   it('shows recovery for an unknown public link instead of an empty page', async () => {
     auth.restore.mockResolvedValue(null);

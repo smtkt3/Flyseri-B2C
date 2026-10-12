@@ -80,7 +80,7 @@ export function layoutMapLabels(
   mobile: boolean,
   blocked: Omit<LabelBox, "code" | "anchor">[] = [],
 ): LabelBox[] {
-  const width = mobile ? 90 : 120,
+  const width = mobile ? 132 : 160,
     height = mobile ? 44 : 58
   const result: LabelBox[] = []
   for (const { code, point } of points) {

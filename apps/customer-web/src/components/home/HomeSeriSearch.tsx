@@ -85,7 +85,7 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
       if (floating || !launcher.current) { setLauncherObstructed(false); return; }
       // Measure a constant invitation footprint so compacting cannot cause oscillation.
       const rect = launcher.current.getBoundingClientRect();
-      const left = rect.right - (window.innerWidth <= 767 ? 214 : 230);
+      const left = rect.right - (window.innerWidth <= 800 ? 72 : 230);
       const controls = document.querySelectorAll<HTMLElement>('main input,main select,main textarea,main button,main [role="combobox"]');
       setLauncherObstructed(Array.from(controls).some(control => {
         if (control.closest('.premium-seri-chat')) return false;
@@ -252,7 +252,7 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
     {!floating && !labelDismissed && !launcherObstructed && !editingElsewhere && !keyboardOpen && <button type="button" className="seri-label-dismiss" aria-label="Hide chat invitation" onClick={() => { setLabelDismissed(true); try { sessionStorage.setItem('flyseri.chat-label-dismissed', '1'); } catch {} launcher.current?.focus({ preventScroll: true }); }}>×</button>}
     <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${labelDismissed || launcherObstructed ? ' is-compact' : ''}`} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} title="Tap to chat. Pull down for smoke; hold to boost, then release to fly." aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-busy={aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} aria-controls={floating ? 'seri-floating-chat' : undefined} {...aircraft.handlers}>
       {!floating && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong><Translated text="Chat with us" /></strong><small><Translated text="AI & travel support" /></small></span>}
-      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !launcherObstructed && !labelDismissed}/><ChatAircraftMotion />
+      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !labelDismissed}/><ChatAircraftMotion />
     </button>
   </>, document.body)}</>;
 }

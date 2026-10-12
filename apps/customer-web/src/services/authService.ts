@@ -47,6 +47,11 @@ export const authService = {
     const { error } = await requiredClient().auth.updateUser({ password });
     if (error) throw new Error('We could not update your password. Please try again.');
   },
+  async updateProfilePhoto(documentId:string|null):Promise<void> {
+    if(documentId!==null&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentId)) throw new Error('Invalid photo reference.');
+    const {error}=await requiredClient().auth.updateUser({data:{flyseri_photo_document_id:documentId}});
+    if(error) throw new Error('We could not save your profile photo. Please try again.');
+  },
   async accessToken(): Promise<string | null> {
     if (!authClient) return null;
     const { data, error } = await authClient.auth.getSession();

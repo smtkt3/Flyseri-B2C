@@ -5,8 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AIRCRAFT_FLIGHT_PATTERNS, aircraftFlightFrames, useAircraftLaunch } from './useAircraftLaunch';
 
 class TestPointerEvent extends MouseEvent {
-  pointerId: number; isPrimary: boolean;
-  constructor(type: string, options: PointerEventInit = {}) { super(type,options); this.pointerId=options.pointerId ?? 1; this.isPrimary=options.isPrimary ?? true; }
+  pointerId: number; isPrimary: boolean; pointerType: string;
+  constructor(type: string, options: PointerEventInit = {}) { super(type,options); this.pointerId=options.pointerId ?? 1; this.isPrimary=options.isPrimary ?? true; this.pointerType=options.pointerType ?? 'mouse'; }
 }
 const animations: { resolve: () => void; cancel: ReturnType<typeof vi.fn> }[] = [];
 function Launcher({open}:{open:()=>void}) {
@@ -30,6 +30,50 @@ function pull(distance:number) {
   fireEvent.pointerUp(button,{clientY:100+distance,pointerId:1});
   return button;
 }
+it('gives touch feedback once at readiness, boost and release without buzzing on each move',()=>{
+  vi.useFakeTimers(); const vibrate=vi.fn(); Object.defineProperty(navigator,'vibrate',{configurable:true,value:vibrate});
+  render(<Launcher open={vi.fn()}/>); const button=screen.getByRole('button');
+  fireEvent.pointerDown(button,{clientY:100,button:0,pointerType:'touch'});
+  fireEvent.pointerMove(button,{clientY:140}); fireEvent.pointerMove(button,{clientY:150});
+  expect(vibrate.mock.calls).toEqual([[12]]);
+  act(()=>vi.advanceTimersByTime(1200)); expect(vibrate).toHaveBeenLastCalledWith([18,45,24]);
+  fireEvent.pointerUp(button,{clientY:150}); expect(vibrate).toHaveBeenLastCalledWith([24,35,12]);
+  expect(vibrate).toHaveBeenCalledTimes(3); delete (navigator as Partial<Navigator>).vibrate;
+});
+it('keeps shaking the page after a 4.5-second pull until release',()=>{
+  vi.useFakeTimers(); render(<div id="root"><Launcher open={vi.fn()}/></div>);
+  const button=screen.getByRole('button');
+  fireEvent.pointerDown(button,{clientY:100,button:0}); fireEvent.pointerMove(button,{clientY:140});
+  act(()=>vi.advanceTimersByTime(4499)); expect(animations).toHaveLength(0);
+  act(()=>vi.advanceTimersByTime(1)); expect(animations).toHaveLength(1);
+  expect(vi.mocked(Element.prototype.animate).mock.instances[0]).toBe(document.getElementById('root'));
+  expect(vi.mocked(Element.prototype.animate).mock.calls[0]![1]).toMatchObject({duration:420,iterations:Infinity});
+  fireEvent.pointerMove(button,{clientY:150}); act(()=>vi.advanceTimersByTime(5000)); expect(animations).toHaveLength(1);
+  expect(animations[0]!.cancel).not.toHaveBeenCalled();
+  fireEvent.pointerUp(button,{clientY:150}); expect(animations[0]!.cancel).toHaveBeenCalled();
+});
+it('cancels the screen shake countdown when the pull ends or moves back up',()=>{
+  vi.useFakeTimers(); const view=render(<div id="root"><Launcher open={vi.fn()}/></div>);
+  const button=screen.getByRole('button');
+  fireEvent.pointerDown(button,{clientY:100,button:0}); fireEvent.pointerMove(button,{clientY:140});
+  act(()=>vi.advanceTimersByTime(4000)); fireEvent.pointerMove(button,{clientY:105});
+  act(()=>vi.advanceTimersByTime(1000)); expect(animations).toHaveLength(0);
+  fireEvent.pointerMove(button,{clientY:140}); fireEvent.pointerCancel(button);
+  act(()=>vi.advanceTimersByTime(5000)); expect(animations).toHaveLength(0);
+  fireEvent.pointerDown(button,{clientY:100,button:0}); fireEvent.pointerMove(button,{clientY:140});
+  view.unmount(); act(()=>vi.advanceTimersByTime(5000)); expect(animations).toHaveLength(0);
+});
+it('keeps mouse and reduced-motion gestures quiet, and survives a blocked vibration API',()=>{
+  const vibrate=vi.fn(()=>{throw new Error('blocked');}); Object.defineProperty(navigator,'vibrate',{configurable:true,value:vibrate});
+  render(<Launcher open={vi.fn()}/>); pull(10); expect(vibrate).not.toHaveBeenCalled();
+  const button=screen.getByRole('button');
+  fireEvent.pointerDown(button,{clientY:100,button:0,pointerType:'touch'});
+  fireEvent.pointerMove(button,{clientY:140}); expect(button.dataset.flight).toBe('pulling');
+  fireEvent.pointerCancel(button);
+  vi.mocked(window.matchMedia).mockReturnValue({matches:true} as MediaQueryList); vibrate.mockClear();
+  fireEvent.pointerDown(button,{clientY:100,button:0,pointerType:'touch'}); fireEvent.pointerMove(button,{clientY:140});
+  expect(vibrate).not.toHaveBeenCalled(); delete (navigator as Partial<Navigator>).vibrate;
+});
 it('shakes, flies, returns and opens exactly once after a downward pull',async()=>{
   const open=vi.fn();render(<Launcher open={open}/>);
   const button=pull(40);

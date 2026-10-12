@@ -4,6 +4,7 @@ import type { AppConfig } from '@flyseri/config';
 import type { FlightAncillaryResponse, FlightOffer } from '@flyseri/types';
 import type { SabreAuthService } from './sabre-auth.service.js';
 import { cents, fromCents, type AtpcoPurchaseOption } from './ancillary-purchase.contract.js';
+import { readAtpcoRules } from './atpco-ancillary-rules.js';
 
 const escapeXml = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character]!);
 type Node = Record<string, unknown>;
@@ -46,7 +47,8 @@ export function readAtpcoAncillaries(xml: string, offer: FlightOffer, adultCount
   if (allOffers.length > 1000) throw new Error('Too many ancillary offers');
   const services: FlightAncillaryResponse['services'] = [];
   for (const item of allOffers) {
-    const definition = definitions.get(text(ancillaries.get(text(item['@_ancillaryRef']))?.['@_ancillaryDefinitionRef']));
+    const ancillary = ancillaries.get(text(item['@_ancillaryRef']));
+    const definition = definitions.get(text(ancillary?.['@_ancillaryDefinitionRef']));
     const fee = object(item.AncillaryFee);
     if (!definition || text(fee.Unavailable) === 'true') continue;
     const name = text(definition.CommercialName), serviceCode = text(definition.SubCode);
@@ -60,11 +62,14 @@ export function readAtpcoAncillaries(xml: string, offer: FlightOffer, adultCount
     const associatedSegments = segmentRefs.map(ref => /^seg_([1-9]\d*)$/.exec(ref)).map(match => match ? segments[Number(match[1]) - 1] : undefined);
     // Omit items we cannot associate safely rather than assigning them to every traveler/flight.
     if (!name || name.length > 160 || !serviceCode || !passengerIndexes.length || !associatedSegments.length || associatedSegments.some(segment => !segment)) continue;
-    const total = object(fee.TTL_Price);
+    // TTL_Price is per unit. A multi-unit supplier offer needs its returned
+    // aggregate price; multiplying locally can miss supplier discounts/taxes.
+    const total = object(Number(text(item.Quantity)) > 1 ? fee.TotalTTL_Price : fee.TTL_Price);
     const sale = total.TotalEquivalentAmount ?? total.Amount;
     const rawAmount = text(sale), rawCurrency = text(object(sale)['@_currency']);
     const priced = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(rawAmount) && /^[A-Z]{3}$/.test(rawCurrency);
     const groupCode = text(definition.GroupCode) || text(definition.Group);
+    const rules = readAtpcoRules(definition, ancillary ?? {}, item);
     let purchase: AtpcoPurchaseOption | null = null;
     const base = object(fee.Base);
     const equivalent = [base.TotalEquivalentAmount, base.EquivAmount, base.Amount].find(value => text(object(value)['@_currency']) === rawCurrency);
@@ -72,7 +77,7 @@ export function readAtpcoAncillaries(xml: string, offer: FlightOffer, adultCount
     const reasonForIssuanceName = text(definition.ReasonForIssuance), emd = text(definition.ElectronicMiscDocType);
     // Do not split a supplier bundle or invent a tax/SSR/codeshare association.
     const needsSsr = !!text(definition.SpecialService) || text(object(definition.BookingMethod)['@_code']) === 'SSR';
-    if (priced && passengerIndexes.length === 1 && (!text(item.Quantity) || text(item.Quantity) === '1') &&
+    if (priced && !rules.requiresWeightConfirmation && !['A', 'B', 'E'].includes(rules.serviceType ?? '') && passengerIndexes.length === 1 && (!text(item.Quantity) || text(item.Quantity) === '1') &&
       text(fee.DisplayOnly) !== 'true' && text(item.PaperTicketRequired) !== 'true' && !needsSsr &&
       /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(basePrice) && cents(rawAmount) >= cents(basePrice) &&
       /^[A-Z0-9]{2,3}$/.test(airlineCode) && /^[A-Z0-9]{2}$/.test(groupCode) &&
@@ -83,7 +88,7 @@ export function readAtpcoAncillaries(xml: string, offer: FlightOffer, adultCount
         segmentIndexes: segmentRefs.map(ref => Number(/^seg_([1-9]\d*)$/.exec(ref)![1]) - 1) };
     }
     purchaseOptions?.push(purchase);
-    services.push({ offerItemId: text(item.OfferItemId) || null, sellable: false, serviceCode, name,
+    services.push({ offerItemId: text(item.OfferItemId) || null, sellable: false, serviceCode, name, rules,
       ...(/^[A-Z0-9]{2}$/.test(groupCode) ? { groupCode } : {}),
       amount: priced ? rawAmount : null, currency: priced ? rawCurrency : null,
       segmentLabels: associatedSegments.map(segment => `${segment!.origin} → ${segment!.destination} · ${segment!.marketingCarrier} ${segment!.flightNumber}`), passengerIndexes });
