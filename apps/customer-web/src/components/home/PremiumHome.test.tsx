@@ -185,13 +185,15 @@ describe('premium homepage', () => {
     expect(guestSeri.guestSend).toHaveBeenCalledWith('Plan 5 days in Tokyo', [], 'BDT');
   });
 
-  it('expands and closes the travel services menu without presenting future services as live', async () => {
+  it('opens desktop travel services by default and supports collapsing and reopening', async () => {
     auth.restore.mockResolvedValue(null);
     renderHome();
     expect(await screen.findByRole('heading', { name: 'Special Flight Offers' })).toBeTruthy();
-    const toggle = screen.getByRole('button', { name: 'Expand travel services' });
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    const toggle = screen.getByRole('button', { name: 'Collapse travel services' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Expand travel services' }).getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand travel services' }));
     expect(screen.getByRole('button', { name: 'Collapse travel services' }).getAttribute('aria-expanded')).toBe('true');
     const upcoming = screen.getByText('More services · coming soon').closest('details')!;
     expect(upcoming.hasAttribute('open')).toBe(false);
@@ -200,6 +202,16 @@ describe('premium homepage', () => {
     expect(screen.getByRole('link', { name: /^Packages$/ }).getAttribute('href')).toBe('/holidays');
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.getByRole('button', { name: 'Expand travel services' }).getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('keeps the compact travel drawer closed until requested and restores it with Back', async () => {
+    auth.restore.mockResolvedValue(null);
+    renderHome(true);
+    expect(screen.getByRole('button', { name: 'Expand travel services' }).getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand travel services' }));
+    expect(screen.getByRole('dialog', { name: 'Travel services' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Test Back' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Travel services' })).toBeNull());
   });
 
   it('shows honest empty states without loading customer data for a guest', async () => {

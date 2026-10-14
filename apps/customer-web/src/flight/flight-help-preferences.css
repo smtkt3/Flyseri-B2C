@@ -1,0 +1,23 @@
+html body #root .flight-search-preferences {margin-top:8px;color:#526178;font-size:12px;line-height:1.5}
+html body #root .flight-search-preferences summary,html body .flight-terms-help summary {display:flex;align-items:center;min-height:44px;cursor:pointer;color:#345a87;font-size:13px;font-weight:500}
+html body #root .flight-search-preferences p {margin:0 0 6px;font-size:12px}
+html body #root .flight-search-preferences button {min-height:44px;padding:8px 10px;border:1px solid #dce5ef;border-radius:8px;background:#fff;color:#345a87;font-size:12px}
+html body .flight-terms-help {margin-top:8px;border-top:1px solid #e6ecf3}
+html body .flight-terms-help dl {margin:0;display:grid;gap:10px;font-size:13px;line-height:1.5}
+html body .flight-terms-help dt {font-weight:600;color:#34465c}
+html body .flight-terms-help dd {margin:3px 0 0;color:#526178}
+html body .flight-terms-help p {margin:4px 0}
+html body .flight-support-link {display:inline-flex;align-items:center;gap:6px;min-height:44px;color:#175da9;font-size:13px;line-height:1.4;text-decoration:underline;text-underline-offset:3px}
+html body #root .flight-support-context {display:grid;gap:6px;margin:12px 0;padding:14px;border:1px solid #dce5ef;border-radius:12px;background:#f7faff}
+html body #root .flight-support-context p {margin:0;white-space:pre-line;overflow-wrap:anywhere;color:#45566e;font-size:13px;line-height:1.6}
+html body #root .flight-support-context button {justify-self:start;min-height:44px;padding:8px 0;color:#175da9;background:transparent;border:0;font-size:12px}
+html body #root .flight-support-context small {color:#526178;font-size:12px;line-height:1.5}
+.flight-results-context{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:4px 0;color:#56677d;font-size:12px}
+.flight-results-context p,.flight-local-times{margin:0;font-size:12px;color:#56677d}
+.flight-share-search{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.flight-share-search button{min-height:44px;border:0;background:transparent;color:#1766ca;font:inherit;font-weight:600;padding:8px;cursor:pointer}
+.flight-share-search button:focus-visible{outline:2px solid #1766ca;outline-offset:2px;border-radius:6px}
+.flight-share-search [role=status]:empty{display:none}
+.flight-share-search label{display:grid;gap:4px;width:100%;max-width:420px}
+.flight-share-search input{width:100%;min-width:0;padding:10px;border:1px solid #ccd8e6;border-radius:8px;font:inherit}
+.flight-local-times{margin:6px 0 12px}

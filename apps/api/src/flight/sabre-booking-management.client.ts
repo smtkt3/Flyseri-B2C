@@ -12,7 +12,7 @@ export interface BookingAgency {
   agencyCustomerNumber?: string;
   ticketingPolicy: string;
 }
-export interface BookingIdentityDocument { documentType: 'PASSPORT'|'NATIONAL_ID_CARD'|'VISA'|'ALIEN_RESIDENT'|'BORDER_CROSSING_CARD'|'REFUGEE_REENTRY_PERMIT'; documentNumber: string; expiryDate: string; issuingCountryCode: string; citizenshipCountryCode?: string; givenName: string; surname: string; birthDate: string; gender: string }
+export interface BookingIdentityDocument { documentType: 'PASSPORT'|'NATIONAL_ID_CARD'|'VISA'|'ALIEN_RESIDENT'|'BORDER_CROSSING_CARD'|'REFUGEE_REENTRY_PERMIT'; documentNumber: string; expiryDate: string; issuingCountryCode: string; residenceCountryCode?: string; citizenshipCountryCode?: string; givenName: string; surname: string; birthDate: string; gender: string }
 export interface BookingPassenger { givenName: string; surname: string; birthDate: string; passengerCode: BookingPassengerCode; infantTravelerIndex?: number; specialServices?: BookingSpecialService[]; identityDocuments?: BookingIdentityDocument[] }
 export interface BookingContact { email: string; phone: string }
 export type SabreTicketingProfile = { ticketCountryCode: string; hardcopyPrinterAddress: string; ndcAirlineCodes?: string[] } & (

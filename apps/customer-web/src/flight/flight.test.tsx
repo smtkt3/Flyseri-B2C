@@ -18,13 +18,13 @@ vi.mock('../services/travellerService', () => ({ travellerService: travellerApi 
 vi.mock('../services/commerceService', () => ({ commerceService: commerceApi }));
 vi.mock('./flightSearchBrowsing', async importOriginal => { const original=await importOriginal<typeof import('./flightSearchBrowsing')>();return {...original,rememberFlightBrowse:vi.fn(),recallFlightBrowse:()=>undefined,recallLatestFlightBrowse:()=>undefined,recallFlightBrowseBySearchId:()=>undefined}; });
 beforeEach(() => {
-  sessionStorage.clear();localStorage.setItem('flyseri.currency','MYR');
+  sessionStorage.clear();localStorage.removeItem('flyseri.flight-preferences.v1');localStorage.setItem('flyseri.currency','MYR');
   travellerApi.get.mockImplementation(async(id:string)=>{const person=(await travellerApi.list()).find((person:{id:string})=>person.id===id);if(!person)throw new Error('Traveller unavailable');return person;});
   flightApi.validateIntent.mockRejectedValue(new ApiClientError('DEPENDENCY_UNAVAILABLE','Fixture fare unavailable'));
   flightApi.searchProgressively.mockImplementation(async (input, publish, options) => { const response = await flightApi.search(input, options); publish(response); return response; });
   flightApi.bookingForIntent.mockResolvedValue(null); flightApi.bookingCapabilities.mockResolvedValue({reservationAvailable: false, environment: 'CERT', message: 'Reservation creation is awaiting approved agency configuration.'});
 });
-afterEach(() => { cleanup(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.resetAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const offer = (id: string, price: string, stops = 0, duration = 420) => ({ offerId: id, totalAmount: price, currency: 'MYR', airlineCodes: ['MH'], baggageSummary: null,
   outbound: { stops, durationMinutes: duration, segments: [{ origin: 'KUL', destination: 'NRT', departureAt: '2026-12-10T09:00:00+08:00', arrivalAt: '2026-12-10T16:00:00+09:00', marketingCarrier: 'MH', flightNumber: id === 'low' ? '71' : '70', bookingClass: 'K', aircraftTypeCode: '738', durationMinutes: duration }] }, inbound: null });
 const result = { searchId: 'search-id', offers: [offer('high', '1200.00', 0, 350), offer('low', '900.00', 1, 600)], source: 'sabre', searchedAt: new Date().toISOString(), expiresAt: new Date(Date.now()+600000).toISOString() };
@@ -55,18 +55,85 @@ function fill() {
   chooseDate('Return', '2026-12-20');
 }
 describe('live flight search screen', () => {
+  it('keeps the viewed flight anchored when arriving fares change the ranking', async () => {
+    const scroll=vi.spyOn(window,'scrollBy').mockImplementation(()=>{});
+    vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockImplementation(function(this:HTMLElement){
+      const index=this.hasAttribute('data-flight-group')?[...document.querySelectorAll('[data-flight-group]')].indexOf(this):-1;
+      const top=index<0?0:80+index*280;
+      return {x:0,y:top,top,bottom:top+(index<0?0:250),left:0,right:320,width:320,height:index<0?0:250,toJSON:()=>({})} as DOMRect;
+    });
+    flightApi.searchProgressively.mockImplementation(()=>new Promise(()=>{}));
+    publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
+    await waitFor(()=>expect(flightApi.searchProgressively).toHaveBeenCalledOnce());
+    const publish=flightApi.searchProgressively.mock.calls[0]![1];
+    await act(async()=>publish(result));
+    const anchor=document.querySelector<HTMLElement>('[data-flight-group]')!.dataset.flightGroup;
+    const added=offer('new-lowest','200.00');
+    added.outbound.segments[0]!.flightNumber='72';
+    await act(async()=>publish({...result,offers:[added,...result.offers]}));
+    const index=[...document.querySelectorAll<HTMLElement>('[data-flight-group]')].findIndex(element=>element.dataset.flightGroup===anchor);
+    expect(index).toBeGreaterThan(0);
+    expect(scroll).toHaveBeenLastCalledWith({top:index*280,behavior:'instant'});
+  });
+  it.each([
+    ['TIMEOUT','taking longer than expected'],
+    ['NETWORK_ERROR',"couldn't refresh flights"],
+    ['INVALID_SESSION','session has expired'],
+    ['RATE_LIMITED','Too many searches'],
+  ] as const)('recovers from %s without displaying placeholder availability', async (code,message) => {
+    flightApi.search.mockRejectedValue(new ApiClientError(code,'Fixture failure'));
+    publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
+    await waitFor(()=>expect(screen.getByRole('alert').textContent).toContain(message));
+    expect(screen.getByRole('button',{name:'Retry search'})).toBeTruthy();
+    expect(document.querySelectorAll('.flight-result-row')).toHaveLength(0);
+    expect(document.querySelector('.home-loading')).toBeNull();
+  });
+  it('automatically refreshes an aged search without clearing its displayed fares', async () => {
+    vi.spyOn(document,'visibilityState','get').mockReturnValue('visible');
+    let finish!: (value: typeof result) => void;
+    const old = {...result,searchedAt:new Date(Date.now()-360000).toISOString()};
+    flightApi.search.mockResolvedValueOnce(old).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+    publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
+    await waitFor(()=>expect(flightApi.search).toHaveBeenCalledTimes(2));
+    expect(document.querySelectorAll('.flight-result-row')).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText('Sort flights'),{target:{value:'CHEAPEST'}});
+    await act(async()=>finish({...result,searchId:'refreshed',offers:[offer('high','1300.00'),offer('low','950.00',1,600)]}));
+    expect((screen.getByLabelText('Sort flights') as HTMLInputElement).value).toBe('CHEAPEST');
+    expect(document.querySelector('.flight-row-purchase>strong')?.textContent).toContain('950');
+    expect(screen.queryByRole('button',{name:'Refresh prices'})).toBeNull();
+  });
+  it('keeps existing fares after a background refresh fails and avoids an immediate retry loop', async () => {
+    vi.spyOn(document,'visibilityState','get').mockReturnValue('visible');
+    flightApi.search.mockResolvedValueOnce({...result,searchedAt:new Date(Date.now()-360000).toISOString()})
+      .mockRejectedValue(new ApiClientError('TIMEOUT','Unavailable'));
+    publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
+    await waitFor(()=>expect(flightApi.search).toHaveBeenCalledTimes(2));
+    expect(document.querySelectorAll('.flight-result-row')).toHaveLength(2);
+    fireEvent(window,new Event('focus'));
+    await act(async()=>{});
+    expect(flightApi.search).toHaveBeenCalledTimes(2);
+  });
+  it('waits for a hidden results tab to become visible before refreshing stale prices', async () => {
+    const visibility=vi.spyOn(document,'visibilityState','get').mockReturnValue('hidden');
+    flightApi.search.mockResolvedValueOnce({...result,searchedAt:new Date(Date.now()-360000).toISOString()}).mockResolvedValue(result);
+    publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
+    await screen.findByText('2 flights',{selector:'.flight-tools-count strong'});
+    expect(flightApi.search).toHaveBeenCalledTimes(1);
+    visibility.mockReturnValue('visible');fireEvent(document,new Event('visibilitychange'));
+    await waitFor(()=>expect(flightApi.search).toHaveBeenCalledTimes(2));
+  });
   it('shows usable first fares before the search finishes and retains them if the remaining search fails', async () => {
     let fail!: (error: unknown) => void;
     flightApi.searchProgressively.mockImplementation(() => new Promise((_resolve, reject) => { fail = reject; }));
     publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
     await waitFor(() => expect(flightApi.searchProgressively).toHaveBeenCalledOnce());
     await act(async () => { flightApi.searchProgressively.mock.calls[0]![1](result); });
-    expect(screen.getByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(screen.getByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
     expect(screen.getByText(/More fares are arriving/)).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: /^Details &/ })[0]!);
     expect((within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button', { name: 'Select fare' })[0] as HTMLButtonElement).disabled).toBe(false);
     await act(async () => { fail(new ApiClientError('DEPENDENCY_UNAVAILABLE', 'Unavailable')); });
-    expect(screen.getByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(screen.getByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('You can choose a fare below');
     expect(screen.queryByText(/Flights are ready to choose/)).toBeNull();
   });
@@ -85,7 +152,7 @@ describe('live flight search screen', () => {
   it('opens guest review from the fare drawer and offers no card-level selection action', async () => {
     flightApi.search.mockResolvedValue(result);
     publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
-    expect(await screen.findByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(await screen.findByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Select flight' })).toBeNull();
     fireEvent.click(screen.getAllByRole('button', { name: /^Details &/ })[0]!);
     expect(screen.queryByText('Baggage')).toBeNull();
@@ -99,12 +166,12 @@ describe('live flight search screen', () => {
   it('confirms a guest passenger into a summary and uses the name for booking contact', async () => {
     flightApi.search.mockResolvedValue(result);
     publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&autoSearch=1');
-    await screen.findByText('2 flights',{selector:'.flight-results-count strong'});
+    await screen.findByText('2 flights',{selector:'.flight-tools-count strong'});
     selectFare();
     expect(await screen.findByRole('heading', { name: 'Complete your traveler details' })).toBeTruthy();
-    const checkoutTotal = screen.getByRole('region', { name: 'Checkout total' });
+    const checkoutTotal = screen.getByLabelText('Continue checkout');
     expect(within(checkoutTotal).getByText(/1,200\.00/)).toBeTruthy();
-    fireEvent.click(within(checkoutTotal).getByRole('button', { name: 'Sign in to continue' }));
+    fireEvent.click(within(screen.getByLabelText('Continue checkout')).getByRole('button', { name: 'Sign in to continue' }));
     expect(screen.getByText('Confirm every passenger before continuing.')).toBeTruthy();
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/First \/ given names/)));
     expect(screen.getByLabelText(/First \/ given names/).getAttribute('aria-invalid')).toBe('true');
@@ -118,7 +185,7 @@ describe('live flight search screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm passenger' }));
     expect(screen.getByText('Passenger 1: Test Flyer')).toBeTruthy();
     expect((screen.getByLabelText(/Contact name/) as HTMLInputElement).value).toBe('Test Flyer');
-    fireEvent.click(within(checkoutTotal).getByRole('button', { name: 'Sign in to continue' }));
+    fireEvent.click(within(screen.getByLabelText('Continue checkout')).getByRole('button', { name: 'Sign in to continue' }));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/Email/)));
     expect(screen.getByLabelText(/Email/).getAttribute('aria-invalid')).toBe('true');
     expect(flightApi.createIntent).not.toHaveBeenCalled();
@@ -139,12 +206,12 @@ describe('live flight search screen', () => {
       { ...offer('b-y', '450'), outbound: outboundB, inbound: returnY },
     ] });
     publicPage('/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&returnDate=2026-12-20&tripType=ROUND_TRIP&autoSearch=1');
-    expect(await screen.findByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(await screen.findByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: /^Details &/ })[0]!);
     fireEvent.click(within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button',{name:'Select fare'})[0]!);
-    expect(await screen.findByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
-    expect(screen.getByText(/2 fares · 1 traveler/)).toBeTruthy();
-    expect(screen.getByText('RETURN FLIGHTS')).toBeTruthy();
+    expect(await screen.findByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
+    expect(screen.getByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
+    expect(screen.getByText('Return',{selector:'.flight-tools-count small'})).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: /^Details &/ })[0]!);
     expect(within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button', { name: 'Select fare' })).toHaveLength(1);
     expect(screen.getAllByText('Outbound').length).toBeGreaterThan(0);
@@ -169,15 +236,15 @@ describe('live flight search screen', () => {
     ] });
     const legs = [{ origin: 'KUL', destination: 'NRT', departureDate: '2026-12-10' }, { origin: 'NRT', destination: 'SIN', departureDate: '2026-12-14' }, { origin: 'SIN', destination: 'KUL', departureDate: '2026-12-18' }];
     publicPage(`/flights?origin=KUL&destination=KUL&departureDate=2026-12-10&tripType=MULTI_CITY&legs=${encodeURIComponent(JSON.stringify(legs))}&autoSearch=1`);
-    expect(await screen.findByText('1 flight',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(await screen.findByText('1 flight',{selector:'.flight-tools-count strong'})).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /^Details &/ }));
     fireEvent.click(within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button',{name:'Select fare'})[0]!);
-    expect(await screen.findByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
-    expect(screen.getByText('FLIGHT 2 FLIGHTS')).toBeTruthy();
+    expect(await screen.findByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
+    expect(screen.getByText('Flight 2',{selector:'.flight-tools-count small'})).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: /^Details &/ })[0]!);
     fireEvent.click(within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button',{name:'Select fare'})[0]!);
-    expect(await screen.findByText('1 flight',{selector:'.flight-results-count strong'})).toBeTruthy();
-    expect(screen.getByText('FLIGHT 3 FLIGHTS')).toBeTruthy();
+    expect(await screen.findByText('1 flight',{selector:'.flight-tools-count strong'})).toBeTruthy();
+    expect(screen.getByText('Flight 3',{selector:'.flight-tools-count small'})).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /^Details &/ }));
     expect(within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button', { name: 'Select fare' })).toHaveLength(1);
     fireEvent.click(within(screen.getByRole('dialog',{name:/Fare details/})).getByRole('button', { name: 'Select fare' }));
@@ -187,7 +254,7 @@ describe('live flight search screen', () => {
   it('runs a homepage search immediately and opens results without a second search form', async () => {
     flightApi.search.mockResolvedValue(result);
     page('/app/flights?origin=KUL&destination=NRT&departureDate=2026-12-10&tripType=ONE_WAY&adults=1&cabin=ECONOMY&autoSearch=1');
-    expect(await screen.findByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(await screen.findByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
     expect(flightApi.search).toHaveBeenCalledTimes(1);
     expect(flightApi.search.mock.calls[0]?.[0]).toMatchObject({ origin: 'KUL', destination: 'NRT', tripType: 'ONE_WAY' });
     expect((screen.getByLabelText('From airport') as HTMLInputElement).value).toBe('KUL');
@@ -227,7 +294,7 @@ describe('live flight search screen', () => {
     expect((document.querySelector('.flight-search-form button[type="submit"]') as HTMLButtonElement | null)?.disabled).toBe(true);
     expect(flightApi.search).toHaveBeenCalledTimes(1);
     resolve(result);
-    expect(await screen.findByText('2 flights',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(await screen.findByText('2 flights',{selector:'.flight-tools-count strong'})).toBeTruthy();
     expect(screen.getAllByRole('button', {name:/^Details &/})).toHaveLength(2);
     expect(screen.getAllByText('09:00').length).toBeGreaterThan(0);
     expect(screen.getAllByText('16:00').length).toBeGreaterThan(0);
@@ -262,7 +329,7 @@ describe('live flight search screen', () => {
     flightApi.search.mockResolvedValue({ ...result, offers: [economy, business] });
     travellerApi.list.mockResolvedValue([]);
     page(); fill(); fireEvent.click(screen.getByRole('radio', { name: 'One-way' })); fireEvent.click(document.querySelector('.flight-search-form button[type="submit"]')!);
-    expect(await screen.findByText('1 flight',{selector:'.flight-results-count strong'})).toBeTruthy();
+    expect(await screen.findByText('1 flight',{selector:'.flight-tools-count strong'})).toBeTruthy();
     expect(screen.getByRole('button',{name:/^Details & 2 fares/})).toBeTruthy();
     expect(flightApi.search).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: /^Details &/ }));
@@ -274,8 +341,8 @@ describe('live flight search screen', () => {
     expect(screen.getAllByText('Personal item:').length).toBeGreaterThan(0);
     expect(screen.getByText(/Included.*1 piece/)).toBeTruthy();
     expect(screen.getByText(/Included.*15 kg/)).toBeTruthy();
-    expect(screen.getByText(/Non-refundable.*before departure/)).toBeTruthy();
-    expect(screen.getByText(/Changes not permitted.*before departure/)).toBeTruthy();
+    expect(screen.getAllByText(/Non-refundable.*before departure/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Changes not permitted.*before departure/).length).toBeGreaterThan(0);
     expect(screen.getByText('Flexible')).toBeTruthy();
     fireEvent.click(within(screen.getByRole('dialog',{name:/Fare details/})).getAllByRole('button', { name: 'Select fare' })[1]!);
     const selection = await screen.findByLabelText('Select flight travellers');
@@ -285,8 +352,8 @@ describe('live flight search screen', () => {
   it('sorts and filters locally without another backend request', async () => {
     flightApi.search.mockResolvedValue(result);
     page(); fill(); fireEvent.click(document.querySelector('.flight-search-form button[type="submit"]')!);
-    await screen.findByText('2 flights',{selector:'.flight-results-count strong'});
-    fireEvent.click(screen.getByRole('button', { name: /Cheapest/ }));
+    await screen.findByText('2 flights',{selector:'.flight-tools-count strong'});
+    fireEvent.change(screen.getByLabelText('Sort flights'),{target:{value:'CHEAPEST'}});
     expect(document.querySelector('.flight-offer .flight-row-purchase strong')?.textContent).toContain('900');
     fireEvent.click(screen.getByRole('radio',{name:/Nonstop/}));
     expect(screen.getAllByRole('button', {name:/^Details &/})).toHaveLength(1);
@@ -296,7 +363,7 @@ describe('live flight search screen', () => {
     flightApi.search.mockResolvedValue(result);
     travellerApi.list.mockResolvedValue([]);
     page(); fill(); fireEvent.click(screen.getByRole('radio', { name: 'One-way' })); fireEvent.click(document.querySelector('.flight-search-form button[type="submit"]')!);
-    await screen.findByText('2 flights',{selector:'.flight-results-count strong'});
+    await screen.findByText('2 flights',{selector:'.flight-tools-count strong'});
     selectFare();
     const selection = await screen.findByLabelText('Select flight travellers');
     await screen.findByText('Add a traveller profile to check this fare.');
@@ -329,7 +396,7 @@ describe('live flight search screen', () => {
   it('renders a large response in bounded batches without another search call', async () => {
     flightApi.search.mockResolvedValue({ ...result, offers: Array.from({ length: 500 }, (_, n) => ({ ...offer(`offer-${n}`, String(500 + n)), outbound: { ...offer(`offer-${n}`, String(500 + n)).outbound, segments: [{ ...offer(`offer-${n}`, String(500 + n)).outbound.segments[0]!, flightNumber: String(n) }] } })) });
     page(); fill(); fireEvent.click(document.querySelector('.flight-search-form button[type="submit"]')!);
-    await screen.findByText('500 flights',{selector:'.flight-results-count strong'});
+    await screen.findByText('500 flights',{selector:'.flight-tools-count strong'});
     expect(screen.getAllByRole('button', {name:/^Details &/})).toHaveLength(30);
     fireEvent.click(screen.getByRole('button', { name: 'Show more flights' }));
     expect(screen.getAllByRole('button', {name:/^Details &/})).toHaveLength(60);
@@ -344,7 +411,7 @@ describe('live flight search screen', () => {
     fireEvent.change(screen.getByLabelText('To airport'), { target: { value: 'HND' } });
     await waitFor(() => expect(signal.aborted).toBe(true));
     resolve(result);
-    await waitFor(() => expect(screen.queryByText('2 flights',{selector:'.flight-results-count strong'})).toBeNull());
+    await waitFor(() => expect(screen.queryByText('2 flights',{selector:'.flight-tools-count strong'})).toBeNull());
   });
   it('selects saved travellers once and opens extras without sending a browser price', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => '11111111-1111-4111-8111-111111111111' });
@@ -360,7 +427,7 @@ describe('live flight search screen', () => {
     page(); fill(); fireEvent.click(screen.getByRole('radio', { name: 'One-way' })); fireEvent.click(screen.getByRole('button', { name: /1 adult/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Add adults' }));
     fireEvent.click(document.querySelector('.flight-search-form button[type="submit"]')!);
-    await screen.findByText('2 flights',{selector:'.flight-results-count strong'});
+    await screen.findByText('2 flights',{selector:'.flight-tools-count strong'});
     selectFare();
     await screen.findAllByText('Ain Rahman');
     const proceed = screen.getByRole('button', { name: 'Check latest fare' });
@@ -401,12 +468,12 @@ describe('live flight search screen', () => {
     expect(button.hasAttribute('disabled')).toBe(true);
     await screen.findAllByText('Ain Rahman');
     fireEvent.click(screen.getByRole('checkbox', { name: /checked these legal names/ }));
-    expect(button.hasAttribute('disabled')).toBe(false);
-    for (const [label,value] of [['Booking email','ain@example.com'], ['Booking phone','+60123456789']]) fireEvent.change(screen.getByLabelText(label!),{target:{value}});
-    fireEvent.submit(button.closest('form')!);
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Continue to payment'}).hasAttribute('disabled')).toBe(false));
+    fireEvent.click(screen.getByRole('button',{name:'Continue to payment'}));
     await screen.findByLabelText('Billing name');
+    for (const [label,value] of [['Booking email','ain@example.com'], ['Booking phone','+60123456789']]) fireEvent.change(screen.getByLabelText(label!),{target:{value}});
     for (const [label,value] of [['Billing name','Ain Rahman'], ['Billing street address','Test Street'], ['Billing city','Kuala Lumpur'], ['Billing state / region','Kuala Lumpur'], ['Billing postcode','50000'], ['Billing country','MY']]) fireEvent.change(screen.getByLabelText(label!),{target:{value}});
-    fireEvent.submit(screen.getByRole('button',{name:'Continue to secure payment'}).closest('form')!);
+    fireEvent.submit((screen.getByRole('button',{name:'Continue to secure payment'}) as HTMLButtonElement).form!);
     await waitFor(() => expect(flightApi.reserve).toHaveBeenCalledOnce());
     expect(flightApi.reserve).toHaveBeenCalledWith('intent-1',expect.objectContaining({namesConfirmed: true, contactEmail:'ain@example.com'}));
     expect(commerceApi.createFlightOrder).not.toHaveBeenCalled();

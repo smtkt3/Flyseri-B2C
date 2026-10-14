@@ -1,12 +1,15 @@
 import { CheckoutPageHeader } from '../flight/CheckoutPageHeader';
 import { Translated } from '../travel/language';
 import { useRef, useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { clearFlightHelp, readFlightHelp } from '../flight/FlightSupportLink';
 import { SupportTracker } from '../travel/SupportTracker';
 import { seriService } from '../services/seriService';
 
 export function SupportPage() {
   const [params] = useSearchParams();
+  const location=useLocation();
+  const [flightContext,setFlightContext]=useState(()=>params.get('flightHelp')==='1'?readFlightHelp((location.state as {flightHelp?:unknown}|null)?.flightHelp):null);
   const bookingId = params.get('bookingId') ?? undefined;
   const [topic, setTopic] = useState(['Group fare enquiry', 'Special flight offer enquiry'].includes(params.get('topic') ?? '') ? 'Special flight offer enquiry' : 'Booking assistance');
   const [details, setDetails] = useState(() => {
@@ -19,18 +22,21 @@ export function SupportPage() {
   const sending = useRef(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const contextSuffix=flightContext?`\nFlight context (shopping quote):\n${flightContext.text}`:'';
+  const detailsLimit=Math.min(900,1000-topic.length-2-contextSuffix.length);
   async function prepare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (sending.current || !details.trim()) return;
+    if(details.trim().length>detailsLimit){setError('Please shorten your question so it fits with the attached flight details.');return;}
     sending.current = true; setBusy(true); setError('');
-    try { setPrepared(await seriService.prepareSupport({ reason: `${topic}: ${details.trim()}`, bookingId })); }
+    try { setPrepared(await seriService.prepareSupport({ reason: `${topic}: ${details.trim()}${contextSuffix}`, bookingId })); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Your request could not be prepared.'); }
     finally { sending.current = false; setBusy(false); }
   }
   async function confirm() {
     if (!prepared || sending.current) return;
     sending.current = true; setBusy(true); setError('');
-    try { await seriService.confirm(prepared.conversationId, prepared.actionId); setSent(true); }
+    try { await seriService.confirm(prepared.conversationId, prepared.actionId); setSent(true); if(flightContext)clearFlightHelp(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Confirmation could not be retrieved. Check your conversation before submitting again.'); }
     finally { sending.current = false; setBusy(false); }
   }
@@ -46,8 +52,11 @@ export function SupportPage() {
       <p>The team reviews airline rules, availability and fees before any change, refund or additional service. Submitting a request does not change your booking or initiate a refund.</p>
       {bookingId && <p><Link className="account-link" to={'/app/bookings/' + encodeURIComponent(bookingId)}>Back to your booking →</Link></p>}
       {!prepared && <form onSubmit={event => void prepare(event)}><label><Translated text="What do you need?" /><select disabled={busy} value={topic} onChange={event => setTopic(event.target.value)}>{['Booking assistance', 'Special flight offer enquiry', 'Change flight', 'Cancel / refund review', 'Passenger correction', 'Seat request', 'Baggage / meal request', 'Payment assistance', 'Visa assistance'].map(item => <option key={item}>{item}</option>)}</select></label>
-        <label><Translated text="Details" /><textarea required disabled={busy} maxLength={900} value={details} onChange={event => setDetails(event.target.value)} placeholder="Tell us what you need. Do not include card numbers, passwords or passport numbers." /></label>
-        <button type="submit" className="btn-primary account-submit" disabled={busy || !details.trim()}>{busy ? 'Preparing request…' : 'Review request'}</button></form>}
+        {flightContext&&<section className="flight-support-context" aria-label="Attached flight details"><strong>Your selected flight</strong><p>{flightContext.text}</p><button type="button" disabled={busy} onClick={()=>{clearFlightHelp();setFlightContext(null);}}>Remove flight details</button><small>You can review the complete request before sharing it with our team.</small></section>}
+        {params.get('flightHelp')==='1'&&!flightContext&&<p role="status">No flight details are attached. You can describe your flight below.</p>}
+        <label><Translated text="Details" /><textarea required disabled={busy} maxLength={detailsLimit} value={details} onChange={event => setDetails(event.target.value.slice(0,detailsLimit))} placeholder={flightContext?'Your flight details are attached. What would you like help with?':'Tell us what you need. Do not include card numbers, passwords or passport numbers.'} /></label>
+        <small>{details.length}/{detailsLimit} characters</small>
+        <button type="submit" className="btn-primary account-submit" disabled={busy || !details.trim() || details.trim().length>detailsLimit}>{busy ? 'Preparing request…' : 'Review request'}</button></form>}
       {prepared && !sent && <div><h3>Review before sending</h3><p className="support-review-summary">{prepared.summary}</p><p>Confirmation expires {new Date(prepared.expiresAt).toLocaleString()}.</p><p>This shares your request and account contact details with the support team.</p>
         <div className="support-review-actions"><button className="btn-primary" type="button" disabled={busy} onClick={() => void confirm()}>{busy ? 'Please wait…' : 'Confirm support request'}</button><button className="account-outline-button" type="button" disabled={busy} onClick={() => void cancel()}><Translated text="Cancel request" /></button></div></div>}
       {sent && prepared && <div role="status"><h3>Request queued</h3><p>Reference: {prepared.conversationId}. Your request is saved for support review. No airline change or refund has been made.</p></div>}

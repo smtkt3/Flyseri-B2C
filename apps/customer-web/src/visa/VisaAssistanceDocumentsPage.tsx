@@ -1,3 +1,4 @@
+import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 import { Translated } from '../travel/language';
 import { SavedVisaJourneyProgress } from './SavedVisaJourneyProgress';
 import { VisaAssistanceRequestPage } from './VisaAssistanceRequestPage';
@@ -155,7 +156,7 @@ export function VisaAssistanceDocumentsPage() {
     <SavedVisaJourneyProgress requestId={requestId} current={savedDetails ? pageStep as "choose" | "form" : review ? "review" : "documents"} complete={!!data && data.status !== "NEW"} disabled={loading || !!busy || !!pending || additionalNote !== savedNote} />
     {error && <div className="account-panel" role="alert">{error}{!data && <button onClick={() => void load()}><Translated text="Try again" /></button>}</div>}
     {documentWarning && <div className="account-panel" role="alert">{documentWarning} Your saved application and attached files remain available. <button disabled={!!busy || !!pending || loading || additionalNote !== savedNote} onClick={() => void load()}>Retry document services</button></div>}
-    {loading ? <div className="account-panel" role="status">Loading your saved application…</div> : data && <div className="visa-assistance-layout"><section>
+    {loading ? <HomeLoadingScreen overlay label="Loading your saved application…"/> : data && <div className="visa-assistance-layout"><section>
       {savedDetails ? <>
         {pageStep === 'choose' && <section className="account-panel visa-upload-applicant"><h2>Saved visa selection</h2><ReviewFields fields={[
           ['Destination country',reviewCountry(data.destinationCountryCode)],['Visa purpose',data.purpose],['Expected travel date',reviewDate(data.expectedTravelDate)],['Expected return date',reviewDate(data.expectedReturnDate)],['Accommodation / host',data.accommodationOrHost],

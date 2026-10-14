@@ -81,7 +81,7 @@ export class FlightTicketingService {
       if (JSON.stringify(lockedExtras) !== JSON.stringify(extraPurchase)) throw conflict('The airline extras changed during issuance preparation.');
       const [order] = await tx.select().from(orders).where(and(eq(orders.customerId, customerId), eq(orders.bookingIntentId, booking.bookingIntentId))).for('update').limit(1);
       if (!order || order.status !== 'PAID' || !order.paidAt || order.fulfillmentStatus === 'REVALIDATION_REQUIRED') throw conflict('A confirmed eligible order payment is required before ticketing.');
-      if (extraPurchase?.status === 'CONFIRMED' && (order.currency !== extraPurchase.currency || cents(order.totalAmount) !== cents(extraPurchase.totalAmount))) throw conflict('The paid order does not match the confirmed tickets and extras total.');
+      if (extraPurchase?.status === 'CONFIRMED' && (order.currency !== extraPurchase.currency || cents(order.totalAmount) + cents(order.discountAmount) !== cents(extraPurchase.totalAmount))) throw conflict('The paid order does not match the confirmed tickets and extras total.');
       const [payment] = await tx.select().from(payments).where(and(eq(payments.orderId, order.id), eq(payments.customerId, customerId))).limit(1);
       if (!payment || payment.status !== 'SUCCEEDED' || payment.provider !== 'STRIPE_TEST' || payment.amount !== order.totalAmount || payment.currency !== order.currency) throw conflict('The sandbox payment evidence does not match the order.');
       const [row] = await tx.select().from(flightBookings).where(and(eq(flightBookings.id, id), eq(flightBookings.customerId, customerId))).for('update').limit(1);

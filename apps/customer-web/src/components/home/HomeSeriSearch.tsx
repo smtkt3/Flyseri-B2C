@@ -1,6 +1,8 @@
 import { AircraftGestureHint } from './AircraftGestureHint';
-import { ChatAircraftMotion } from './ChatAircraftMotion';
 import { useAircraftLaunch } from './useAircraftLaunch';
+import { useChatLauncherGestures } from './useChatLauncherGestures';
+import { ChatAircraftMotion } from './ChatAircraftMotion';
+import { useDraggableChatLauncher } from './useDraggableChatLauncher';
 import { Translated } from '../../travel/language';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -125,10 +127,14 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
     setClosing(true);
     closeTimer.current = window.setTimeout(finish, 180);
   }
-  const aircraft = useAircraftLaunch(launcher, () => {
+  const openChat = () => {
     setInlineHeight(chatSection.current?.getBoundingClientRect().height ?? 0);
     setFloating(true);
-  }, closing || floating || keyboardOpen || editingElsewhere);
+  };
+  const launcherDisabled = closing || floating || keyboardOpen || editingElsewhere;
+  const aircraft = useAircraftLaunch(launcher, openChat, launcherDisabled);
+  const movable = useDraggableChatLauncher(launcher, openChat, launcherDisabled || aircraft.phase !== 'idle');
+  const gestures = useChatLauncherGestures(movable.handlers, aircraft.handlers, launcherDisabled);
   useEffect(() => {
     window.clearTimeout(closeTimer.current);
     setClosing(false);
@@ -249,10 +255,10 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
   return <>{!floatingOnly&&(floating ? <div className="seri-inline-placeholder" style={{ minHeight: inlineHeight }}><span aria-hidden="true">✦</span><div><strong>Your conversation with Seri is open</strong></div><button type="button" onClick={closeFloating}>Continue here ↗</button></div> : chat)}{createPortal(<>
     {floating && <button type="button" className="seri-chat-outside-dismiss" aria-label="Close Seri chat by clicking outside" tabIndex={-1} onClick={closeFloating} />}
     {floating && <div ref={floatingPanel} style={keyboardViewport ? { top: keyboardViewport.top + 12, bottom: 'auto', height: floatingOnly && !keyboardOpen ? `min(650px, calc(${Math.max(180, keyboardViewport.height - 108)}px - env(safe-area-inset-bottom, 0px)))` : Math.max(180, keyboardViewport.height - 24) } : undefined} className={`seri-floating-panel${closing ? ' is-closing' : ''}`} id="seri-floating-chat" role="dialog" aria-labelledby="home-seri-title" tabIndex={-1}>{chat}</div>}
-    {!floating && !labelDismissed && !launcherObstructed && !editingElsewhere && !keyboardOpen && <button type="button" className="seri-label-dismiss" aria-label="Hide chat invitation" onClick={() => { setLabelDismissed(true); try { sessionStorage.setItem('flyseri.chat-label-dismissed', '1'); } catch {} launcher.current?.focus({ preventScroll: true }); }}>×</button>}
-    <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${labelDismissed || launcherObstructed ? ' is-compact' : ''}`} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} title="Tap to chat. Pull down for smoke; hold to boost, then release to fly." aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-busy={aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} aria-controls={floating ? 'seri-floating-chat' : undefined} {...aircraft.handlers}>
-      {!floating && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong><Translated text="Chat with us" /></strong><small><Translated text="AI & travel support" /></small></span>}
-      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !labelDismissed}/><ChatAircraftMotion />
+    {!floating && !movable.hasMoved && !labelDismissed && !launcherObstructed && !editingElsewhere && !keyboardOpen && <button type="button" className="seri-label-dismiss" aria-label="Hide chat invitation" onClick={() => { setLabelDismissed(true); try { sessionStorage.setItem('flyseri.chat-label-dismissed', '1'); } catch {} launcher.current?.focus({ preventScroll: true }); }}>×</button>}
+    <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${movable.hasMoved || labelDismissed || launcherObstructed ? ' is-compact' : ''}`} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} data-draggable="true" data-dragging={movable.dragging || undefined} style={movable.position ? {left:movable.position.x,top:movable.position.y,right:'auto',bottom:'auto'} : undefined} title="Drag to move. Hold briefly, then pull down and release to fly. Tap to chat." aria-description="Drag to move. Hold briefly, then pull down and release to fly. Use arrow keys to move, Alt and Arrow Down to fly, or Enter to chat." aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-controls={floating ? 'seri-floating-chat' : undefined} aria-busy={aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} {...gestures}>
+      {!floating && !movable.hasMoved && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong><Translated text="Chat with us" /></strong><small><Translated text="AI & travel support" /></small></span>}
+      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !movable.dragging}/><ChatAircraftMotion />
     </button>
   </>, document.body)}</>;
 }

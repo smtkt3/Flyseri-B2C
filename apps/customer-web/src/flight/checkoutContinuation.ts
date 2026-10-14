@@ -1,8 +1,8 @@
 import type { FlightOffer, TravellerProfile } from '@flyseri/types';
-export function checkoutPassportError(person:{idNumber:string;idExpiryDate:string;issuingCountryCode:string;idType?:string},lastTravelDate:string):string|null{
- if(!person.idNumber&&!person.idExpiryDate&&!person.issuingCountryCode)return null;
+export function checkoutPassportError(person:{idNumber:string;idExpiryDate:string;issuingCountryCode:string;residenceCountryCode?:string;idType?:string},lastTravelDate:string):string|null{
+ if(!/^[A-Z]{2}$/.test(person.residenceCountryCode??''))return 'Choose the traveler’s country of residence.';
  const expiry=Date.parse(`${person.idExpiryDate}T00:00:00Z`);
- if(!/^[A-Z0-9]{3,30}$/.test(person.idNumber)||!Number.isFinite(expiry)||new Date(expiry).toISOString().slice(0,10)!==person.idExpiryDate||!/^[A-Z]{2}$/.test(person.issuingCountryCode))return 'Complete the document number, expiry date and issuing country, or leave the document fields empty.';
+ if(!/^[A-Z0-9]{3,30}$/.test(person.idNumber)||!Number.isFinite(expiry)||new Date(expiry).toISOString().slice(0,10)!==person.idExpiryDate||!/^[A-Z]{2}$/.test(person.issuingCountryCode))return 'Travel document details are required. Complete the document number, expiry date and issuing country.';
  if(person.idExpiryDate<=lastTravelDate)return 'The document must be valid through your final flight.';
  return null;
 }

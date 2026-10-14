@@ -44,7 +44,7 @@ describe('customer commerce screens', () => {
     const bar = screen.getByLabelText('Continue payment');
     expect(bar.textContent).toContain('34,997.00');
     expect(bar.textContent).toContain('BDT');
-    const pay = within(bar).getByRole('button', { name: 'Continue payment' }) as HTMLButtonElement;
+    const pay = within(bar).getByRole('button', { name: /^Pay .*with Stripe/ }) as HTMLButtonElement;
     expect(pay.disabled).toBe(true);
     fireEvent.click(screen.getByRole('checkbox'));
     expect(pay.disabled).toBe(false);

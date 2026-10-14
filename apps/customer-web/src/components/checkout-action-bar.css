@@ -1,0 +1,49 @@
+/* One checkout action surface across phone, tablet and desktop. */
+body .checkout-mobile-bar {
+  position:fixed;inset:auto 0 var(--checkout-keyboard-inset,0px);z-index:850;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:14px max(24px,calc((100vw - 1120px)/2)) calc(14px + env(safe-area-inset-bottom,0px));
+  box-sizing:border-box;border-top:1px solid #dbe8f3;
+  background:#fffffffa;backdrop-filter:none;box-shadow:0 -8px 30px #224f7b12;
+  font-family:Inter,system-ui,sans-serif;
+}
+body .checkout-mobile-bar>div,body .checkout-mobile-bar .checkout-mobile-total {
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;
+}
+body .checkout-mobile-bar .checkout-mobile-total {
+  min-height:0;padding:0;border:0;background:transparent;text-align:left;cursor:pointer;
+}
+body .checkout-mobile-bar small {font-size:12px;line-height:1.4;color:#526e8b}
+body .checkout-mobile-bar strong {font-size:21px;line-height:1.35;color:#2479e8;font-weight:800;overflow-wrap:anywhere}
+body .checkout-mobile-bar .checkout-mobile-total>span,
+body .checkout-mobile-bar .checkout-bar-details {font-size:12px;line-height:1.4;color:#2679d4;font-weight:650;text-decoration:none}
+body .checkout-mobile-bar .checkout-mobile-total>span i {display:none}
+body .checkout-mobile-bar .checkout-bar-actions {flex-direction:row;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+body .checkout-mobile-bar :is(.btn-primary,.account-submit) {
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+  width:auto;min-width:210px;min-height:50px;margin:0;padding:13px 24px;
+  border:0;border-radius:13px;background:linear-gradient(110deg,#438eff,#78bdff);
+  color:#fff;font:inherit;font-size:15px;font-weight:750;line-height:1.4;
+  text-align:center;text-decoration:none;white-space:normal;box-shadow:0 8px 22px #3985ed24;cursor:pointer;
+}
+body .checkout-mobile-bar .btn-primary:disabled {opacity:.55;cursor:not-allowed}
+body .checkout-mobile-bar .account-outline-button {min-height:44px;padding:10px 16px;border-radius:12px;font-size:13px}
+body:has(.checkout-mobile-bar) :is(.guest-checkout-shell,.account-page,.demo-booking-page) {padding-bottom:calc(160px + env(safe-area-inset-bottom,0px))}
+body:has(.checkout-mobile-bar) .seri-floating-launcher {bottom:calc(125px + env(safe-area-inset-bottom,0px))}
+body:has(.checkout-mobile-bar) .seri-label-dismiss {bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+body:has(.checkout-mobile-bar) .account-mobile-bottom {display:none}
+.checkout-mobile-price-layer {position:fixed;inset:0;z-index:950;overscroll-behavior:contain}
+.checkout-mobile-price-scrim {position:absolute;inset:0;width:100%;height:100%;border:0;background:#11294470;backdrop-filter:blur(2px)}
+.checkout-mobile-price-sheet {position:absolute;inset:auto 0 0;display:flex;width:min(100%,600px);height:min(86dvh,780px);max-height:calc(100dvh - 24px);margin-inline:auto;padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box;border-radius:22px 22px 0 0;background:#fff;box-shadow:0 -12px 42px #183a5b35;overflow:hidden}
+.checkout-mobile-price-sheet .guest-price-reference {position:relative;top:auto;width:100%;height:100%;max-height:100%;min-height:0;flex:1;margin:0;padding:20px;border:0;border-radius:0;box-shadow:none;background:#fff}
+.checkout-mobile-price-sheet .guest-price-scroll {flex:1;scrollbar-width:none}
+.checkout-mobile-price-sheet .guest-price-scroll::-webkit-scrollbar {display:none}
+@media(max-width:767px) {
+  body .checkout-mobile-bar {gap:12px;padding:12px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+  body .checkout-mobile-bar strong {font-size:18px}
+  body .checkout-mobile-bar small {font-size:11px}
+  body .checkout-mobile-bar :is(.btn-primary,.account-submit) {min-width:0;width:100%;min-height:48px;padding:12px 14px;font-size:13px}
+  body .checkout-mobile-bar>.btn-primary,body .checkout-mobile-bar .checkout-bar-actions {flex:0 1 52%;min-width:0}
+  body .checkout-mobile-bar .checkout-bar-actions {flex-direction:column;align-items:stretch;gap:6px}
+  body .checkout-mobile-bar .account-outline-button {padding:4px 8px;min-height:32px;font-size:12px}
+}

@@ -13,17 +13,14 @@ function setup(reduced = false) {
   view.container.querySelectorAll('.premium-hero-slideshow img').forEach(image => fireEvent.load(image));
   return view;
 }
-it('rotates loaded destinations and pauses on request or when hidden', () => {
+it('rotates loaded destinations without playback buttons and pauses when hidden', () => {
   const view = setup();
   act(() => vi.advanceTimersByTime(1800));
   expect(view.container.querySelectorAll('.premium-hero-slideshow img')).toHaveLength(2);
   fireEvent.load(view.container.querySelectorAll('.premium-hero-slideshow img')[1]!);
   act(() => vi.advanceTimersByTime(8000));
   expect(screen.getByRole('img', {name:'Bali, Indonesia'})).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', {name:'Pause destination slideshow'}));
-  act(() => vi.advanceTimersByTime(16000));
-  expect(screen.getByRole('img', {name:'Bali, Indonesia'})).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', {name:'Play destination slideshow'}));
+  expect(screen.queryByRole('button')).toBeNull();
   Object.defineProperty(document, 'hidden', {configurable:true,value:true});
   fireEvent(document, new Event('visibilitychange'));
   act(() => vi.advanceTimersByTime(16000));

@@ -1,3 +1,5 @@
+import { PaymentMethodsPanel } from '../components/PaymentMethodsPanel';
+import { checkoutPrice } from '../components/checkoutPrice';
 import { CheckoutPageHeader } from './CheckoutPageHeader';
 import './checkout-step-style.css';
 import { ApiClientError } from '../lib/api/client';
@@ -11,6 +13,7 @@ import { BookingProgress } from './BookingProgress';
 import { BookingLoading } from './BookingLoading';
 import { FlightAncillaryPurchasePanel } from './FlightAncillaryPurchasePanel';
 import { FlightSelectedExtras } from './FlightSelectedExtras';
+import { CheckoutActionBar } from '../components/CheckoutActionBar';
 
 /** The reservation is created before payment, but it is not a separate buyer step. */
 export function FlightPaymentPreparation({ booking: initial }: { booking: FlightBooking }) {
@@ -83,19 +86,26 @@ export function FlightPaymentPreparation({ booking: initial }: { booking: Flight
     } finally { sending.current = false; setBusy(false); }
   }
   const status = booking.ancillaryPurchase?.status;
-  return <div className="account-page flight-page checkout-step-page"><CheckoutPageHeader title={busy ? 'Preparing your payment' : 'Review your extras'} description="Review your selected services before secure payment."/><BookingProgress current={3} />
+  const totalCurrency = booking.ancillaryPurchase?.items.length ? booking.ancillaryPurchase.currency : booking.currency;
+  const totalAmount = booking.ancillaryPurchase?.items.length ? booking.ancillaryPurchase.totalAmount : booking.amount;
+  const total = checkoutPrice(totalAmount,totalCurrency);
+  return <div className="account-page flight-page checkout-step-page"><CheckoutPageHeader progress={<BookingProgress current={3} />} title={busy ? 'Preparing your payment' : 'Review your extras'} description="Review your selected services before secure payment."/>
+    <PaymentMethodsPanel/>
     {busy && <BookingLoading label="Checking your selection and preparing the total…" />}
     {error && <p className="account-error" role="alert">{error}</p>}
     {!busy && <section className="account-panel flight-intent-card"><p>{status === 'UNAVAILABLE' ? 'These extras could not be added. You can continue with your flight only, or contact us for help.' : 'Review the latest total before continuing to payment.'}</p>
       <FlightAncillaryPurchasePanel booking={booking} readOnly />
       {(!booking.ancillaryPurchase?.items.length && status !== 'SKIPPED') && <FlightSelectedExtras requests={booking.ancillaryRequests ?? []} airfare={{ amount: booking.amount, currency: booking.currency }} />}
-      <div className="flight-intent-actions">
-        {status && ['PREPARED', 'PRICE_CHANGED'].includes(status) && <button className="btn-primary" onClick={() => void continueCheckout('confirm')}>Accept total &amp; continue to payment</button>}
+<Link className="account-link" to={`/app/support?bookingId=${encodeURIComponent(booking.id)}`}>Contact Flyseri</Link>
+    </section>}
+      <CheckoutActionBar label="Continue payment preparation" caption={booking.ancillaryPurchase?.items.length ? 'Reviewed total with extras' : 'Flight total'} total={total ?? (busy ? 'Checking price…' : 'Price unavailable')}>
+        {busy ? <button type="button" className="btn-primary" disabled>Preparing payment…</button> : <>
+        {status && ['PREPARED', 'PRICE_CHANGED'].includes(status) && <button className="btn-primary" disabled={!total} onClick={() => void continueCheckout('confirm')}>Accept total &amp; continue to payment</button>}
         {status && ['ADDING', 'UNKNOWN'].includes(status) ? <button className="btn-primary" onClick={() => void continueCheckout('reconcile')}>Check selected extras</button> : <>
           {(!status || ['PREPARED', 'UNAVAILABLE'].includes(status)) && !!booking.ancillaryRequests?.length && <button className="account-outline-button" onClick={() => void continueCheckout('skip')}>Continue without extras</button>}
-          <button className="account-outline-button" onClick={() => void continueCheckout('retry')}><Translated text="Try again" /></button>
+          <button className={status && ['PREPARED','PRICE_CHANGED'].includes(status) ? 'account-outline-button' : 'btn-primary'} disabled={!total} onClick={() => void continueCheckout('retry')}><Translated text="Try again" /></button>
         </>}
-      </div><Link className="account-link" to={`/app/support?bookingId=${encodeURIComponent(booking.id)}`}>Contact Flyseri</Link>
-    </section>}
+      </>}
+      </CheckoutActionBar>
   </div>;
 }

@@ -1,5 +1,9 @@
+import { PaymentMethodsPanel } from '../components/PaymentMethodsPanel';
+import { CouponCodeDraft } from '../commerce/CouponCodeDraft';
+import { FlightBillingFields } from './FlightBillingFields';
+import { CheckoutHelpPanel } from '../components/CheckoutHelpPanel';
 import { Translated } from '../travel/language';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { FlightReservationInput, TravellerProfile, FlightIdentityDocumentType } from '@flyseri/types';
 import { useAuth } from '../auth/AuthProvider';
@@ -9,8 +13,12 @@ import {checkoutPassports,clearCheckoutPassports,hasCheckoutPassportDraft} from 
 import { ApiClientError } from '../lib/api/client';
 import { clearCheckoutDraft, clearReservationRecovery, keepCheckoutDraft, markReservationUncertain, readCheckoutDraft, reservationNeedsRecovery, reservationRecoveryKey } from './checkoutDrafts';
 import { BoundedSelect } from '../components/BoundedSelect';
+import { CheckoutActionBar } from '../components/CheckoutActionBar';
+import { checkoutPassportError } from './checkoutContinuation';
+import { CalendarDateField } from '../components/CalendarDateField';
 
-export function FlightReservationForm({intentId, namesConfirmed, initialContact, people = [], documentValidThrough,passportsCaptured=false}: {intentId: string; namesConfirmed: boolean; initialContact?: {contactEmail: string; contactPhone: string}; people?: TravellerProfile[]; documentValidThrough?: string;passportsCaptured?:boolean}) {
+export function FlightReservationForm({intentId, namesConfirmed, initialContact, people = [], documentValidThrough,passportsCaptured=false,total='Checked fare',priceAvailable=true}: {intentId: string; namesConfirmed: boolean; initialContact?: {contactEmail: string; contactPhone: string}; people?: TravellerProfile[]; documentValidThrough?: string;passportsCaptured?:boolean;total?:string;priceAvailable?:boolean}) {
+  const formId = useId();
   const navigate = useNavigate();
   const location = useLocation();
   const paymentStep = new URLSearchParams(location.search).get('step') === 'payment';
@@ -23,12 +31,23 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const sending = useRef(false);
-  const [passports, setPassports] = useState<Record<string, {documentType?:FlightIdentityDocumentType;documentNumber: string; expiryDate: string; issuingCountryCode: string}>>({});
+  const [passports, setPassports] = useState<Record<string, {documentType?:FlightIdentityDocumentType;documentNumber: string; expiryDate: string; issuingCountryCode: string; residenceCountryCode?:string}>>({});
   const [passportConsent, setPassportConsent] = useState(false);
   const [usingPassengerPassports,setUsingPassengerPassports]=useState(false);
   const hasPassports = Object.keys(passports).length > 0;
+  const peopleKey = people.map(person=>person.id).join(',');
+  const documentComplete = (document:{documentNumber:string;expiryDate:string;issuingCountryCode:string;residenceCountryCode?:string}|undefined) => !!document && !checkoutPassportError({idNumber:document.documentNumber,idExpiryDate:document.expiryDate,issuingCountryCode:document.issuingCountryCode,residenceCountryCode:document.residenceCountryCode},documentValidThrough??new Date().toISOString().slice(0,10));
+  const documentsComplete = people.length>0 && people.every(person=>documentComplete(passports[person.id]));
   const minPassportExpiry = documentValidThrough && Number.isFinite(Date.parse(documentValidThrough)) ? new Date(Date.parse(documentValidThrough) + 86400000).toISOString().slice(0,10) : undefined;
-  useEffect(() => { const captured=!!session&&passportsCaptured&&hasCheckoutPassportDraft(intentId,session.user.id);const records=session?checkoutPassports(intentId,session.user.id):[];setPassports(Object.fromEntries(records.map(({travellerId,...document})=>[travellerId,document])));setPassportConsent(captured);setUsingPassengerPassports(captured); }, [intentId,session?.user.id,passportsCaptured]);
+  useEffect(() => {
+    const records=session?checkoutPassports(intentId,session.user.id):[];
+    const captured=!!session&&passportsCaptured&&hasCheckoutPassportDraft(intentId,session.user.id)&&people.length>0&&people.every(person=>documentComplete(records.find(document=>document.travellerId===person.id)));
+    setPassports(Object.fromEntries(people.map(person=>{
+      const record=records.find(document=>document.travellerId===person.id);
+      return [person.id,record?{documentType:record.documentType,documentNumber:record.documentNumber,expiryDate:record.expiryDate,issuingCountryCode:record.issuingCountryCode,residenceCountryCode:record.residenceCountryCode??''}:{documentType:'PASSPORT',documentNumber:'',expiryDate:'',issuingCountryCode:'',residenceCountryCode:''}];
+    })));
+    setPassportConsent(captured);setUsingPassengerPassports(captured);
+  }, [intentId,session?.user.id,passportsCaptured,peopleKey,documentValidThrough]);
   const [input, setInput] = useState<FlightReservationInput>(() => readCheckoutDraft<FlightReservationInput>(draftKey, session?.user.id ?? null) ?? {contactEmail: initialContact?.contactEmail ?? session?.user.email ?? '', contactPhone: initialContact?.contactPhone ?? '', namesConfirmed: false,
     billingAddress: {name: '', street: '', city: '', stateProvince: '', postalCode: '', countryCode: ''}});
   const inputOwner = useRef(session?.user.id ?? null);
@@ -58,7 +77,8 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
   }, [attempt]);
   async function reserve(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (sending.current || needsRecovery || !namesConfirmed || !capabilities?.reservationAvailable || hasPassports && !passportConsent) return;
+    if (sending.current || needsRecovery || !priceAvailable || !namesConfirmed || !capabilities?.reservationAvailable || hasPassports && !passportConsent) return;
+    if (!documentsComplete) { setError('Complete travel document details for every traveler.'); return; }
     sending.current = true; setBusy(true); setError('');
     if (!paymentStep) {
       sending.current = false; setBusy(false);
@@ -86,30 +106,29 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
     }
     finally {sending.current = false; setBusy(false);}
   }
-  return <section id="flight-reservation-review" className="account-panel account-form reservation-contact-panel"><header className="reservation-contact-heading"><h2>{paymentStep ? 'Billing details' : 'Booking contact'}</h2>{!paymentStep && <p>Where we’ll send booking updates.</p>}</header>
+  return <section id="flight-reservation-review" className="account-panel account-form reservation-contact-panel"><header className="reservation-contact-heading"><h2>{paymentStep ? 'Contact & billing details' : 'Booking contact'}</h2>{!paymentStep && <p>Where we’ll send booking updates.</p>}</header>
     {needsRecovery && <section className="booking-recovery" role="status"><h3>Check this attempt before continuing</h3><p>The last response could not be verified. Another reservation submission is paused to avoid duplicates.</p><p className="checkout-reference">Selection: {intentId}</p><button type="button" className="account-outline-button" disabled={busy} onClick={() => void recover()}>{busy ? 'Checking saved booking…' : 'Check saved booking'}</button> <Link className="account-link" to={`/app/support?selectionId=${encodeURIComponent(intentId)}`}>Get help</Link></section>}
     {!capabilities && !error && <p role="status">Checking reservation availability…</p>}
     {error && <p role="alert" className="account-error">{error}{!capabilities && <button type="button" onClick={() => setAttempt(value => value + 1)}><Translated text="Retry" /></button>}</p>}
     {capabilities && !capabilities.reservationAvailable && <p>{capabilities.message}</p>}
-    {capabilities?.reservationAvailable && <form onSubmit={event => void reserve(event)}><div className="reservation-test-notice" role="note"><span aria-hidden="true">ⓘ</span> Test checkout · reservations and payments are in test mode.</div><fieldset disabled={busy || needsRecovery} style={{border: 0, padding: 0, margin: 0}}><div className="account-form-grid">
-      {!paymentStep && <><label>Booking email<input type="email" required maxLength={254} autoComplete="email" value={input.contactEmail} onChange={event => setInput(previous => ({...previous, contactEmail: event.target.value}))}/></label>
-      <label>Booking phone<input type="tel" required pattern="\+?[0-9]{7,20}" maxLength={21} autoComplete="tel" placeholder="+60123456789" value={input.contactPhone} onChange={event => setInput(previous => ({...previous, contactPhone: event.target.value}))}/></label>
-      </>}
-      {paymentStep && <>{([['name','Billing name',120], ['street','Billing street address',240], ['city','Billing city',120], ['stateProvince','Billing state / region',120], ['postalCode','Billing postcode',24]] as const).map(([key,label,maxLength]) => <label key={key}>{label}<input required pattern=".*\S.*" maxLength={maxLength} value={input.billingAddress[key]} onChange={event => setInput(previous => ({...previous, billingAddress: {...previous.billingAddress, [key]: event.target.value}}))}/></label>)}
-      <label>Billing country<BoundedSelect required disabled={busy||needsRecovery} searchable searchPlaceholder="Search countries" ariaLabel="Billing country" value={input.billingAddress.countryCode} placeholder="Select country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={countryCode=>setInput(previous=>({...previous,billingAddress:{...previous.billingAddress,countryCode}}))}/></label></>}
-    </div>
-    {!paymentStep&&passportsCaptured&&!usingPassengerPassports&&<p role="alert">Travel document details from the passenger form expired. Enter them again below if needed.</p>}
-    {!paymentStep && !usingPassengerPassports && people.length > 0 && <details open={passportsCaptured||undefined} className="reservation-passports"><summary>Travel document details <span>Optional</span></summary>
-      {people.map(person => <section key={person.id}><label className="reservation-passport-toggle"><input type="checkbox" checked={!!passports[person.id]} onChange={event => { setPassportConsent(false); setPassports(previous => { const next = {...previous}; if (event.target.checked) next[person.id] = {documentType:'PASSPORT',documentNumber:'',expiryDate:'',issuingCountryCode:''}; else delete next[person.id]; return next; }); }} /><span>Add travel document for {person.legalFirstName} {person.legalLastName}</span></label>
+    {capabilities?.reservationAvailable && <form id={formId} onSubmit={event => void reserve(event)}><div className="reservation-test-notice" role="note"><span aria-hidden="true">ⓘ</span> Test checkout · reservations and payments are in test mode.</div><fieldset disabled={busy || needsRecovery} style={{border: 0, padding: 0, margin: 0}}><FlightBillingFields value={input} onChange={setInput} disabled={busy || needsRecovery} includeBilling={paymentStep}/>
+    {passportsCaptured&&!usingPassengerPassports&&<p role="alert">Travel document details from the passenger form expired. Enter the required details again below.</p>}
+    {!usingPassengerPassports && people.length > 0 && <details open className="reservation-passports"><summary>Travel document details <span>Required</span></summary>
+      {people.map(person => <section key={person.id}><h3>{person.legalFirstName} {person.legalLastName}</h3>
         {passports[person.id] && <div className="account-form-grid"><label>Document type<BoundedSelect disabled={busy||needsRecovery} ariaLabel={`Document type for ${person.legalFirstName}`} value={passports[person.id]!.documentType??'PASSPORT'} placeholder="Select document type" options={[{value:'PASSPORT',label:'Passport'},{value:'NATIONAL_ID_CARD',label:'National ID card'},{value:'VISA',label:'Visa'},{value:'ALIEN_RESIDENT',label:'Resident permit'},{value:'BORDER_CROSSING_CARD',label:'Border crossing card'},{value:'REFUGEE_REENTRY_PERMIT',label:'Refugee travel document'}]} onChange={documentType=>{setPassportConsent(false);setPassports(previous=>({...previous,[person.id]:{...previous[person.id]!,documentType:documentType as FlightIdentityDocumentType,documentNumber:'',expiryDate:'',issuingCountryCode:''}}));}}/></label>
         <label>Document number<input required autoComplete="off" maxLength={30} pattern="[A-Z0-9]{3,30}" value={passports[person.id]!.documentNumber} onChange={event => { setPassportConsent(false); setPassports(previous => ({...previous,[person.id]:{...previous[person.id]!,documentNumber:event.target.value.toUpperCase().replace(/\s/g,'')}})); }}/></label>
-        <label>Expiry date<input required type="date" autoComplete="off" min={minPassportExpiry} value={passports[person.id]!.expiryDate} onChange={event => {setPassportConsent(false); setPassports(previous => ({...previous,[person.id]:{...previous[person.id]!,expiryDate:event.target.value}}));}}/></label>
-        <label>Issuing country<BoundedSelect required disabled={busy||needsRecovery} searchable searchPlaceholder="Search countries" ariaLabel={`Issuing country for ${person.legalFirstName}`} value={passports[person.id]!.issuingCountryCode} placeholder="Select country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={issuingCountryCode=>{setPassportConsent(false);setPassports(previous=>({...previous,[person.id]:{...previous[person.id]!,issuingCountryCode}}));}}/></label></div>}
+        <label>Expiry date<CalendarDateField label="Document expiry date" required className="checkout-calendar-field" minDate={minPassportExpiry} value={passports[person.id]!.expiryDate} onChange={expiryDate=>{setPassportConsent(false);setPassports(previous=>({...previous,[person.id]:{...previous[person.id]!,expiryDate}}));}}/></label>
+        <label>Issuing country<BoundedSelect required disabled={busy||needsRecovery} searchable searchPlaceholder="Search countries" ariaLabel={`Issuing country for ${person.legalFirstName}`} value={passports[person.id]!.issuingCountryCode} placeholder="Select country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={issuingCountryCode=>{setPassportConsent(false);setPassports(previous=>({...previous,[person.id]:{...previous[person.id]!,issuingCountryCode}}));}}/></label><label>Country of residence *<BoundedSelect required disabled={busy||needsRecovery} searchable searchPlaceholder="Search countries" ariaLabel={`Country of residence for ${person.legalFirstName}`} value={passports[person.id]!.residenceCountryCode??''} placeholder="Where the traveler lives" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={residenceCountryCode=>{setPassportConsent(false);setPassports(previous=>({...previous,[person.id]:{...previous[person.id]!,residenceCountryCode}}));}}/></label></div>}
       </section>)}
       {hasPassports && <label className="reservation-passport-toggle"><input type="checkbox" required checked={passportConsent} onChange={event => setPassportConsent(event.target.checked)} /><span>I checked these travel document details and authorize submitting them for this reservation.</span></label>}
     </details>}
-    {paymentStep && <><p>Your billing details prepare the airline reservation before secure payment. No payment is taken here.</p><button type="button" className="account-outline-button" disabled={busy} onClick={() => navigate(location.pathname, {state:location.state})}>← Back to review</button></>}
-    <div className="reservation-contact-actions"><div><strong>{paymentStep ? 'Ready for secure payment?' : 'Next: payment details'}</strong><p>{!namesConfirmed ? 'Confirm traveler names and check that your fare is still valid.' : paymentStep ? 'Review your billing details before continuing.' : 'Add your billing details in the next step.'}</p></div><button type="submit" className="btn-primary account-submit" disabled={!namesConfirmed || busy || hasPassports && !passportConsent}>{busy ? 'Preparing payment…' : paymentStep ? 'Continue to secure payment' : 'Continue to payment'}</button></div></fieldset></form>}
+    {paymentStep && <><p>Check your contact and billing details, then choose a payment method on secure checkout. Your booking reference is shown after payment is verified.</p><button type="button" className="account-outline-button" disabled={busy} onClick={() => navigate(location.pathname, {state:location.state})}>← Back to review</button></>}
+    {paymentStep && <CouponCodeDraft key={`${intentId}:${session?.user.id??'guest'}`} intentId={intentId} disabled={busy||needsRecovery}/>}
+    {paymentStep && <PaymentMethodsPanel/>}
+    <CheckoutHelpPanel title={paymentStep ? 'Next: secure payment' : 'Next: payment details'}><p>{!namesConfirmed ? 'Return to review and confirm each traveler’s name before continuing.' : paymentStep ? 'Check your billing details, then continue to choose a payment method.' : 'You’ll add your billing details next. No payment is taken here.'}</p></CheckoutHelpPanel></fieldset>
+
+    </form>}
+    <CheckoutActionBar label="Continue reservation checkout" caption="Checked airfare" total={total} detailsHref="#flight-reservation-review"><button type="submit" form={formId} className="btn-primary account-submit" disabled={!priceAvailable || !capabilities?.reservationAvailable || !namesConfirmed || busy || needsRecovery || !documentsComplete || !passportConsent}>{busy ? 'Preparing payment…' : paymentStep ? 'Continue to secure payment' : 'Continue to payment'}</button></CheckoutActionBar>
 
   </section>;
 }

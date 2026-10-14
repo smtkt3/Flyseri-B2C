@@ -52,13 +52,14 @@ class ReservationPassportDto {
   @IsString() @Matches(/^[A-Z0-9]{3,30}$/) documentNumber!: string;
   @IsDateString({ strict: true }) @Matches(/^\d{4}-\d{2}-\d{2}$/) expiryDate!: string;
   @IsString() @Matches(/^[A-Z]{2}$/) issuingCountryCode!: string;
+  @IsString() @Matches(/^[A-Z]{2}$/) residenceCountryCode!: string;
 }
 class ReservationDto {
   @IsEmail() @MaxLength(254) contactEmail!: string;
   @IsString() @Matches(/^\+?[0-9]{7,20}$/) contactPhone!: string;
   @IsBoolean() namesConfirmed!: boolean;
   @IsDefined() @ValidateNested() @Type(() => ReservationAddressDto) billingAddress!: ReservationAddressDto;
-  @IsOptional() @IsArray() @ArrayMaxSize(9) @ValidateNested({ each: true }) @Type(() => ReservationPassportDto) passports?: ReservationPassportDto[];
+  @IsDefined() @IsArray() @ArrayMinSize(1) @ArrayMaxSize(9) @ValidateNested({ each: true }) @Type(() => ReservationPassportDto) passports!: ReservationPassportDto[];
 }
 class CancelReservationDto { @IsString() @Matches(/^[A-Z0-9]{5,16}$/) confirmedPnr!: string; }
 const validateCancellation = new ValidationPipe({ expectedType: CancelReservationDto, transform: true, whitelist: true, forbidNonWhitelisted: true,
@@ -116,6 +117,12 @@ export class PublicFlightController {
   @UseGuards(OptionalCustomerAuthGuard, FlightRateGuard)
   async additionalServices(@Body(validatedAncillaryLookup) body: AncillaryLookupDto, @Req() request: ContextRequest) {
     return { success: true, data: await this.ancillaries.lookup(request.identity?.customerId ?? null, body), requestId: request.requestId };
+  }
+  @Post('calendar-cache') @HttpCode(200) @Header('Cache-Control','no-store')
+  @UseGuards(OptionalCustomerAuthGuard, FlightRateGuard)
+  async calendarCache(@Body(validated) body:FlightSearchDto,@Query('month') month:string,@Query('field') field='departure',@Req() request:ContextRequest) {
+    if(field!=='departure'&&field!=='return')throw new BadRequestException('Choose a valid calendar date field.');
+    return {success:true,data:await this.service.calendarCachedFares(body,month,field),requestId:request.requestId};
   }
   @Post('search')
   @UseGuards(OptionalCustomerAuthGuard, FlightRateGuard)

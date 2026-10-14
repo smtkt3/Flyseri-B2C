@@ -20,11 +20,18 @@ vi.mock('../flight/GuestFlightCheckoutPage', () => ({ GuestFlightCheckoutPage: (
 } }));
 vi.mock('../account/CustomerShell', () => ({ CustomerShell: () => <div>My Flyseri account</div> }));
 vi.mock('../components/PremiumNavbar', () => ({ PremiumNavbar: () => <nav aria-label="Flyseri navigation" /> }));
+vi.mock('../components/home/DeferredHomeSeriSearch', () => ({ DeferredHomeSeriSearch: () => <button>Chat with us</button> }));
 
 const session = { access_token: 'test-access-token' } as Session;
 afterEach(() => { cleanup(); homeLoad.pending = null; vi.clearAllMocks(); document.body.style.overflow = ''; });
 
 describe('sign-in overlay', () => {
+  it.each(['/flights', '/flight-checkout', '/app/bookings', '/app/seri', '/outdated-link'])('provides one shared chat launcher on %s', async pathname => {
+    auth.restore.mockResolvedValue(session);
+    render(<MemoryRouter initialEntries={[pathname]}><AuthProvider><AuthRoutes /></AuthProvider></MemoryRouter>);
+    expect(await screen.findAllByRole('button', { name: 'Chat with us' })).toHaveLength(1);
+  });
+
   it('shows the aircraft loader until the homepage is ready, then removes it immediately', async () => {
     auth.restore.mockResolvedValue(null);
     let finish!: () => void;

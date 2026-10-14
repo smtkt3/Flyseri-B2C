@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { auditEvents, flightBookings, orders, payments, type DatabaseConnection } from '@flyseri/database';
 import { DATABASE_CONNECTION } from '../tokens.js';
 import { FlightTicketingService } from './flight-ticketing.service.js';
@@ -25,10 +25,11 @@ export class FlightFulfillmentPoller implements OnModuleInit, OnModuleDestroy {
     try {
       if (!(await this.ticketing.capabilities()).ticketIssuanceAvailable) return;
       const db = this.connection.db;
-      const candidates = await db.selectDistinct({id:flightBookings.id,customerId:flightBookings.customerId,pnr:flightBookings.pnrLocator,tripId:flightBookings.tripId})
+      const candidates = await db.selectDistinct({id:flightBookings.id,customerId:flightBookings.customerId,pnr:flightBookings.pnrLocator,tripId:flightBookings.tripId,paidAt:orders.paidAt})
         .from(flightBookings).innerJoin(orders,and(eq(orders.bookingIntentId,flightBookings.bookingIntentId),eq(orders.customerId,flightBookings.customerId)))
         .innerJoin(payments,and(eq(payments.orderId,orders.id),eq(payments.customerId,orders.customerId)))
-        .where(and(inArray(flightBookings.status,['AWAITING_STAFF_TICKETING','PAID']),eq(orders.status,'PAID'),eq(orders.fulfillmentStatus,'NOT_STARTED'),eq(payments.status,'SUCCEEDED'),eq(payments.provider,'STRIPE_TEST'))).limit(10);
+        .where(and(inArray(flightBookings.status,['AWAITING_STAFF_TICKETING','PAID']),eq(orders.status,'PAID'),eq(orders.fulfillmentStatus,'NOT_STARTED'),eq(payments.status,'SUCCEEDED'),eq(payments.provider,'STRIPE_TEST')))
+        .orderBy(asc(orders.paidAt),asc(flightBookings.id)).limit(10);
       for (const booking of candidates) {
         if (this.stopped) break;
         if (!booking.pnr) continue;

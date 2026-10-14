@@ -1,0 +1,115 @@
+/* Keep fare comparison concise; full segment-level conditions remain expandable. */
+html body .flight-fare-drawer-head {padding:4px 14px;min-height:52px}
+html body .flight-fare-drawer-head .account-eyebrow {display:none}
+html body .flight-fare-drawer-head h2 {margin:0;font-size:16px;line-height:1.4}
+html body .flight-fare-itinerary-toggle {padding:10px 16px;min-height:44px;font-size:13px}
+html body .flight-fare-select {padding:8px 12px 12px}
+html body .flight-fare-select-heading {flex-direction:row;align-items:center;gap:8px;margin-bottom:12px}
+html body .flight-fare-select-heading h3 {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+html body .flight-fare-select-heading p {font-size:12px;margin:0}
+html body .flight-fare-passenger-count {padding:0;border:0;background:transparent;font-size:11px}
+html body .flight-fare-card-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));align-items:start;gap:12px}
+html body .flight-fare-detail-card {display:grid;grid-template-columns:minmax(0,1fr) auto;align-content:start;gap:4px 10px;min-height:0;padding:14px 14px 2px;border:1px solid #e9ecf0;border-radius:16px;background:#fff;box-shadow:none}
+html body .flight-fare-detail-card>* {grid-column:1/-1}
+html body .flight-fare-detail-card .flight-fare-card-price {grid-column:1;grid-row:1;min-height:0;padding:0;border:0;gap:4px}
+html body .flight-fare-card-price>div {flex-wrap:wrap;gap:4px}
+html body .flight-fare-card-price strong {font-size:21px;line-height:1.3;font-weight:650;letter-spacing:-.025em;color:#2478e8}
+html body .flight-fare-card-price>small {font-size:11px;line-height:1.4}
+html body .flight-fare-card-price .flight-fare-seats {font-size:10px;line-height:1.3;padding:2px 5px;width:fit-content}
+html body .flight-fare-card-price .flight-fare-brand-chip {display:none}
+html body .flight-fare-detail-card .flight-fare-select-button {grid-column:2;grid-row:1;align-self:start;width:auto;min-width:84px;min-height:44px;margin:0;padding:10px 12px;border-radius:22px;background:#2478e8!important;font-size:13px;font-weight:600;box-shadow:none!important}
+html body .flight-fare-recommendation {top:-8px;left:14px;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;line-height:1.3}
+html body .flight-fare-recommendation:after {display:none}
+html body .flight-fare-detail-card .flight-fare-compact-benefits {display:grid;gap:5px;margin:6px 0 0;padding:0;list-style:none}
+html body .flight-fare-detail-card .flight-fare-compact-benefits li {display:grid;grid-template-columns:16px minmax(0,1fr);align-items:start;gap:7px;margin:0;font-size:13px;line-height:1.45;color:#344253}
+html body .flight-fare-compact-benefits li>span:first-child {color:#16868c;font-weight:600;text-align:center}
+html body .flight-fare-full-details {grid-column:1;grid-row:3;min-width:0;border:0}
+html body .flight-fare-full-details>summary {display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:44px;padding:2px 0;list-style:none;color:#75808d;font-size:12px;line-height:1.4;cursor:pointer}
+html body .flight-fare-full-details>summary::-webkit-details-marker {display:none}
+html body .flight-fare-full-details>summary>span:last-child {flex:none;color:#526c87}
+html body .flight-fare-full-details[open]>summary {border-bottom:1px solid #e8ecf1}
+html body .flight-fare-full-details[open]>summary>span:last-child>span {display:inline-block;transform:rotate(90deg)}
+html body .flight-fare-full-details-body {padding:4px 0 8px}
+html body .flight-fare-full-details-body .flight-fare-card-name {min-height:0;padding:6px 0;gap:2px;border:0}
+html body .flight-fare-full-details-body .flight-fare-benefit-section {margin-top:8px}
+html body .flight-fare-full-details-body :is(p,li,h4) {font-size:12px;line-height:1.45}
+html body .flight-fare-detail-card .flight-fare-compare {grid-column:2;grid-row:3;align-self:start;justify-self:end;display:flex;align-items:center;gap:6px;margin:0;padding:2px 0;min-height:44px;border:0;font-size:12px;white-space:nowrap}
+html body .flight-fare-full-details[open] {grid-column:1/-1}
+html body .flight-fare-detail-card:has(.flight-fare-full-details[open]) .flight-fare-compare {grid-row:4}
+html body .flight-fare-detail-card .flight-fare-compare input {width:16px;height:16px;min-height:0}
+html body .flight-fare-detail-card summary:focus-visible {outline:2px solid #2478e8;outline-offset:2px;border-radius:6px}
+/* Group the full conditions by section and by flight, with stable label/value columns. */
+html body .flight-fare-full-details-body {display:grid;gap:14px;padding:12px 0}
+html body .flight-fare-full-details-body .flight-fare-card-name {padding:0;gap:4px}
+html body .flight-fare-full-details-body .flight-fare-card-name strong {font-size:14px;line-height:1.4;color:#25364b}
+html body .flight-fare-full-details-body .flight-fare-card-name small {font-size:12px;line-height:1.5;color:#657080}
+html body .flight-fare-full-details-body .flight-fare-benefit-section {margin:0;padding:12px 0 0;border-top:1px solid #e6eaf0}
+html body .flight-fare-full-details-body .flight-fare-benefit-section h4 {margin:0 0 10px;font-size:13px;line-height:1.5;font-weight:650;color:#25364b}
+html body .flight-fare-full-details-body .flight-fare-baggage-leg {margin:8px 0 0;padding:10px;border:1px solid #e6eaf0;border-radius:10px;background:#fbfcfe;min-width:0}
+html body .flight-fare-full-details-body .flight-fare-baggage-direction {display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:0 0 6px;color:#344253;font-size:12px;line-height:1.5;font-weight:600}
+html body .flight-fare-full-details-body .flight-fare-baggage-direction small {margin-left:auto;font-size:12px;color:#657080;font-weight:500}
+html body .flight-fare-full-details-body .flight-baggage-allowance-row {grid-template-columns:20px minmax(0,1fr) minmax(0,1fr);gap:8px;padding:7px 0;border-radius:0;background:transparent}
+html body .flight-fare-full-details-body .flight-baggage-allowance-row+.flight-baggage-allowance-row {border-top:1px solid #e9edf2}
+html body .flight-fare-full-details-body .flight-baggage-allowance-name {font-size:12px;line-height:1.5;color:#445165}
+html body .flight-fare-full-details-body .flight-baggage-allowance-value {grid-column:3;justify-self:end;max-width:100%;font-size:12px;line-height:1.5;text-align:right;white-space:normal;overflow-wrap:anywhere;border-radius:6px}
+html body .flight-fare-full-details-body .flight-fare-policy {margin:6px 0;gap:8px;line-height:1.5}
+html body .flight-fare-full-details-body .flight-fare-policy>strong {font-size:13px;font-weight:500;color:#445165}
+html body .flight-fare-full-details-body .flight-support-link {border-top:1px solid #e6eaf0;padding-top:10px;margin:0}
+@media (max-width:520px) {
+  html body .flight-fare-full-details-body .flight-baggage-allowance-row {grid-template-columns:20px minmax(0,1fr)}
+  html body .flight-fare-full-details-body .flight-baggage-allowance-value {grid-column:2;justify-self:start;text-align:left}
+}
+/* Restore the original tall desktop proportions; keep touch layouts compact. */
+@media (min-width:1025px) {
+  html body .flight-fare-card-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),360px));justify-content:center;align-items:stretch;grid-auto-rows:1fr;gap:16px}
+  html body .flight-fare-detail-card {min-height:650px;grid-template-rows:auto auto minmax(0,1fr) auto;align-self:stretch;box-sizing:border-box;padding:20px 18px 10px}
+  html body .flight-fare-detail-card .flight-fare-compact-benefits {align-content:start;gap:10px;margin-top:16px}
+  html body .flight-fare-detail-card .flight-fare-full-details {align-self:end}
+  html body .flight-fare-detail-card .flight-fare-full-details[open] {align-self:start;margin-top:10px}
+  html body .flight-fare-detail-card .flight-fare-compare {align-self:end}
+}
+@media (max-width:360px) {
+  html body .flight-fare-select {padding-inline:10px}
+  html body .flight-fare-detail-card {padding-inline:12px;gap:7px 8px}
+  html body .flight-fare-card-price strong {font-size:19px}
+  html body .flight-fare-detail-card .flight-fare-select-button {min-width:78px;padding-inline:10px;font-size:12px}
+}
+/* Flight rows and concise fare differences in the details drawer. */
+html body .flight-fare-drawer-head .flight-fare-route-subtitle {display:block;margin:3px 0 0;font-size:12px;line-height:1.5;color:#657080;overflow-wrap:anywhere}
+html body .flight-fare-drawer-head {padding-block:10px;gap:12px}
+html body .flight-fare-drawer-head>div {min-width:0}
+html body .flight-fare-itinerary>h3 {font-size:14px;margin:10px 0}
+html body .organized-flight-leg {margin:10px 0 16px;border:1px solid #e6eaf0;border-radius:12px;overflow:hidden;background:#fff}
+html body .organized-flight-leg>header {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:10px 12px;background:#f7f9fc;border-bottom:1px solid #e6eaf0}
+html body .organized-flight-leg h4 {margin:0;font-size:13px;font-weight:650;color:#25364b}
+html body .organized-flight-leg>header>span {font-size:12px;color:#56677d}
+html body .organized-flight-segment {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 16px minmax(0,1fr);align-items:center;gap:14px;padding:14px 12px}
+html body .organized-flight-airline,html body .organized-flight-endpoint {display:grid;gap:4px;min-width:0}
+html body .organized-flight-airline strong,html body .organized-flight-endpoint strong {font-size:13px;font-weight:600;color:#25364b;line-height:1.5}
+html body .organized-flight-airline small,html body .organized-flight-endpoint span {font-size:12px;line-height:1.5;color:#657080;overflow-wrap:anywhere}
+html body .organized-flight-arrow {color:#8190a3}
+html body .organized-flight-layover {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;padding:9px 12px;border-block:1px solid #e6eaf0;background:#f7f9fc;color:#526278;font-size:12px;line-height:1.5}
+html body .organized-flight-layover strong {font-weight:600}
+html body .organized-flight-layover.is-airport-change {background:#fff8ed;color:#8b500d;border-color:#f0dfc4}
+html body .organized-flight-layover small {flex-basis:100%;font-size:12px}
+html body .flight-fare-summary-block {grid-column:1/-1;grid-row:2;min-width:0}
+html body .flight-fare-detail-card:has(.flight-fare-full-details[open]) .flight-fare-compact-benefits {display:none}
+html body .flight-fare-detail-card .fare-difference-note {margin:10px 0 2px;padding:9px 10px;border-radius:8px;background:#f2f6fc;color:#526278;font-size:12px;line-height:1.5}
+html body .fare-difference-note strong {font-weight:600;color:#344253}
+html body .flight-fare-full-details-body .flight-fare-benefit-section h4 {display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px}
+html body .fare-difference-tag {font-size:10px;line-height:1.5;font-weight:500;padding:2px 6px;border-radius:5px;color:#175da9;background:#edf4ff}
+@media(max-width:600px) {
+  html body .organized-flight-segment {grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr);gap:10px;padding:12px}
+  html body .organized-flight-airline {grid-column:1/-1;padding-bottom:6px}
+}
+html body .flight-fare-mobile-cabin,html body .fare-difference-mobile {display:none}
+@media (max-width:760px) {
+  html body .flight-fare-card-price .flight-fare-mobile-cabin {display:inline-block;max-width:100%;padding:2px 6px;border-radius:5px;background:#f1f5fa;color:#526278;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+  html body .flight-fare-full-details>summary>span:first-child {display:none}
+  html body .fare-difference-desktop {display:none}
+  html body .fare-difference-mobile {display:grid;gap:5px}
+  html body .flight-fare-detail-card .fare-difference-note {padding:8px;margin-top:8px;font-size:11px}
+  html body .fare-difference-chips {display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+  html body .fare-difference-chip {display:inline-block;padding:2px 5px;border:1px solid #dae4f2;border-radius:5px;background:#fff;font-size:10px;line-height:1.4;color:#526278}
+}
+html body .flight-baggage-allowance-row .flight-baggage-weight-missing {grid-column:2/-1;display:block;font-size:11px;line-height:1.5;color:#657080;text-align:left}

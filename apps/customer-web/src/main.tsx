@@ -16,6 +16,17 @@ import './components/frontend-refinements.css'
 import './travel/travel-tools.css'
 import './compact-mobile.css'
 import './tablet-responsive.css'
+import './flight/flight-search-visibility.css'
+import './components/checkout-action-bar.css'
+import './app-density.css'
+import './mobile-standard.css'
+import './flight/flight-compact-header.css'
+import './flight/flight-results-toolbar.css'
+import './flight/flight-fare-compact.css'
+import './flight/flight-result-polish.css'
+import './flight/flight-results-usability.css'
+import './flight/flight-help-preferences.css'
+import { FixedActionInsets } from './components/FixedActionInsets'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -23,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <LanguageProvider><AuthProvider>
         <AccountPreferencesSync />
         <NetworkStatus />
+        <FixedActionInsets />
         <AuthRoutes />
       </AuthProvider></LanguageProvider>
     </BrowserRouter>

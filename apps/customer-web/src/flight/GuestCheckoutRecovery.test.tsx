@@ -33,7 +33,8 @@ it('shows a failed recheck only once and keeps the entered traveler details',asy
   api.search.mockResolvedValue({searchId:'fresh',offers:[],expiresAt:new Date(Date.now()+60000).toISOString()});
   render(<MemoryRouter initialEntries={[{pathname:'/flight-checkout',state:{offer,searchRequest:request,searchId:'initial'}}]}><GuestFlightCheckoutPage/></MemoryRouter>);
   await screen.findByText(/latest search did not return a fare/);
-  fireEvent.click(screen.getByRole('region',{name:'Checkout total'}).querySelector<HTMLButtonElement>('.guest-checkout-next')!);
+  expect(screen.getByLabelText('Continue checkout').querySelector<HTMLButtonElement>('.btn-primary')!.disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button',{name:'Recheck latest price'}));
   await waitFor(()=>expect(api.search).toHaveBeenCalledTimes(2));
   expect(screen.getAllByText(/latest search did not return a fare/)).toHaveLength(1);
   expect(screen.getByText('Passenger 1: Demo Traveler')).toBeTruthy();

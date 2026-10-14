@@ -1,0 +1,9 @@
+html body .ticket-issuance-notice {display:flex;align-items:flex-start;gap:12px;margin-block:14px;padding:16px;border:1px solid #cce7df;border-radius:14px;background:#f0fbf7;color:#244b48}
+html body .ticket-issuance-notice .ticket-issuance-icon {display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:10px;background:#d9f2e9;color:#187867;font-size:21px}
+html body .ticket-issuance-notice>div {min-width:0}
+html body .ticket-issuance-notice h3 {margin:0;font-size:15px;line-height:1.5;font-weight:750;color:#244846}
+html body .ticket-issuance-notice p {margin:6px 0 0;font-size:13px;line-height:1.6;color:#496a68}
+html body .ticket-issuance-notice .ticket-issuance-deadline {font-size:12px;font-weight:600}
+html body .ticket-issuance-notice a {display:inline-flex;align-items:center;min-height:44px;margin-top:8px;color:#1766bd;font-size:13px;font-weight:650;text-underline-offset:3px}
+html body .ticket-issuance-notice.needs-attention {background:#fff9ef;border-color:#efdcb7}
+html body .ticket-issuance-notice.needs-attention .ticket-issuance-icon {background:#f7e8c9;color:#805b1c}

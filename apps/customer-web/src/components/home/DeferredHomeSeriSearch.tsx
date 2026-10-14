@@ -1,3 +1,5 @@
+import { useDraggableChatLauncher } from './useDraggableChatLauncher';
+import { useChatLauncherGestures } from './useChatLauncherGestures';
 import { AircraftGestureHint } from './AircraftGestureHint';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,6 +17,8 @@ function EntryLauncher({ open, loading = false }: { open: () => void; loading?: 
   const aircraft = useAircraftLaunch(launcher, open, loading);
   const [hidden, setHidden] = useState(false);
   const [compact, setCompact] = useState(false);
+  const movable = useDraggableChatLauncher(launcher, open, loading || hidden || aircraft.phase !== 'idle');
+  const gestures = useChatLauncherGestures(movable.handlers, aircraft.handlers, loading || hidden);
   useEffect(() => {
     let frame = 0;
     let fullHeight = window.innerHeight;
@@ -36,7 +40,7 @@ function EntryLauncher({ open, loading = false }: { open: () => void; loading?: 
     window.addEventListener('resize', schedule); window.visualViewport?.addEventListener('resize', schedule);
     return () => { cancelAnimationFrame(frame); document.removeEventListener('scroll', schedule, true); document.removeEventListener('focusin', schedule); document.removeEventListener('focusout', schedule); window.removeEventListener('resize', schedule); window.visualViewport?.removeEventListener('resize', schedule); };
   }, []);
-  return createPortal(<button ref={launcher} type="button" hidden={hidden} className={'seri-floating-launcher' + (compact ? ' is-compact' : '')} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} title="Tap to chat. Pull down for smoke; hold to boost, then release to fly." aria-label={loading ? 'Opening Seri chat' : 'Chat with us'} aria-busy={loading || aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} disabled={loading} {...aircraft.handlers}>{!compact && <span className="seri-launcher-label"><strong>{loading ? 'Opening chat…' : 'Chat with us'}</strong><small>AI & travel support</small></span>}<AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!hidden && !loading}/><ChatAircraftMotion/></button>, document.body);
+  return createPortal(<button ref={launcher} type="button" hidden={hidden || loading} className={'seri-floating-launcher' + (compact || movable.hasMoved ? ' is-compact' : '')} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} data-draggable="true" data-dragging={movable.dragging || undefined} style={movable.position ? {left:movable.position.x,top:movable.position.y,right:'auto',bottom:'auto'} : undefined} title="Drag to move. Hold briefly, then pull down and release to fly. Tap to chat." aria-description="Drag to move. Hold briefly, then pull down and release to fly. Use arrow keys to move, Alt and Arrow Down to fly, or Enter to chat." aria-label={loading ? 'Opening Seri chat' : 'Chat with us'} aria-busy={loading || aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} disabled={loading} {...gestures}>{!compact && !movable.hasMoved && <span className="seri-launcher-label"><strong>{loading ? 'Opening chat…' : 'Chat with us'}</strong><small>AI & travel support</small></span>}<AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!hidden && !loading && !movable.dragging}/><ChatAircraftMotion/></button>, document.body);
 }
 export function DeferredHomeSeriSearch({ active, floatingOnly=false }: { active: boolean; floatingOnly?:boolean }) {
   const location = useLocation();

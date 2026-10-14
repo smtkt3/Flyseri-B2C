@@ -10,11 +10,13 @@ export function shiftFlightDate(date: string, days: number): string {
 }
 
 /** Only display prices already returned for the same search criteria and dates. */
-export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result, busy, onChoose, searchRequest }: {
+export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result, busy, onChoose, searchRequest, compact=false, onEditDates }: {
   departureDate: string; returnDate?: string; criteriaKey: string;
   result: FlightSearchResponse | null; busy: boolean;
   onChoose: (departure: string, returning?: string) => void;
   searchRequest?: FlightSearchRequest;
+  compact?: boolean;
+  onEditDates?: () => void;
 }) {
   const [offset, setOffset] = useState(0);
   const days = useRef<HTMLDivElement>(null);
@@ -28,9 +30,16 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
   useEffect(() => { setOffset(0); }, [departureDate]);
   useEffect(() => {
     const container=days.current;
-    const selected=container?.querySelector<HTMLButtonElement>('.is-selected');
-    if(container&&selected)container.scrollLeft=selected.offsetLeft-container.offsetLeft-(container.clientWidth-selected.clientWidth)/2;
-  }, [departureDate,offset]);
+    if(!container)return;
+    const center=()=>{
+      const selected=container.querySelector<HTMLButtonElement>('.is-selected');
+      if(selected)container.scrollLeft+=selected.getBoundingClientRect().left-container.getBoundingClientRect().left-(container.clientWidth-selected.clientWidth)/2;
+    };
+    center();
+    const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(center);
+    observer?.observe(container);
+    return()=>observer?.disconnect();
+  }, [departureDate,offset,compact]);
   useEffect(() => {
     if (!result?.offers.length) return;
     const amounts = result.offers.map(offer => Number(offer.totalAmount)).filter(Number.isFinite);
@@ -60,7 +69,8 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
     }
     setChecking(false);
   }
-  return <><section className="flight-date-strip" aria-label="Compare departure dates">
+  const nearbyControls=searchRequest&&<div className="travel-date-check"><span role="status">{checkNotice || 'Compare 7 departure dates. Return trips keep the same length.'}</span><button type="button" disabled={busy || checking} onClick={() => void checkNearby()}>{checking ? 'Checking dates…' : 'Find cheaper dates ±3 days'}</button></div>;
+  return <><section className={`flight-date-strip${compact?' is-compact':''}`} aria-label="Compare departure dates">
     <button className="flight-date-arrow" type="button" aria-label="Previous seven dates" disabled={busy || shiftFlightDate(departureDate, offset - 3) <= today} onClick={() => setOffset(value => value - 7)}>‹</button>
     <div className="flight-date-days" ref={days}>{Array.from({length:7}, (_, index) => {
       const date = shiftFlightDate(departureDate, offset + index - 3);
@@ -68,10 +78,13 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
       const current = date === departureDate;
       const fresh = quote && Date.parse(quote.expiresAt) > Date.now();
       const label = new Intl.DateTimeFormat('en-MY', {weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(`${date}T12:00:00Z`));
-      return <button type="button" key={date} disabled={busy || date < today} aria-pressed={current} className={current?'is-selected':''} onClick={() => {if(!current)onChoose(date,returnDate?shiftFlightDate(date,duration):undefined);}}>
-        <strong>{label}</strong><small>{busy&&current&&!fresh?<span className="flight-skeleton-shape skeleton-date-price" aria-label="Checking fare"/>:fresh ? new Intl.NumberFormat('en-MY',{style:'currency',currency:quote.currency}).format(quote.amount) : current ? 'Selected date' : 'Search date'}</small>
+      const shortLabel=new Intl.DateTimeFormat('en-MY',{month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(`${date}T12:00:00Z`));
+      const priceLabel=fresh?new Intl.NumberFormat('en-MY',{style:'currency',currency:quote.currency}).format(quote.amount).replace(/\u00a0/g,' '):current?(compact?'Selected':'Selected date'):'Search date';
+      return <button type="button" key={date} disabled={busy || date < today} aria-label={`${label} ${date.slice(0,4)}, ${busy&&current&&!fresh?'Checking fare':priceLabel}`} aria-pressed={current} className={current?'is-selected':''} onClick={() => {if(!current)onChoose(date,returnDate?shiftFlightDate(date,duration):undefined);}}>
+        <strong>{compact?shortLabel:label}</strong><small>{busy&&current&&!fresh?<span className="flight-skeleton-shape skeleton-date-price" aria-label="Checking fare"/>:priceLabel}</small>
       </button>;
     })}</div>
     <button className="flight-date-arrow" type="button" aria-label="Next seven dates" disabled={busy} onClick={() => setOffset(value => value + 7)}>›</button>
-    </section>{searchRequest && <div className="travel-date-check"><span role="status">{checkNotice || 'Compare 7 departure dates. Return trips keep the same length.'}</span><button type="button" disabled={busy || checking} onClick={() => void checkNearby()}>{checking ? 'Checking dates…' : 'Find cheaper dates ±3 days'}</button></div>}</>;
+    {onEditDates&&<button className="flight-date-edit" type="button" aria-label="Choose travel dates" disabled={busy} onClick={onEditDates}><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M7 14h2M12 14h2M7 17h2M12 17h2"/></svg></button>}
+    </section>{!compact&&nearbyControls}</>;
 }

@@ -16,7 +16,7 @@ export class FlightRateGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<ContextRequest>();
     const checkout = request.path?.endsWith('/checkout-attempts') ?? false;
-    const ancillary = request.path?.endsWith('/ancillaries') ?? false;
+    const ancillary = !!(request.path?.endsWith('/ancillaries') || request.path?.endsWith('/seat-map'));
     const metric = ancillary ? 'rate_limited_ancillary_total' : checkout ? 'rate_limited_checkout_total' : 'rate_limited_search_total';
     const message = ancillary ? 'Airline extras have been checked too often. Please wait before refreshing them.' : checkout ? 'Too many checkout submissions. Please try again shortly.' : 'Too many searches. Please try again shortly.';
     const customerId = request.identity?.customerId;

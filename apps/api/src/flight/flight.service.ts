@@ -47,6 +47,29 @@ export class FlightService {
     @Inject(FLIGHT_TELEMETRY) private readonly telemetry: FlightTelemetry,
   ) {}
 
+  async calendarCachedFares(input:FlightSearchRequest,month:string,field:'departure'|'return') {
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new ApiException('VALIDATION_ERROR','Choose a valid calendar month.',400);
+    const year=Number(month.slice(0,4)),monthIndex=Number(month.slice(5))-1;
+    if(year<new Date().getUTCFullYear()-1||year>new Date().getUTCFullYear()+3)throw new ApiException('VALIDATION_ERROR','Choose a month within the travel calendar.',400);
+    if(input.tripType==='MULTI_CITY'||field==='return'&&input.tripType!=='ROUND_TRIP')return [];
+    const dates=Array.from({length:new Date(Date.UTC(year,monthIndex+1,0)).getUTCDate()},(_,index)=>`${month}-${String(index+1).padStart(2,'0')}`);
+    const result:import('@flyseri/types').CachedCalendarFare[]=[];
+    // Reads only: opening a month must never trigger a provider search or create a search session.
+    for(let offset=0;offset<dates.length;offset+=4) {
+      const batch=await Promise.all(dates.slice(offset,offset+4).map(async date=>{
+        if(date<new Date().toISOString().slice(0,10))return null;
+        const request={...input,...(field==='return'?{returnDate:date}:{departureDate:date})};
+        if(request.tripType==='ROUND_TRIP'&&(!request.returnDate||request.returnDate<request.departureDate))return null;
+        const cached=await this.readCache(flightSearchHash(normalizeFlightSearch(request),this.config));
+        if(!cached)return null;
+        const amounts=cached.offers.filter(offer=>offer.currency===input.currency).map(offer=>Number(offer.totalAmount)).filter(value=>Number.isFinite(value)&&value>0);
+        const expiresAt=this.cacheExpiresAt(cached);
+        return amounts.length&&expiresAt>Date.now()?{date,amount:Math.min(...amounts),currency:input.currency,expiresAt:new Date(expiresAt).toISOString()}:null;
+      }));
+      result.push(...batch.filter((value):value is NonNullable<typeof value>=>value!==null));
+    }
+    return result.sort((a,b)=>a.date.localeCompare(b.date));
+  }
   async search(customerId: string | null, requestId: string, input: FlightSearchRequest, onProgress?: (result: FlightSearchResponse) => Promise<void>): Promise<FlightSearchResponse> {
     const search = normalizeFlightSearch(input);
     if (search.children || search.infants) throw new ApiException('VALIDATION_ERROR', 'Live child and infant fares need each passenger\'s age. Adult flight searches are available now.', 400);

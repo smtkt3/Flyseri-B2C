@@ -1,3 +1,5 @@
+import { preferredCurrency, currencyPreferenceEvent } from '../LocaleMenu';
+import type { FlightSearchRequest } from '@flyseri/types';
 import { TravelServiceNavigation } from '../TravelServiceNavigation';
 import { Chevron } from '../Chevron';
 import { Translated } from '../../travel/language';
@@ -145,6 +147,9 @@ function SearchPanel({ active = true }: { active?: boolean }) {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', dismiss); document.removeEventListener('keydown', onKey); };
   }, [passengerPickerOpen, active]);
+  const [fareCurrency,setFareCurrency]=useState(preferredCurrency);
+  useEffect(()=>{const update=()=>setFareCurrency(preferredCurrency());window.addEventListener(currencyPreferenceEvent,update);window.addEventListener('storage',update);return()=>{window.removeEventListener(currencyPreferenceEvent,update);window.removeEventListener('storage',update);};},[]);
+  const calendarRequest:FlightSearchRequest|undefined=mode==='MULTI_CITY'?undefined:{origin:code(origin),destination:code(destination),departureDate:departure||minimumDate,...(mode==='ROUND_TRIP'&&returnDate?{returnDate}:{}),tripType:mode,adults,children,infants,cabin:(['ECONOMY','PREMIUM_ECONOMY','BUSINESS','FIRST'].includes(cabin)?cabin:'ECONOMY') as FlightSearchRequest['cabin'],currency:fareCurrency};
   const passengerLabel = `${adults} ${adults === 1 ? 'adult' : 'adults'}${children ? ` · ${children} ${children === 1 ? 'child' : 'children'}` : ''}${infants ? ` · ${infants} ${infants === 1 ? 'infant' : 'infants'}` : ''}`;
   function updatePassenger(kind: 'adults' | 'children' | 'infants', delta: number) {
     if (kind === 'adults') { const next = Math.max(1, Math.min(9 - children - infants, adults + delta)); setAdults(next); if (infants > next) setInfants(next); }
@@ -208,8 +213,8 @@ function SearchPanel({ active = true }: { active?: boolean }) {
         <AirportPicker label="To" value={destination} onChange={setDestination} error={fieldErrors.destination} />
       </div>
       <div className={`premium-search-dates${mode === 'ONE_WAY' ? ' one-way' : ''}`}>
-        <CalendarDateField active={active} label="Departure" error={fieldErrors.departure} className="premium-home-date-field" minDate={minimumDate} value={departure} onChange={(next) => { setDeparture(next); if (returnDate && returnDate < next) setReturnDate(''); }} />
-        {mode === 'ROUND_TRIP' && <CalendarDateField active={active} label="Return" error={fieldErrors.returnDate} className="premium-home-date-field" align="end" minDate={departure || minimumDate} value={returnDate} onChange={setReturnDate} />}
+        <CalendarDateField active={active} label="Departure" fareSearch={calendarRequest} minYear={today.getFullYear()} maxYear={today.getFullYear()+3} error={fieldErrors.departure} className="premium-home-date-field" minDate={minimumDate} value={departure} onChange={(next) => { setDeparture(next); if (returnDate && returnDate < next) setReturnDate(''); }} />
+        {mode === 'ROUND_TRIP' && <CalendarDateField active={active} label="Return" fareSearch={calendarRequest} fareDateField="return" minYear={today.getFullYear()} maxYear={today.getFullYear()+3} error={fieldErrors.returnDate} className="premium-home-date-field" align="end" minDate={departure || minimumDate} value={returnDate} onChange={setReturnDate} />}
       </div>
       </>}
       <button type="submit" className="premium-primary"><span aria-hidden="true">⌕</span> <Translated text="Search flights" /></button>
@@ -265,8 +270,8 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
   const [searchMode, setSearchMode] = useBackStepState<'flights' | 'map' | 'ai'>('home-search', 'flights');
   const compactSearch = true;
-  const [compactServices,setCompactServices]=useState(()=>window.matchMedia('(max-width:1366px)').matches);
-  useEffect(()=>{const media=window.matchMedia('(max-width:1366px)');const sync=()=>setCompactServices(media.matches);sync();media.addEventListener('change',sync);return()=>media.removeEventListener('change',sync);},[]);
+  const [compactServices,setCompactServices]=useState(()=>window.matchMedia('(max-width: 1366px)').matches);
+  useEffect(()=>{const media=window.matchMedia('(max-width: 1366px)');const sync=()=>setCompactServices(media.matches);sync();media.addEventListener('change',sync);return()=>media.removeEventListener('change',sync);},[]);
   const [mapRequested, setMapRequested] = useState(searchMode === 'map');
   useEffect(() => { if (searchMode === 'map') setMapRequested(true); }, [searchMode]);
   const searchTabs = useRef<HTMLDivElement>(null);
@@ -309,10 +314,10 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
     className: 'premium-search-view',
     style: compactSearch ? { '--home-search-panel-height': `${searchPanelHeight}px` } as CSSProperties : undefined,
   });
-  const [servicesExpanded, setServicesExpanded] = useBackStepState('home-services',
-    false,
-  );
-  useEffect(() => { if (compactSearch) setServicesExpanded(false); }, [compactSearch]);
+  const [desktopServicesExpanded, setDesktopServicesExpanded] = useState(true);
+  const [compactServicesExpanded, setCompactServicesExpanded] = useBackStepState('home-services', false);
+  const servicesExpanded = compactServices ? compactServicesExpanded : desktopServicesExpanded;
+  const setServicesExpanded = compactServices ? setCompactServicesExpanded : setDesktopServicesExpanded;
   useEffect(() => {
     if (!servicesExpanded) return;
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setServicesExpanded(false); };

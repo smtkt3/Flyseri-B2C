@@ -1,0 +1,33 @@
+html body #root .flight-search-organized,
+html body .flight-fare-drawer {font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+html body #root .flight-search-organized :is(h1,h2,h3,h4,button,input,select) {font-family:inherit}
+html body #root .flight-search-organized .flight-row-endpoint strong {font-size:28px;font-weight:650;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.15}
+html body #root .flight-search-organized .flight-row-endpoint.is-arrival {text-align:right}
+html body #root .flight-search-organized .flight-row-endpoint>span {font-size:13px;font-weight:500;color:#34465c}
+html body #root .flight-search-organized .flight-row-endpoint>small {font-size:12px;line-height:1.4;color:#718094}
+html body #root .flight-search-organized .flight-row-endpoint sup {font-size:11px;font-weight:600;color:#a65727}
+html body #root .flight-search-organized .flight-row-connections {grid-column:1/-1;display:grid;gap:3px;padding-top:6px;color:#637187;font-size:12px;line-height:1.45;text-align:center;overflow-wrap:anywhere}
+html body #root .flight-search-organized .flight-row-path {font-size:12px;color:#637187}
+html body #root .flight-search-organized .flight-row-airline .airline-identity {align-items:center;gap:8px}
+html body #root .flight-search-organized .flight-row-airline .airline-logo {display:grid;place-items:center;flex:none;box-sizing:border-box;width:36px;min-width:36px;height:30px;min-height:30px;padding:3px;border:1px solid #edf0f4;border-radius:7px;background:#fff;color:#586a80;font-size:11px;font-weight:600}
+html body #root .flight-search-organized .flight-row-airline .airline-logo img {width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center}
+html body #root .flight-search-organized .flight-row-airline .airline-copy strong {font-size:13px;line-height:1.4;font-weight:600;color:#43536a}
+html body #root .flight-search-organized .flight-row-airline>small {font-size:12px;line-height:1.4;color:#738196}
+html body #root .flight-search-organized .flight-row-benefits {gap:5px 6px;flex-wrap:wrap}
+html body #root .flight-search-organized .flight-row-benefits>span {font-size:11px;line-height:1.4;font-weight:500;white-space:normal}
+html body #root .flight-search-organized .flight-row-benefits>.flight-result-highlight {background:#eef3fa;color:#456080;border:1px solid #dde6f2;border-radius:5px;padding:2px 6px}
+html body #root .flight-search-organized .flight-row-purchase>strong {font-size:26px;line-height:1.25;font-weight:650;letter-spacing:-.025em;font-variant-numeric:tabular-nums;white-space:nowrap}
+html body #root .flight-search-organized .flight-price-currency {font-size:12px;font-weight:500;letter-spacing:0;margin-right:2px}
+html body #root .flight-search-organized .flight-row-purchase>small {font-size:12px;line-height:1.4;color:#68798d}
+html body #root .flight-search-organized .flight-row-purchase>small.flight-tax-caption {position:static;width:auto;height:auto;padding:0;overflow:visible;clip-path:none;white-space:normal;font-size:11px;color:#6f7d8e}
+@media (max-width:760px) {
+  html body #root .flight-search-organized .flight-row-endpoint strong {font-size:24px}
+  html body #root .flight-search-organized .flight-row-connections {padding-top:0;text-align:left;font-size:12px}
+  html body #root .flight-search-organized .flight-row-purchase>strong {font-size:22px}
+  html body #root .flight-search-organized .flight-row-purchase>small.flight-tax-caption {grid-column:1;grid-row:3}
+  html body #root .flight-search-organized .flight-row-purchase>button {grid-row:1/4;align-self:center}
+}
+@media (max-width:360px) {
+  html body #root .flight-search-organized .flight-row-endpoint strong {font-size:22px}
+  html body #root .flight-search-organized .flight-row-purchase>strong {font-size:20px}
+}

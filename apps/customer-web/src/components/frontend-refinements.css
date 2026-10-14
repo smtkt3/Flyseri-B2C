@@ -10,8 +10,6 @@ body :is(.customer-site-shell,.guest-checkout-shell,.premium-home-main) :is(butt
   body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar .btn-primary{white-space:normal;line-height:1.4;overflow-wrap:anywhere;min-height:48px}
   body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar small{font-size:12px;color:#49647f}
   .checkout-mobile-price-sheet .guest-price-scroll{overscroll-behavior-y:contain;scroll-padding-block:16px}
-  body:has(.guest-checkout-shell :is(input:not([type=checkbox]):not([type=radio]),textarea):focus) .guest-checkout-shell .checkout-mobile-bar,
-  body:has(.checkout-with-mobile-actions :is(input:not([type=checkbox]):not([type=radio]),textarea):focus) .checkout-with-mobile-actions .checkout-mobile-bar{display:none}
 }
 @media(max-width:480px){
   body :is(.customer-site-shell,.guest-checkout-shell) .checkout-mobile-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(125px,1fr);gap:12px}

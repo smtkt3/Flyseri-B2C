@@ -1,7 +1,8 @@
+import { couponConflict, discountFor, minor } from '../coupons/coupon.rules.js';
 import { cents as extraCents, fromCents as extraFromCents, requestKey, type AncillarySnapshot } from '../flight/ancillary-purchase.contract.js';
 import { randomBytes } from 'node:crypto';
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
-import { auditEvents, commerceAuditEvents, commerceOutbox, flightBookingIntents, flightBookings, orderItems, orders,
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { discountCoupons, couponRedemptions, auditEvents, commerceAuditEvents, commerceOutbox, flightBookingIntents, flightBookings, orderItems, orders,
   paymentAttempts, paymentEvents, payments, visaAssistanceRequests, visaAssistanceRequestTravellers, visaAssistanceFeeSettings, visaApplications, visaStatusHistory, type DatabaseConnection } from '@flyseri/database';
 import type { OrderDetail, OrderItem, OrderSummary, PaymentSummary } from '@flyseri/types';
 import type { VerifiedPaymentEvent } from './payment-provider.js';
@@ -159,13 +160,14 @@ export class CommerceRepository {
     const [row] = await this.connection.db.select().from(orders)
       .where(and(eq(orders.customerId, customerId), eq(orders.id, id))).limit(1);
     if (!row) return null;
-    const [items, paymentRows, bookingRows] = await Promise.all([
+    const [items, paymentRows, bookingRows, couponRows] = await Promise.all([
       this.connection.db.select().from(orderItems).where(eq(orderItems.orderId, id)),
       this.connection.db.select().from(payments).where(eq(payments.orderId, id)).limit(1),
       row.bookingIntentId ? this.connection.db.select({ id: flightBookings.id }).from(flightBookings)
         .where(and(eq(flightBookings.bookingIntentId, row.bookingIntentId), eq(flightBookings.customerId, customerId))).limit(1) : Promise.resolve([]),
+      this.connection.db.select().from(couponRedemptions).where(and(eq(couponRedemptions.orderId,id),inArray(couponRedemptions.state,['RESERVED','CAPTURED']))).limit(1),
     ]);
-    return { ...presentOrder(row), flightBookingId: bookingRows[0]?.id ?? null, visaAssistanceRequestId: !row.visaApplicationId && !row.bookingIntentId ? items.find(item => item.itemType === 'VISA_SERVICE')?.referenceId ?? null : null, items: items.map((item): OrderItem => ({ id: item.id,
+    return { ...presentOrder(row), coupon:couponRows[0]?{code:couponRows[0].code,discountAmount:couponRows[0].discountAmount,currency:couponRows[0].currency}:null, flightBookingId: bookingRows[0]?.id ?? null, visaAssistanceRequestId: !row.visaApplicationId && !row.bookingIntentId ? items.find(item => item.itemType === 'VISA_SERVICE')?.referenceId ?? null : null, items: items.map((item): OrderItem => ({ id: item.id,
       itemType: item.itemType as OrderItem['itemType'], description: item.descriptionSnapshot,
       quantity: item.quantity, unitAmount: item.unitAmount, totalAmount: item.totalAmount, currency: item.currency })),
       payment: paymentRows[0] ? presentPayment(paymentRows[0]) : null };
@@ -207,6 +209,18 @@ export class CommerceRepository {
         throw new OrderConflictError();
       }
       if (!payment) {
+        const [redemption] = await tx.select().from(couponRedemptions).where(eq(couponRedemptions.orderId,orderId)).limit(1);
+        if (redemption && redemption.state !== 'RELEASED') {
+          const [coupon] = await tx.select().from(discountCoupons).where(eq(discountCoupons.id,redemption.couponId)).for('update').limit(1);
+          if (!coupon || redemption.state !== 'RESERVED' || redemption.expiresAt <= new Date() || redemption.customerId !== customerId || redemption.currency !== order.currency || redemption.discountAmount !== order.discountAmount)
+            throw couponConflict('Your coupon needs checking. Remove it and apply it again before payment.');
+          const amount=discountFor({id:coupon.id,code:coupon.code,discount_type:coupon.discountType as 'PERCENT'|'FIXED',discount_value:coupon.discountValue,currency:coupon.currency,minimum_spend:coupon.minimumSpend,maximum_discount:coupon.maximumDiscount,starts_at:coupon.startsAt,expires_at:coupon.expiresAt,usage_limit:coupon.usageLimit,per_customer_limit:coupon.perCustomerLimit,applies_to:coupon.appliesTo,active:coupon.active,version:coupon.version},
+            {currency:order.currency,subtotal_amount:order.subtotalAmount,booking_intent_id:order.bookingIntentId},new Date());
+          if(amount!==minor(redemption.discountAmount))throw couponConflict('The coupon terms changed. Remove it and apply it again before payment.');
+          const counts=await tx.execute(sql`SELECT count(*)::int AS total,count(*) FILTER(WHERE r.customer_id=${customerId})::int AS customer FROM coupon_redemptions r WHERE r.coupon_id=${coupon.id} AND r.order_id<>${orderId} AND r.state<>'RELEASED' AND (r.expires_at>now() OR r.state='CAPTURED' OR EXISTS(SELECT 1 FROM payments p WHERE p.order_id=r.order_id))`);
+          const count=counts.rows[0] as {total:number;customer:number};
+          if(coupon.usageLimit!==null&&count.total>=coupon.usageLimit||count.customer>=coupon.perCustomerLimit)throw couponConflict('This coupon has reached its usage limit. Remove it before payment.');
+        }
         [payment] = await tx.insert(payments).values({ orderId, customerId, provider, amount: order.totalAmount,
           currency: order.currency, reconciliationState: 'REQUIRED' }).returning();
       }
@@ -336,6 +350,7 @@ export class CommerceRepository {
           .where(eq(payments.id, paymentId));
         await tx.update(paymentAttempts).set({ status: 'SUCCEEDED', updatedAt: now })
           .where(and(eq(paymentAttempts.paymentId, paymentId), inArray(paymentAttempts.status, ['CREATED', 'PENDING', 'PROCESSING', 'UNKNOWN'])));
+        await tx.update(couponRedemptions).set({state:'CAPTURED',updatedAt:new Date()}).where(and(eq(couponRedemptions.orderId,order.id),eq(couponRedemptions.state,'RESERVED')));
         await tx.update(orders).set({ status: 'PAID', paidAt: now, updatedAt: now,
           fulfillmentStatus: order.status === 'CANCELLED' || order.status === 'EXPIRED' || order.expiresAt && order.expiresAt <= now
             ? 'REVALIDATION_REQUIRED' : 'NOT_STARTED' })

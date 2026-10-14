@@ -1,3 +1,4 @@
+import { CouponModule } from './coupons/coupon.module.js';
 import { Module } from '@nestjs/common';
 import { HealthModule } from './health/health.module.js';
 import { InfrastructureModule } from './infrastructure.module.js';
@@ -14,5 +15,5 @@ import { TravelModule } from './travel/travel.module.js';
 import { PointsModule } from './rewards/points.module.js';
 import { WeatherModule } from './weather/weather.module.js';
 
-@Module({ imports: [InfrastructureModule, HealthModule, CustomerModule, TripModule, DocumentModule, VisaModule, FlightModule, CommerceModule, AdminModule, SeriModule, HolidayModule, TravelModule, PointsModule, WeatherModule] })
+@Module({ imports: [InfrastructureModule, HealthModule, CustomerModule, TripModule, DocumentModule, VisaModule, FlightModule, CommerceModule, AdminModule, SeriModule, HolidayModule, TravelModule, PointsModule, WeatherModule, CouponModule] })
 export class AppModule {}

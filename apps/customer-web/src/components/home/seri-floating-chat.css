@@ -124,3 +124,13 @@ button.seri-floating-launcher[hidden]{display:none}
  .seri-aircraft-motion{width:68px;height:68px}
  body:has(.account-mobile-bottom) .seri-floating-launcher:not(.is-open),body:has(.account-mobile-bottom) .seri-floating-launcher.is-compact:not(.is-open){bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 }
+
+/* The launcher can move freely inside the usable viewport. */
+html body .seri-floating-launcher[data-draggable="true"] {--seri-safe-top:env(safe-area-inset-top,0px);--seri-safe-bottom:env(safe-area-inset-bottom,0px);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+html body .seri-floating-launcher[data-dragging="true"] {cursor:grabbing;transition:none;transform:none}
+html body .seri-floating-launcher[data-dragging="true"] .seri-launcher-aircraft {transform:none;transition:none;animation:none}
+.seri-floating-launcher[hidden]{display:none!important}
+/* Loaders and launchers are body portals: hide both eager and deferred entries
+   for the lifetime of a page loader, then restore their existing position. */
+body:has(.home-loading) .seri-floating-launcher,
+body:has(.home-loading) .seri-label-dismiss{display:none!important}

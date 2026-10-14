@@ -1,3 +1,4 @@
+import { FlightSeatMapsController } from './flight-seat-maps.controller.js';
 import { Module } from '@nestjs/common';
 import { CustomerModule } from '../customer/customer.module.js';
 import { createLogger } from '@flyseri/logging';
@@ -38,7 +39,7 @@ const configured = (config: AppConfig) => config.SABRE_ENV === 'CERT' &&
 
 @Module({
   imports: [CustomerModule],
-  controllers: [PublicFlightController, FlightController,AirportDirectoryController, FlightDisplayCurrencyController],
+  controllers: [FlightSeatMapsController, PublicFlightController, FlightController,AirportDirectoryController, FlightDisplayCurrencyController],
   providers: [
     AirportDirectoryService,FlightWarmupService, FlightDisplayCurrencyService,
     FlightService, FlightRateGuard, BookingIntentService, FlightOfferValidationService, GuestCheckoutAttemptsService, FlightBookingsService, FlightAncillariesService, FlightTicketingService, FlightAncillaryPurchaseService, FlightFulfillmentPoller,

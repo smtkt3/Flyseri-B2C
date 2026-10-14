@@ -17,6 +17,18 @@ export function useFlightDialog(open: boolean, panel: RefObject<HTMLElement | nu
     const element = panel.current;
     const focusable = () => [...element.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),a[href],summary,[tabindex="0"]')].filter(item => item.getClientRects().length);
     (focusable()[0] ?? element).focus();
+    // Exclude background controls from keyboard and assistive-technology navigation.
+    const background: { element: HTMLElement; inert: boolean; ariaHidden: string | null }[] = [];
+    let branch: HTMLElement = element;
+    while (branch.parentElement) {
+      for (const sibling of branch.parentElement.children) {
+        if (sibling === branch || !(sibling instanceof HTMLElement) || sibling.classList.contains('flight-filter-backdrop')) continue;
+        background.push({ element: sibling, inert: sibling.inert, ariaHidden: sibling.getAttribute('aria-hidden') });
+        sibling.inert = true; sibling.setAttribute('aria-hidden', 'true');
+      }
+      if (branch.parentElement === document.body) break;
+      branch = branch.parentElement;
+    }
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); dismiss(); }
       if (event.key !== 'Tab') return;
@@ -26,23 +38,28 @@ export function useFlightDialog(open: boolean, panel: RefObject<HTMLElement | nu
       else if (!event.shiftKey && (document.activeElement === last || !element.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', keydown);
-    return () => { document.body.style.overflow = overflow; document.removeEventListener('keydown', keydown); if (previous?.isConnected) previous.focus({ preventScroll: true }); };
+    return () => {
+      document.body.style.overflow = overflow; document.removeEventListener('keydown', keydown);
+      background.forEach(item => { item.element.inert = item.inert; if (item.ariaHidden === null) item.element.removeAttribute('aria-hidden'); else item.element.setAttribute('aria-hidden', item.ariaHidden); });
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
   }, [open, panel, dismiss]);
 }
 
 export interface FlightFareGroup { key: string; fares: FlightOffer[] }
 export function useStableFlightGroups(groups: FlightFareGroup[], signature: string, restoredKeys: string[] = []) {
-  const [order, setOrder] = useState<{ signature: string; keys: string[] }>(() => ({ signature, keys: restoredKeys.length ? restoredKeys : groups.map(group => group.key) }));
-  const currentKeys = groups.map(group => group.key);
-  const currentSet = new Set(currentKeys);
-  const oldKeys = order.signature === signature ? order.keys.filter(key => currentSet.has(key)) : [];
-  const oldSet = new Set(oldKeys);
-  const nextKeys = [...oldKeys, ...currentKeys.filter(key => !oldSet.has(key))];
-  if (order.signature !== signature || order.keys.length !== nextKeys.length || order.keys.some((key, index) => key !== nextKeys[index])) setOrder({ signature, keys: nextKeys });
-  const ordered = useMemo(() => {
+  const [restoration] = useState(() => ({ signature, groups, keys: restoredKeys }));
+  return useMemo(() => {
+    const currentKeys = groups.map(group => group.key);
+    // Restore the exact browsing position on return. Any new fares or changed
+    // criteria immediately use the latest ranking without a manual refresh.
+    if (restoration.groups !== groups || restoration.signature !== signature || !restoration.keys.length) {
+      return { groups, keys: currentKeys };
+    }
     const byKey = new Map(groups.map(group => [group.key, group]));
-    return nextKeys.map(key => byKey.get(key)!);
-  // The stored keys change only for a new group, removal, or intentional reorder.
-  }, [groups, order]);
-  return { groups: ordered, keys: nextKeys, rankingChanged: nextKeys.some((key, index) => key !== currentKeys[index]) };
+    const restored = restoration.keys.filter(key => byKey.has(key));
+    const restoredSet = new Set(restored);
+    const keys = [...restored, ...currentKeys.filter(key => !restoredSet.has(key))];
+    return { groups: keys.map(key => byKey.get(key)!), keys };
+  }, [groups, signature, restoration]);
 }

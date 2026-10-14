@@ -1,3 +1,4 @@
+import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 import { CheckoutPageHeader } from '../flight/CheckoutPageHeader';
 import { Translated } from '../travel/language';
 import { useEffect, useState } from 'react';
@@ -15,7 +16,7 @@ export function PaymentsPage() {
   useEffect(() => { let active = true; setLoading(true); setError(false); void commerceService.payments().then((rows) => { if (active) setPayments(rows); },
     () => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [attempt]);
   return <div className="account-page"><CheckoutPageHeader title={<Translated text="Payments"/>} description="View your payment history and open an order for its receipt or latest status."/>
-    {loading && <div className="account-panel" role="status">Loading payments…</div>}
+    {loading && <HomeLoadingScreen overlay label="Loading payments…"/>}
     {!loading && error && <div className="account-panel" role="alert">We couldn't load your payments. <button className="account-link" onClick={() => setAttempt((value) => value + 1)}><Translated text="Retry" /></button></div>}
     {!loading && !error && !payments.length && <div className="account-panel"><h2>No payments yet</h2>
       <p>Your payment history will appear here after checkout starts. Open an order to continue Stripe sandbox payment or check its latest status.</p><div className="checkout-actions"><Link className="account-outline-button" to="/app/orders">View my orders →</Link></div></div>}

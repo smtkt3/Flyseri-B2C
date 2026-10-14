@@ -1,4 +1,5 @@
 import { useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
+import { defaultFlightPreferences, flightPreferencesEvent, normalizeFlightPreferences, readFlightPreferences, saveFlightPreferences } from '../../flight/searchPreferences';
 
 export type HomeSearchDraft = {
   origin: string; destination: string; departure: string; returnDate: string;
@@ -23,13 +24,24 @@ export function normalizeHomeSearch(value: unknown): HomeSearchDraft {
     multiLegs: Array.isArray(input.multiLegs) && input.multiLegs.length >= 2 ? input.multiLegs.slice(0, 6).map(leg => ({ origin: airport(leg?.origin), destination: airport(leg?.destination), departureDate: date(leg?.departureDate) })) : emptyHomeSearch.multiLegs };
 }
 export function readSavedHomeSearch() { try { const saved = JSON.parse(localStorage.getItem(key) ?? 'null'); return saved && typeof saved.savedAt === 'number' && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 7 * 86400000 ? normalizeHomeSearch(saved.draft) : emptyHomeSearch; } catch { return emptyHomeSearch; } }
-let draft = readSavedHomeSearch();
+let draft = { ...readSavedHomeSearch(), ...readFlightPreferences() };
 export function updateHomeSearch(patch: Partial<HomeSearchDraft>) {
   draft = { ...draft, ...patch };
+  if (['adults','children','infants','cabin'].some(field=>field in patch)) saveFlightPreferences({adults:draft.adults,children:draft.children,infants:draft.infants,cabin:draft.cabin as import('@flyseri/types').FlightCabin});
   try { localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), draft })); } catch { /* Search still works when storage is unavailable. */ }
   listeners.forEach(listener => listener());
 }
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
+if (typeof window!=='undefined') {
+  const sync=(event?:Event)=>{
+    const value=event?.type===flightPreferencesEvent?normalizeFlightPreferences((event as CustomEvent).detail):readFlightPreferences()??defaultFlightPreferences;
+    draft={...draft,...value};
+    try {localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),draft}));}catch{/* Keep the current form usable without storage. */}
+    listeners.forEach(listener=>listener());
+  };
+  window.addEventListener(flightPreferencesEvent,sync);
+  window.addEventListener('storage',event=>{if(event.key==='flyseri.flight-preferences.v1'||event.key===null)sync();});
+}
 export function useHomeSearchDraft() { return useSyncExternalStore(subscribe, () => draft, () => emptyHomeSearch); }
 export function useHomeSearchField<K extends keyof HomeSearchDraft>(field: K): [HomeSearchDraft[K], Dispatch<SetStateAction<HomeSearchDraft[K]>>] {
   const current = useHomeSearchDraft();

@@ -165,9 +165,13 @@ export function mapSabreV5Offers(value: unknown, limit = 1000, multiCity = false
         if (!allowance) return [];
         const pieces = num(allowance.pieceCount), weight = num(allowance.weight), unit = str(allowance.unit);
         const piecesLabel = pieces !== null && Number.isInteger(pieces) ? `${pieces} ${pieces === 1 ? 'piece' : 'pieces'}` : null;
-        const weightLabel = weight !== null && unit && /^[a-zA-Z]{1,10}$/.test(unit) ? `${weight} ${unit.toLowerCase()}` : null;
-        const description = [piecesLabel, weightLabel].filter(Boolean).join(' · ') ||
-          [str(allowance.description1), str(allowance.description2)].filter(Boolean).join(' · ').slice(0, 120) || null;
+        const normalizedUnit = unit && /^(?:K|KG|KGS|KILO|KILOGRAMS?)$/i.test(unit) ? 'kg'
+          : unit && /^(?:L|LB|LBS|POUNDS?)$/i.test(unit) ? 'lb' : unit?.toLowerCase();
+        const weightLabel = weight !== null && normalizedUnit && /^[a-zA-Z]{1,10}$/.test(normalizedUnit) ? `${weight} ${normalizedUnit}` : null;
+        const suppliedDescription = [str(allowance.description1), str(allowance.description2)].filter(Boolean).join(' · ').slice(0, 120);
+        // Piece allowances may provide the weight only in their accompanying text.
+        const textWeight = !weightLabel && /\d\s*(?:kg\b|kgs\b|kilo(?:gram)?s?\b|lb(?:s)?\b|pounds?\b)/i.test(suppliedDescription) ? suppliedDescription : null;
+        const description = [piecesLabel, weightLabel ?? textWeight].filter(Boolean).join(' · ') || suppliedDescription || null;
         const hasAllowance = (pieces !== null && pieces > 0) || (weight !== null && weight > 0);
         const explicitlyEmpty = pieces === 0 || weight === 0;
         const segmentIndexes = [...new Set(array(item.segments).map((segment) => num(row(segment)?.id))

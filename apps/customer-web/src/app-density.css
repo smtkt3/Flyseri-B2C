@@ -1,0 +1,73 @@
+:root { --app-section-gap:16px; --app-card-padding:20px; --app-page-inset:24px; }
+
+/* Compact page rhythm; control and text sizes keep their existing scale. */
+html body :is(.customer-site-shell,.public-flight-shell) .account-page {
+  padding-top:16px;
+  padding-bottom:calc(var(--bottom-navigation-height,0px) + 20px);
+}
+html body .account-page .account-page {padding:0}
+html body :is(.account-page,.guest-checkout-content) .checkout-page-header {gap:6px;margin-bottom:12px}
+html body :is(.account-page,.guest-checkout-content) .booking-progress {margin-block:12px}
+html body :is(.account-page,.guest-checkout-content) .checkout-page-header+.booking-progress {margin-top:0;margin-bottom:12px}
+html body .account-page :is(.account-panel,.account-empty) {margin-top:16px;padding:var(--app-card-padding)}
+html body .account-page :is(.checkout-layout,.flight-extras-layout,.flight-review-layout,.account-two-grid,.profile-settings-grid,.account-feature-grid)>.account-panel {margin-top:0}
+html body .account-page :is(.account-workspace-hero,.visa-assistance-intro,.visa-trip-intro,.points-hero) {padding:var(--app-card-padding);gap:12px;margin-block:0 16px}
+html body .account-page :is(.account-workspace-tabs,.account-actions,.account-soft-note,.account-tab-description) {margin-block:12px}
+html body .account-page :is(.account-form-grid,.profile-form-grid,.profile-settings-grid,.checkout-layout,.flight-review-layout,.flight-extras-layout,.visa-assistance-layout,.trip-card-grid,.vault-detail-grid) {gap:var(--app-section-gap)}
+html body .account-page :is(.trip-page-heading,.vault-heading,.booking-management-heading) {gap:12px;margin-bottom:12px}
+html body .account-page :is(.account-feature-grid,.account-two-grid,.points-content) {gap:var(--app-section-gap);margin-top:16px}
+html body .account-page .account-form {gap:14px}
+
+html body .guest-checkout-content {padding-block:16px 0}
+html body .guest-checkout-content :is(.guest-checkout-layout,.guest-checkout-main) {gap:var(--app-section-gap)}
+html body .guest-checkout-content .guest-checkout-card {padding:var(--app-card-padding)}
+html body .guest-checkout-content .guest-checkout-intro {margin-block:6px 12px}
+html body .guest-checkout-content .guest-checkout-finish {margin-top:12px}
+html body .guest-checkout-content .guest-checkout-finish-card {padding:12px}
+html body .guest-checkout-content .guest-checkout-assurance {margin-top:10px;gap:8px 12px}
+
+/* Apply one inset to the outer page, instead of adding it at each nested level. */
+html body:has(.checkout-mobile-bar) :is(.guest-checkout-shell,.demo-booking-page,.account-page:not(.account-page .account-page)) {
+  padding-bottom:calc(var(--checkout-action-height,96px) + 12px);
+}
+html body:has(.checkout-mobile-bar) .guest-checkout-content {padding-bottom:0}
+html body:has(.checkout-mobile-bar) .seri-floating-launcher {bottom:calc(var(--checkout-action-height,96px) + 16px)}
+html body:has(.checkout-mobile-bar) .seri-label-dismiss {bottom:calc(var(--checkout-action-height,96px) + 80px)}
+
+html body :is(.holiday-page-main,.public-help-page,.demo-booking-page) {margin-top:0;padding-top:16px}
+html body :is(.customer-site-shell,.guest-checkout-shell,.public-flight-shell)>.premium-header.flyseri-site-navbar {margin-bottom:8px}
+html body .guest-checkout-back {margin-bottom:8px}
+html body .public-help-page :is(header,.public-help-nav,.public-help-grid h2) {margin-bottom:16px}
+html body .public-help-grid>section,html body .demo-booking-panel {padding:var(--app-card-padding)}
+html body .demo-booking-heading,html body .demo-booking-notice {margin-bottom:16px}
+html body .demo-booking-progress {margin-bottom:12px;gap:12px}
+html body .demo-booking-layout {gap:var(--app-section-gap)}
+html body .demo-booking-panel {margin-bottom:12px}
+html body :is(.holiday-detail-grid,.holiday-grid,.holiday-booking-list,.public-help-grid) {gap:var(--app-section-gap)}
+html body .holiday-detail-content {padding:var(--app-card-padding)}
+html body .holiday-detail-content section+section {margin-top:20px;padding-top:20px}
+html body .premium-home-main .premium-main {row-gap:var(--app-section-gap)}
+html body .premium-home-main :is(.premium-heading,.holiday-section-heading) {margin-bottom:12px}
+html body .premium-home-main .premium-booking-guidance {gap:16px;padding-block:16px}
+html body .premium-home-main .premium-footer-refined {margin-top:20px;padding-top:24px}
+
+@media(max-width:1024px) {
+  :root {--app-section-gap:12px;--app-card-padding:16px;--app-page-inset:16px}
+  html body :is(.customer-site-shell,.public-flight-shell) .account-page {padding-top:12px;padding-inline:var(--app-page-inset)}
+  html body .account-page .account-page {padding:0}
+  html body .account-page :is(.account-panel,.account-empty) {margin-top:12px}
+  html body .guest-checkout-content {padding-top:12px}
+  html body :is(.holiday-page-main,.public-help-page,.demo-booking-page) {padding-top:12px}
+  html body :is(.guest-checkout-content,.account-page) .booking-progress li {gap:6px;padding-block:10px}
+  html body .account-page :is(.account-workspace-hero,.visa-assistance-intro,.visa-trip-intro,.points-hero) {margin-bottom:12px}
+  html body .premium-home-main .premium-main {padding-top:12px}
+  html body .premium-home-main .premium-footer-refined {margin-top:16px;padding-top:20px}
+}
+@media(max-width:600px) {
+  :root {--app-page-inset:12px}
+  html body .guest-checkout-content {width:calc(100% - 24px);padding-inline:0}
+  html body :is(.guest-checkout-content,.account-page) .checkout-page-header {margin-bottom:10px}
+  html body .account-page .account-form-grid {gap:12px}
+  html body .account-page :is(.account-feature-grid,.account-two-grid,.points-content) {margin-top:12px}
+  html body .premium-home-main .premium-booking-guidance {gap:12px;padding-block:12px}
+}

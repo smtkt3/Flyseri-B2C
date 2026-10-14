@@ -1,4 +1,13 @@
 .premium-exclusive-offers .premium-offers-track{animation:none;transform:none;will-change:auto}
+/* Paint the search card normally: a blurred backdrop can leave a white surface
+   over its controls when an offscreen card is resized by the desktop rail. */
+.premium-home-main #home-search-flights>.premium-search{
+ position:relative;
+ isolation:isolate;
+ background:#fbfdff;
+ -webkit-backdrop-filter:none;
+ backdrop-filter:none;
+}
 .premium-exclusive-offers .premium-offers-marquee{overflow-x:auto;mask-image:none;scroll-snap-type:x mandatory;scroll-padding-inline:20px;scrollbar-width:thin;scrollbar-color:#aac9e9 transparent}
 .premium-exclusive-offers .exclusive-ticket{scroll-snap-align:start}
 .premium-offers-navigation{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 22px 18px;color:#526d89;font-size:12px}

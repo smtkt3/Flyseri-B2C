@@ -1,4 +1,10 @@
 .premium-home-layout{--premium-rail-width:76px}.premium-home-layout.services-open{--premium-rail-width:232px}
+/* Keep the rail anchored to the viewport even when its width changes mid-scroll. */
+@media(min-width:1367px){
+ .premium-home-layout:not(.is-embedded){transition:none}
+ .premium-home-layout:not(.is-embedded)>.premium-service-sidebar{position:fixed;inset:0 auto 0 0;width:var(--premium-rail-width);height:100dvh;max-height:100dvh;transition:none}
+ .premium-home-layout:not(.is-embedded)>.premium-home-main{grid-column:2}
+}
 .premium-service-sidebar{display:flex;flex-direction:column;box-sizing:border-box;padding:20px 12px 14px;border:0;border-right:1px solid #dfeaf4;border-radius:0;background:linear-gradient(180deg,#fbfdff,#f5faff);box-shadow:4px 0 24px #36587906;backdrop-filter:none;scrollbar-width:thin;font-family:Inter,system-ui,sans-serif}
 .services-open .premium-service-sidebar{padding-inline:14px}
 .premium-service-sidebar .premium-service-sidebar-toggle{flex-direction:row;min-height:46px;padding:10px;gap:10px;border:0;border-radius:10px;background:transparent;color:#42617f;box-shadow:none}

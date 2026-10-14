@@ -1,3 +1,7 @@
+import { CouponCheckout } from '../commerce/CouponCheckout';
+import { PaymentMethodsPanel } from '../components/PaymentMethodsPanel';
+import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
+import { checkoutPrice } from '../components/checkoutPrice';
 import { Translated } from '../travel/language';
 import { SavedVisaJourneyProgress } from './SavedVisaJourneyProgress';
 import { useEffect, useRef, useState } from 'react';
@@ -8,6 +12,7 @@ import { visaService } from '../services/visaService';
 import { formatMoney } from '../account/presentation';
 import { reviewCountry, reviewDate } from './VisaApplicantReview';
 import './visa-application.css';
+import { CheckoutActionBar } from '../components/CheckoutActionBar';
 
 export function VisaAssistancePaymentPage() {
   const { requestId = '' } = useParams();
@@ -16,6 +21,7 @@ export function VisaAssistancePaymentPage() {
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [updatingCoupon,setUpdatingCoupon]=useState(false);
   const [error, setError] = useState('');
   const [consent, setConsent] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,7 +56,7 @@ export function VisaAssistancePaymentPage() {
     return () => { refreshVersion.current++; };
   }, [requestId]);
   async function pay() {
-    if (!order || busy || refreshing || paid) return;
+    if (!order || busy || refreshing || updatingCoupon || paid) return;
     setBusy(true); setError('');
     try {
       const checkout = await commerceService.startPayment(order.id, crypto.randomUUID());
@@ -70,13 +76,15 @@ export function VisaAssistancePaymentPage() {
     <Link className="visa-back-link" to={'/app/visa/assistance/' + requestId + '/documents?step=review'}>← Application details</Link>
     <header className="account-panel visa-assistance-intro"><p className="account-eyebrow">SECURE VISA CHECKOUT</p><h1>{request?.status !== 'NEW' && request ? 'Application submitted' : 'Payment & submission'}</h1><p>Complete payment for Flyseri’s assisted visa service, then submit your application to our team.</p></header>
     <SavedVisaJourneyProgress requestId={requestId} current="payment" complete={!!request && request.status !== "NEW"} disabled={loading || busy || refreshing} />
-    {loading && <div className="account-panel" role="status">Loading payment details…</div>}
+    {!paid && <PaymentMethodsPanel/>}
+    {loading && <HomeLoadingScreen overlay label="Loading payment details…"/>}
     {error && <div className="account-panel" role="alert">{error} <button disabled={busy || refreshing} onClick={() => void refresh()}><Translated text="Try again" /></button></div>}
     {request && <div className="visa-assistance-layout"><section>
       {request.status !== 'NEW' ? <div className="account-panel visa-assistance-success"><span className="visa-assistance-success-mark">✓</span><h2>{request.requestReference}</h2><p>Your request is with Flyseri for review. A submitted request does not mean a visa has been granted or filed with an authority.</p><Link to="/app/visa">Back to visa planning →</Link></div> : <>
-        <section className="account-panel visa-upload-applicant"><p className="account-eyebrow">PAYMENT DETAILS</p><h2>{paid ? 'Payment confirmed' : 'Your service fee'}</h2>{order ? <>{order.items.map(item => <div className="commerce-line" key={item.id}><span>{item.description}{item.quantity > 1 ? ` · ${item.quantity} applicants` : ''}</span><strong>{formatMoney(item.totalAmount, item.currency)}</strong></div>)}<div className="commerce-line commerce-total"><strong>Total</strong><strong>{formatMoney(order.totalAmount, order.currency)}</strong></div><p>{paid ? 'Your payment has been verified. You can now submit your application.' : 'Your application stays saved until payment is verified and you submit it.'}</p><p className="visa-upload-notice">Stripe sandbox checkout uses test payments. No real funds are collected in this environment.</p>{!paid && <><button className="btn-primary account-submit" disabled={busy || refreshing || !available || !['PENDING_PAYMENT', 'PAYMENT_FAILED'].includes(order.status) || (!!order.payment && order.payment.status !== 'FAILED')} onClick={() => void pay()}>{busy ? 'Opening checkout…' : 'Pay with Stripe test checkout →'}</button><button className="account-outline-button" disabled={busy || refreshing} onClick={() => void refresh()}>{refreshing ? 'Checking payment…' : 'Refresh payment status'}</button>{order.payment && ['PENDING', 'PROCESSING', 'UNKNOWN'].includes(order.payment.status) && <p role="status">Payment confirmation is pending. Refresh to check it before trying again.</p>}{!available && <p role="status">Secure payment is temporarily unavailable.</p>}</>}</> : <p>Payment details are not available yet. Your information is saved. Please retry or contact Flyseri with your application reference.</p>}</section>
-        <section className="account-panel visa-review-declaration"><h2>Submit your application</h2><p>Payment confirmation is required before your request can be submitted to Flyseri.</p><label className="visa-assistance-confirm"><input type="checkbox" disabled={busy || refreshing} checked={consent} onChange={e => setConsent(e.target.checked)}/><span>I confirm the applicant details and documents are accurate and authorize Flyseri to review and assist with my visa request.</span></label><button className="btn-primary account-submit" disabled={!paid || !consent || busy || refreshing} onClick={() => void submit()}>{busy ? 'Please wait…' : 'Submit paid application →'}</button></section>
+        <section className="account-panel visa-upload-applicant"><p className="account-eyebrow">PAYMENT DETAILS</p><h2>{paid ? 'Payment confirmed' : 'Your service fee'}</h2>{order ? <>{order.items.map(item => <div className="commerce-line" key={item.id}><span>{item.description}{item.quantity > 1 ? ` · ${item.quantity} applicants` : ''}</span><strong>{formatMoney(item.totalAmount, item.currency)}</strong></div>)}{Number(order.discountAmount)>0&&<div className="commerce-line"><span>Discounts applied</span><strong>−{formatMoney(order.discountAmount!,order.currency)}</strong></div>}<div className="commerce-line commerce-total"><strong>Total</strong><strong>{formatMoney(order.totalAmount, order.currency)}</strong></div><p>{paid ? 'Your payment has been verified. You can now submit your application.' : 'Your application stays saved until payment is verified and you submit it.'}</p><p className="visa-upload-notice">Stripe sandbox checkout uses test payments. No real funds are collected in this environment.</p>{!paid && <><CouponCheckout key={order.id} order={order} locked={busy||refreshing||!!order.payment} onChanged={refresh} onBusy={setUpdatingCoupon}/><CheckoutActionBar label="Visa payment" caption="Service fee total" total={formatMoney(order.totalAmount, order.currency)}><button className="btn-primary account-submit" disabled={busy || refreshing || updatingCoupon || !checkoutPrice(order.totalAmount,order.currency) || !available || !['PENDING_PAYMENT', 'PAYMENT_FAILED'].includes(order.status) || (!!order.payment && order.payment.status !== 'FAILED')} onClick={() => void pay()}>{busy ? 'Opening checkout…' : 'Pay with Stripe test checkout →'}</button></CheckoutActionBar><button className="account-outline-button" disabled={busy || refreshing} onClick={() => void refresh()}>{refreshing ? 'Checking payment…' : 'Refresh payment status'}</button>{order.payment && ['PENDING', 'PROCESSING', 'UNKNOWN'].includes(order.payment.status) && <p role="status">Payment confirmation is pending. Refresh to check it before trying again.</p>}{!available && <p role="status">Secure payment is temporarily unavailable.</p>}</>}</> : <p>Payment details are not available yet. Your information is saved. Please retry or contact Flyseri with your application reference.</p>}</section>
+        <section className="account-panel visa-review-declaration"><h2>Submit your application</h2><p>Payment confirmation is required before your request can be submitted to Flyseri.</p><label className="visa-assistance-confirm"><input type="checkbox" disabled={busy || refreshing} checked={consent} onChange={e => setConsent(e.target.checked)}/><span>I confirm the applicant details and documents are accurate and authorize Flyseri to review and assist with my visa request.</span></label>{paid && <CheckoutActionBar label="Submit paid visa application" caption="Payment confirmed" total={order ? formatMoney(order.totalAmount,order.currency) : "Awaiting total"}><button className="btn-primary account-submit" disabled={!paid || !consent || busy || refreshing} onClick={() => void submit()}>{busy ? 'Please wait…' : 'Submit paid application →'}</button></CheckoutActionBar>}</section>
       </>}
     </section><aside className="account-panel visa-document-sidebar"><p className="account-eyebrow">YOUR APPLICATION</p><h2>{request.requestReference}</h2><p>{reviewCountry(request.destinationCountryCode)} · {request.purpose}</p><p>Travel: {reviewDate(request.expectedTravelDate)}</p><div className="visa-doc-summary-stats"><div><strong>{request.applicants.length}</strong><span>Applicants</span></div><div><strong>{request.documents.length}</strong><span>Documents</span></div></div><div className="visa-doc-advisor-note"><strong>{request.status !== 'NEW' ? 'Submitted to Flyseri' : paid ? 'Payment verified' : 'Payment required'}</strong><p>Flyseri submission is separate from an embassy application. Visa decisions remain with the relevant authority.</p></div></aside></div>}
+    {(!request || !order || request.status !== 'NEW') && <CheckoutActionBar label="Visa payment" caption={request && request.status !== 'NEW' ? 'Application submitted' : 'Service fee total'} total={checkoutPrice(order?.totalAmount,order?.currency) ?? (loading ? 'Loading price…' : 'Price unavailable')}><button type="button" className="btn-primary account-submit" disabled>{loading ? 'Loading payment…' : request && request.status !== 'NEW' ? 'Application submitted' : 'Continue to payment'}</button></CheckoutActionBar>}
   </main>;
 }

@@ -1,6 +1,6 @@
 import { checkoutPassengerError, checkoutPassportError } from './checkoutContinuation';
 
-type PassengerFields = { kind: string; givenNames: string; surname: string; gender: string; nationality: string; birthDate: string; idNumber: string; idExpiryDate: string; issuingCountryCode: string };
+type PassengerFields = { kind: string; givenNames: string; surname: string; gender: string; nationality: string; birthDate: string; idNumber: string; idExpiryDate: string; issuingCountryCode: string; residenceCountryCode?:string };
 export function passengerFieldErrors(person: PassengerFields, departure: string, lastTravel: string): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!person.givenNames.trim()) errors.givenNames = 'Enter the given names shown on the travel document.';
@@ -9,6 +9,7 @@ export function passengerFieldErrors(person: PassengerFields, departure: string,
   const birthError = checkoutPassengerError({ ...person, givenNames: '_', surname: '_', gender: 'X', nationality: 'BD' }, departure, lastTravel);
   if (birthError) errors.birthDate = birthError;
   if (!/^[A-Z]{2}$/.test(person.nationality)) errors.nationality = 'Choose the traveler’s nationality.';
+  if (!/^[A-Z]{2}$/.test(person.residenceCountryCode??'')) errors.residenceCountryCode='Choose the country where this traveler lives.';
   const documentError = checkoutPassportError(person, lastTravel);
   if (documentError) {
     if (!/^[A-Z0-9]{3,30}$/.test(person.idNumber)) errors.idNumber = 'Enter 3–30 letters or numbers from the travel document.';

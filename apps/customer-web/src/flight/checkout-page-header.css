@@ -3,9 +3,11 @@
 .checkout-page-header .checkout-page-back a,.checkout-page-header .checkout-page-back button{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:5px 0;background:none;border:0;box-shadow:none;border-radius:5px;color:#386a9b;font-size:13px;font-weight:600;text-decoration:none;line-height:1.5}
 .checkout-page-header .checkout-page-back a:hover,.checkout-page-header .checkout-page-back button:hover{color:#196ecd;text-decoration:underline;text-underline-offset:4px}
 .checkout-page-header .checkout-page-back :focus-visible{outline:2px solid #287fea;outline-offset:4px}
-.checkout-page-header h1{margin:0!important;color:#193854;letter-spacing:-.035em;font-size:clamp(26px,3vw,34px)!important;line-height:1.25!important}
-.checkout-page-header>p{margin:0;max-width:680px;font-size:14px;color:#627995;line-height:1.65}
+html body .checkout-page-header h1{margin:0!important;color:#193854;letter-spacing:-.025em;font-family:Inter,system-ui,sans-serif;font-weight:750;font-size:clamp(23px,2.4vw,32px)!important;line-height:1.3!important;text-wrap:balance}
+html body .checkout-page-header>p{margin:0;max-width:680px;font-size:14px;font-weight:450;color:#526c88;line-height:1.6;text-wrap:pretty}
+html body .checkout-page-header>.booking-progress.booking-stepper{margin:0 0 8px}
+@media(max-width:600px){html body .checkout-page-header h1{font-size:23px!important}html body .checkout-page-header>p{font-size:14px;line-height:1.55}}
 :is(.flight-review-page,.flight-extras-page,.checkout-step-page).account-page{padding-top:24px}
 .guest-checkout-content:has(>.checkout-page-header){padding-top:24px}
 .checkout-page-header+.booking-progress{margin-top:0;margin-bottom:24px}
-@media(max-width:600px){.checkout-page-header{gap:7px;margin-bottom:20px}.checkout-page-header>p{font-size:13px}:is(.flight-review-page,.flight-extras-page,.checkout-step-page).account-page{padding-top:16px}.guest-checkout-content:has(>.checkout-page-header){padding-top:16px}.checkout-page-header .checkout-page-back{min-height:40px;margin-bottom:2px}.checkout-page-header .checkout-page-back a,.checkout-page-header .checkout-page-back button{min-height:40px}.checkout-page-header+.booking-progress{margin-bottom:20px}}
+@media(max-width:600px){.checkout-page-header{gap:7px;margin-bottom:20px}html body .checkout-page-header>p{font-size:14px}:is(.flight-review-page,.flight-extras-page,.checkout-step-page).account-page{padding-top:16px}.guest-checkout-content:has(>.checkout-page-header){padding-top:16px}.checkout-page-header .checkout-page-back{min-height:40px;margin-bottom:2px}.checkout-page-header .checkout-page-back a,.checkout-page-header .checkout-page-back button{min-height:40px}.checkout-page-header+.booking-progress{margin-bottom:20px}}

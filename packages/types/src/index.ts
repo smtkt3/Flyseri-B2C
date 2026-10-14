@@ -3,6 +3,7 @@ export type DataSource = 'demo' | 'live';
 export type FlightTripType = 'ONE_WAY' | 'ROUND_TRIP' | 'MULTI_CITY';
 export type FlightCabin = 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST';
 export interface FlightSearchLeg { origin: string; destination: string; departureDate: string; }
+export interface CachedCalendarFare {date:string;amount:number;currency:string;expiresAt:string}
 export interface FlightSearchRequest {
   origin: string;
   destination: string;
@@ -262,7 +263,7 @@ export interface FlightReservationInput {
   contactEmail: string;
   contactPhone: string;
   namesConfirmed: boolean;
-  passports?: Array<{ travellerId: string; documentType?: FlightIdentityDocumentType; documentNumber: string; expiryDate: string; issuingCountryCode: string }>;
+  passports?: Array<{ travellerId: string; documentType?: FlightIdentityDocumentType; documentNumber: string; expiryDate: string; issuingCountryCode: string; residenceCountryCode?: string }>;
   billingAddress: { name: string; street: string; city: string; stateProvince: string; postalCode: string; countryCode: string };
 }
 export type FlightIdentityDocumentType = 'PASSPORT' | 'NATIONAL_ID_CARD' | 'VISA' | 'ALIEN_RESIDENT' | 'BORDER_CROSSING_CARD' | 'REFUGEE_REENTRY_PERMIT';
@@ -303,6 +304,7 @@ export interface PaymentSummary {
 }
 export interface PaymentStartResult { payment: PaymentSummary; redirectUrl: string | null; actionRequired: boolean }
 export interface OrderDetail extends OrderSummary {
+  coupon?: { code: string; discountAmount: string; currency: string } | null;
   flightBookingId?: string | null;
   visaAssistanceRequestId?: string | null;
   items: OrderItem[];
@@ -642,3 +644,29 @@ export type { HolidayPackage, HolidayBookingInput, HolidayBooking } from './holi
 export type { FareWatch, SupportStage, SupportUpdate, TravelSupportRequest } from './travel.js';
 export type { PointsRules, PointsActivity, PointsWallet, PointsQuote } from './rewards.js';
 export { FLYSERI_POINTS_RULES } from './rewards.js';
+
+export interface AircraftCabinLayout {
+  id:string;
+  name:string;
+  columns:(string|null)[];
+  rows:{number:string;wing?:boolean;exitLeft?:boolean;exitRight?:boolean;facilities?:string[];seats:Record<string,AircraftSeat>}[];
+}
+export interface AircraftSeat {
+  id:string;
+  label:string;
+  status:'AVAILABLE'|'OCCUPIED'|'BLOCKED'|'UNKNOWN';
+  characteristics?:string[];
+  price?:{amount:string;currency:string};
+  eligibleTravelerIds?:string[];
+}
+export interface AircraftSeatMapData {
+  flightLabel:string;
+  aircraftName?:string;
+  expiresAt:string;
+  viewOnly?:boolean;
+  decks:{id:string;name:string;cabins:AircraftCabinLayout[]}[];
+}
+
+
+export interface FlightSeatMapResponse {maps:AircraftSeatMapData[];expiresAt:string;viewOnly:true;message?:string}
+

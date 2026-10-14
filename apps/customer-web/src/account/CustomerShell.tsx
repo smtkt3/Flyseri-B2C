@@ -1,7 +1,6 @@
 import './customer-ux.css';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { MobileAccountNavigation } from './MobileAccountNavigation';
-import { DeferredHomeSeriSearch } from '../components/home/DeferredHomeSeriSearch';
 import { lazy, Suspense } from 'react';
 import { CustomerDashboard } from './CustomerDashboard';
 import { SupportPage } from './SupportPage';
@@ -90,6 +89,5 @@ export function CustomerShell() {
       <Route path="*" element={<PageRecovery />} />
     </Routes></Suspense></PageRecoveryBoundary></div>
     <MobileAccountNavigation/>
-    {!/\/seri\/?$/.test(location.pathname)&&<DeferredHomeSeriSearch active={false} floatingOnly/>}
   </div></div>;
 }

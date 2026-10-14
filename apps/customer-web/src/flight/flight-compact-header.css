@@ -1,0 +1,36 @@
+/* Compact results header shared by phone, tablet and desktop. */
+/* Keep the small-screen layout intact and use the extra room for more dates. */
+  html body #root .flight-search-organized .flight-search-form.is-collapsed {display:none!important}
+  html body #root .flight-mobile-editor-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:16px;color:#344253}
+  html body #root .flight-mobile-editor-heading>button {display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:12px;background:#f4f6f9;color:#344253;font-size:26px;line-height:1}
+  html body #root .flight-search-organized .flight-mobile-route-summary {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 10px 12px 14px;border:1px solid #e1e5eb;border-radius:18px;background:#fff;min-height:72px;margin:0 0 10px}
+  html body #root .flight-mobile-route-summary>div {min-width:0}
+  html body #root .flight-search-organized .flight-mobile-route-summary h2 {margin:0 0 4px;font-size:17px;font-weight:600;letter-spacing:-.02em;line-height:1.35;overflow-wrap:anywhere}
+  html body #root .flight-search-organized .flight-mobile-route-summary p {margin:0;color:#657080;font-size:12px;line-height:1.5}
+  html body #root .flight-mobile-route-summary p span {margin-inline:3px;color:#a4adba}
+  html body #root .flight-mobile-route-summary>button {display:grid;place-items:center;flex:none;width:44px;height:44px;border:0;border-radius:12px;background:#fff;color:#344253}
+  html body #root .flight-mobile-route-summary>button:active {background:#f1f5fa}
+  html body #root .flight-search-organized .flight-date-strip.is-compact {display:flex;align-items:stretch;gap:4px;margin:0 0 4px;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none;overflow:hidden}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-arrow {flex:0 0 20px;min-height:62px;border:0;background:#fff;font-size:22px}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days {min-width:0;flex:1;gap:2px;background:#fff;scroll-snap-type:x proximity;scrollbar-width:none}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days::-webkit-scrollbar {display:none}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days button {flex:0 0 calc((100% - 4px)/3);min-width:0;min-height:64px;padding:8px 3px;gap:4px;border:1px solid transparent;border-radius:14px;background:#fff;box-shadow:none;scroll-snap-align:center}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days button.is-selected {border-color:#2478e8;background:#f7faff;color:#2478e8;box-shadow:none}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days strong {font-size:11px;font-weight:500;line-height:1.35;white-space:normal}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days small {font-size:11px;line-height:1.35;white-space:normal;overflow-wrap:normal}
+  html body #root .flight-date-edit {display:grid;place-items:center;flex:0 0 38px;align-self:center;min-height:44px;padding:8px 4px;border:0;border-left:1px solid #edf0f4;background:#fff;color:#344253}
+
+@media (min-width:761px) {
+  html body #root .flight-search-organized .flight-mobile-route-summary {padding:16px 18px;margin-bottom:12px}
+  html body #root .flight-search-organized .flight-mobile-route-summary h2 {font-size:20px}
+  html body #root .flight-search-organized .flight-mobile-route-summary p {font-size:14px}
+  html body #root .flight-search-organized .flight-date-strip.is-compact {margin-bottom:12px;border-radius:16px;padding:6px}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-arrow {flex-basis:36px}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days button {flex-basis:calc((100% - 8px)/5);min-height:68px}
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days strong,
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days small {font-size:13px}
+  html body #root .flight-date-edit {flex-basis:48px}
+}
+@media (min-width:1100px) {
+  html body #root .flight-search-organized .flight-date-strip.is-compact .flight-date-days button {flex-basis:calc((100% - 12px)/7)}
+}

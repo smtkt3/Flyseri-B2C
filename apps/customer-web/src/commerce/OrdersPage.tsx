@@ -1,3 +1,4 @@
+import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 import { CheckoutPageHeader } from '../flight/CheckoutPageHeader';
 import { Translated } from '../travel/language';
 import { useEffect, useState } from 'react';
@@ -17,7 +18,7 @@ export function OrdersPage({embedded=false}:{embedded?:boolean}={}) {
   useEffect(() => { let active = true; setLoading(true); setError(false); void commerceService.orders().then((rows) => { if (active) setOrders(rows); },
     () => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [attempt]);
   return <div className="account-page">{!embedded&&<CheckoutPageHeader title={<Translated text="My Orders"/>} description="Continue checkout or view payment status and receipts."/>}
-    {loading && <div className="account-panel" role="status">Loading your orders…</div>}
+    {loading && <HomeLoadingScreen overlay label="Loading your orders…"/>}
     {!loading && error && <div className="account-panel" role="alert">We couldn't load your orders. <button className="account-link" onClick={() => setAttempt((value) => value + 1)}><Translated text="Retry" /></button></div>}
     {!loading && !error && <><div className="checkout-history-stats" aria-label="Order counts"><div><strong>{orders.length}</strong><span>Total orders</span></div><div><strong>{orders.filter(order => order.status === 'PAID').length}</strong><span>Payment confirmed</span></div><div><strong>{orders.filter(order => ['PENDING_PAYMENT','PAYMENT_PROCESSING','PAYMENT_FAILED'].includes(order.status)).length}</strong><span>Awaiting payment</span></div></div>
     {!orders.length ? <section className="account-panel checkout-empty"><span className="checkout-empty-icon" aria-hidden="true">✈</span><p className="account-eyebrow">YOUR NEXT JOURNEY STARTS HERE</p><h2>Your orders will appear here</h2><p>Your orders appear after a reservation is ready for checkout.</p><div className="checkout-actions"><Link className="btn-primary" to="/app/flights">Find a flight →</Link><Link className="account-outline-button" to="/app/bookings">View my reservations</Link></div><small>Already reserved a flight? Open its reservation and select “Continue to secure payment”.</small></section> : <><div className="checkout-history-filter" role="group" aria-label="Filter orders">{([['ALL','All orders'],['UNPAID','Unpaid'],['PAID','Paid']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div>

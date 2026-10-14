@@ -63,3 +63,31 @@
  .calendar-popover-portal .calendar-popover-footer button{min-height:40px;flex:none;padding:8px 12px}
 }
 @media(prefers-reduced-motion:reduce){.calendar-popover{animation:none}.calendar-date-trigger,.calendar-day,.calendar-month-controls button{transition:none}}
+/* Modern touch calendar: clear month/year jumps and optional cached fares. */
+.calendar-popover.calendar-popover-portal{max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;background:#fff;color:#25364b;padding:16px;border:1px solid #e1e7ef;border-radius:18px}
+.calendar-period-select{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.calendar-period-select select{min-height:44px;min-width:0;max-width:140px;border:0;background:#f4f7fb;border-radius:8px;padding:6px;color:#25364b;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.calendar-month-controls button{min-height:44px;min-width:36px}
+.calendar-popover-portal .calendar-days{grid-auto-rows:minmax(44px,auto);gap:3px}
+.calendar-popover-portal .calendar-day{height:44px;min-height:44px;border-radius:10px;transition:background .14s;color:#344253}
+.calendar-popover-portal.has-fares .calendar-day{height:58px;min-height:58px;align-content:center;gap:3px}
+.calendar-day-fare{font-size:10px;line-height:1.4;font-weight:500;letter-spacing:-.02em}
+.calendar-day.is-lowest-fare:not(.selected){background:#eff9f4;color:#14734e}
+.calendar-popover-portal .calendar-day.selected{background:#1766ca;border-color:#1766ca;color:white;box-shadow:none}
+.calendar-popover-portal .calendar-day:disabled{color:#b7c0cc;background:transparent}
+.calendar-popover-portal :is(button,select):focus-visible{outline:2px solid #1766ca;outline-offset:2px}
+.calendar-fare-notice{font-size:11px;line-height:1.5;color:#657080;margin:10px 0 0}
+.calendar-fare-notice>span{display:block;margin-top:3px}
+.calendar-popover-footer{font-size:12px;line-height:1.5}
+.calendar-popover-footer button{min-height:44px;font-size:12px}
+.checkout-calendar-field .calendar-date-trigger{min-height:46px;border-radius:8px;padding:8px 10px;background:#fff}
+.checkout-calendar-field .calendar-date-label{display:none}
+.checkout-calendar-field .calendar-date-value{font-size:14px;color:#25364b}
+.checkout-calendar-field .calendar-date-icon{width:18px;height:18px}
+@media(max-width:520px){
+ .calendar-popover.calendar-popover-portal{border-radius:20px 20px 0 0;padding:14px 12px max(14px,env(safe-area-inset-bottom));max-height:88dvh}
+ .calendar-period-select select{max-width:118px;font-size:13px}
+ .calendar-popover-portal .calendar-month-controls{gap:2px}
+ .calendar-popover-portal .calendar-month-controls button{width:34px;min-width:34px}
+ .calendar-popover-portal .calendar-popover-header{align-items:center}
+}

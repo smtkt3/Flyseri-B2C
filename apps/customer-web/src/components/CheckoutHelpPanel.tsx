@@ -1,0 +1,12 @@
+import type { ReactNode } from 'react';
+import './checkout-help-panel.css';
+
+export function CheckoutHelpPanel({ title, children }: { title: string; children: ReactNode }) {
+  return <div className="checkout-help-panel">
+    <div className="checkout-help-heading">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg>
+      <h3>{title}</h3>
+    </div>
+    {children}
+  </div>;
+}

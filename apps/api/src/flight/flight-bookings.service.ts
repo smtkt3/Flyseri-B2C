@@ -111,6 +111,8 @@ export class FlightBookingsService {
     if (intent.status !== 'READY_FOR_PAYMENT' || !intent.validatedTotalAmount || !intent.expiresAt || Date.parse(intent.expiresAt) <= Date.now()) throw new ApiException('CONFLICT', 'Check and accept the latest fare before reserving.', 409);
     if (!intent.searchRequest) throw new ApiException('VALIDATION_ERROR', 'The original passenger search details are required.', 400);
     const passports = input.passports ?? [];
+    if (passports.length !== intent.travellerIds.length || intent.travellerIds.some(id => !passports.some(document => document.travellerId === id))) throw new ApiException('VALIDATION_ERROR', 'Provide travel document details for every selected traveler before reserving.', 400);
+    if (passports.some(document=>!/^[A-Z]{2}$/.test(document.residenceCountryCode??''))) throw new ApiException('VALIDATION_ERROR','Choose the country of residence for every traveler before reserving.',400);
     if (new Set(passports.map(document => document.travellerId)).size !== passports.length || passports.some(document => !intent.travellerIds.includes(document.travellerId))) throw new ApiException('VALIDATION_ERROR', 'Provide at most one travel document for each selected traveler.', 400);
     const people = await this.db.select({person: travellers, passengerType: flightBookingIntentTravellers.passengerType}).from(flightBookingIntentTravellers)
       .innerJoin(customerTravellers, and(eq(customerTravellers.travellerId, flightBookingIntentTravellers.travellerId), eq(customerTravellers.customerId, customerId)))
@@ -134,7 +136,7 @@ export class FlightBookingsService {
       const passport = passports.find(document => document.travellerId === id);
       if (passport && (!['MALE','FEMALE','X'].includes(person.gender ?? '') || passport.expiryDate <= legs.at(-1)!.segments.at(-1)!.arrivalAt.slice(0, 10))) throw new ApiException('VALIDATION_ERROR', 'Check traveler gender and passport validity through the last flight. Destination entry rules may require additional validity.', 400);
       const identityDocuments = passport ? [{ documentType: passport.documentType ?? 'PASSPORT', documentNumber: passport.documentNumber, expiryDate: passport.expiryDate,
-        issuingCountryCode: passport.issuingCountryCode, ...(person.nationalityCountryCode ? { citizenshipCountryCode: person.nationalityCountryCode } : {}),
+        issuingCountryCode: passport.issuingCountryCode, residenceCountryCode:passport.residenceCountryCode!, ...(person.nationalityCountryCode ? { citizenshipCountryCode: person.nationalityCountryCode } : {}),
         givenName: [person.legalFirstName, person.legalMiddleName].filter(Boolean).join(' '), surname: person.legalLastName, birthDate: person.dateOfBirth!, gender: person.gender! }] : [];
       return {givenName: [person.legalFirstName, person.legalMiddleName].filter(Boolean).join(' '), surname: person.legalLastName, birthDate: person.dateOfBirth!, passengerCode, gender: person.gender,
         ...(specialServices.length ? { specialServices } : {}), ...(identityDocuments.length ? { identityDocuments } : {})};

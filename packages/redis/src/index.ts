@@ -17,15 +17,27 @@ export function redisKey(environment: 'development' | 'test' | 'production', key
 }
 
 export class RedisStore {
+  private connecting: Promise<void> | undefined;
   constructor(
     private readonly commands: RedisCommands,
     private readonly environment: 'development' | 'test' | 'production',
     private readonly warn: (message: string) => void = () => undefined,
   ) {}
 
+  private async ensureConnected(): Promise<void> {
+    // Share the first handshake: offline queuing stays disabled so critical
+    // commands cannot execute later after the caller has already seen failure.
+    if (this.connecting) return this.connecting;
+    if (!this.commands.connect || this.commands.status !== 'wait') return;
+    const connection = this.commands.connect().then(() => undefined);
+    this.connecting = connection;
+    try { await connection; }
+    finally { if (this.connecting === connection) this.connecting = undefined; }
+  }
+
   async health(): Promise<boolean> {
     try {
-      if (this.commands.connect && this.commands.status === 'wait') await this.commands.connect();
+      await this.ensureConnected();
       return (await this.commands.ping()) === 'PONG';
     }
     catch { return false; }
@@ -33,6 +45,7 @@ export class RedisStore {
 
   async getJson<T>(key: string): Promise<T | undefined> {
     try {
+      await this.ensureConnected();
       const value = await this.commands.get(redisKey(this.environment, key));
       return value === null ? undefined : JSON.parse(value) as T;
     } catch {
@@ -43,6 +56,7 @@ export class RedisStore {
 
   async readJson<T>(key: string): Promise<{ state: 'hit'; value: T } | { state: 'miss' | 'malformed' | 'unavailable' }> {
     try {
+      await this.ensureConnected();
       const value = await this.commands.get(redisKey(this.environment, key));
       if (value === null) return { state: 'miss' };
       try { return { state: 'hit', value: JSON.parse(value) as T }; }
@@ -56,6 +70,7 @@ export class RedisStore {
   async tryLock(key: string, owner: string, ttlMs: number): Promise<'acquired' | 'busy' | 'unavailable'> {
     if (!this.commands.eval || !Number.isInteger(ttlMs) || ttlMs < 100) return 'unavailable';
     try {
+      await this.ensureConnected();
       const result = await this.commands.eval("return redis.call('SET',KEYS[1],ARGV[1],'PX',ARGV[2],'NX')", 1, redisKey(this.environment, `lock:${key}`), owner, ttlMs);
       return result === 'OK' ? 'acquired' : 'busy';
     } catch { this.warn('Redis lock unavailable'); return 'unavailable'; }
@@ -64,6 +79,7 @@ export class RedisStore {
   async releaseLock(key: string, owner: string): Promise<boolean> {
     if (!this.commands.eval) return false;
     try {
+      await this.ensureConnected();
       const result = await this.commands.eval("if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1]) else return 0 end", 1, redisKey(this.environment, `lock:${key}`), owner);
       return result === 1;
     } catch { this.warn('Redis lock release unavailable'); return false; }
@@ -73,6 +89,7 @@ export class RedisStore {
     if (!this.commands.eval || !Number.isInteger(limit) || limit < 1 || !Number.isInteger(ttlMs) || ttlMs < 100) return 'unavailable';
     const script = "local now=tonumber(ARGV[1]); redis.call('ZREMRANGEBYSCORE',KEYS[1],'-inf',now); if redis.call('ZCARD',KEYS[1])>=tonumber(ARGV[3]) then return 0 end; redis.call('ZADD',KEYS[1],now+tonumber(ARGV[2]),ARGV[4]); redis.call('PEXPIRE',KEYS[1],ARGV[2]); return 1";
     try {
+      await this.ensureConnected();
       const result = await this.commands.eval(script, 1, redisKey(this.environment, `semaphore:${key}`), Date.now(), ttlMs, limit, owner);
       return result === 1 ? 'acquired' : 'busy';
     } catch { this.warn('Redis semaphore unavailable'); return 'unavailable'; }
@@ -81,6 +98,7 @@ export class RedisStore {
   async releaseSemaphore(key: string, owner: string): Promise<boolean> {
     if (!this.commands.eval) return false;
     try {
+      await this.ensureConnected();
       return await this.commands.eval("return redis.call('ZREM',KEYS[1],ARGV[1])", 1, redisKey(this.environment, `semaphore:${key}`), owner) === 1;
     } catch { this.warn('Redis semaphore release unavailable'); return false; }
   }
@@ -88,6 +106,7 @@ export class RedisStore {
   async setJson(key: string, value: unknown, ttlSeconds: number): Promise<boolean> {
     if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) throw new Error('Redis TTL must be a positive integer');
     try {
+      await this.ensureConnected();
       await this.commands.set(redisKey(this.environment, key), JSON.stringify(value), 'EX', ttlSeconds);
       return true;
     } catch {
@@ -97,14 +116,14 @@ export class RedisStore {
   }
 
   async delete(key: string): Promise<boolean> {
-    try { await this.commands.del(redisKey(this.environment, key)); return true; }
+    try { await this.ensureConnected(); await this.commands.del(redisKey(this.environment, key)); return true; }
     catch { this.warn('Redis cache delete unavailable'); return false; }
   }
 
   async deleteJsonIfFingerprint(key: string, fingerprint: string): Promise<boolean> {
     if (!this.commands.eval) return false;
     const script = "local value=redis.call('GET',KEYS[1]); if not value then return 0 end; local ok,data=pcall(cjson.decode,value); if ok and data.fingerprint==ARGV[1] then return redis.call('DEL',KEYS[1]) end; return 0";
-    try { return await this.commands.eval(script, 1, redisKey(this.environment, key), fingerprint) === 1; }
+    try { await this.ensureConnected(); return await this.commands.eval(script, 1, redisKey(this.environment, key), fingerprint) === 1; }
     catch { this.warn('Redis conditional delete unavailable'); return false; }
   }
 
@@ -113,6 +132,7 @@ export class RedisStore {
     if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(windowSeconds) || windowSeconds < 1) throw new Error('Invalid rate limit');
     const script = "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[2]) end; return n";
     try {
+      await this.ensureConnected();
       const count = await this.commands.eval(script, 1, redisKey(this.environment, `rate:${key}`), limit, windowSeconds);
       return typeof count === 'number' ? count > limit ? 'limited' : 'allowed' : 'unavailable';
     } catch {
@@ -124,6 +144,7 @@ export class RedisStore {
   async incrementCounter(key: string): Promise<number | null> {
     if (!this.commands.eval) return null;
     try {
+      await this.ensureConnected();
       const value = await this.commands.eval("return redis.call('INCR',KEYS[1])", 1, redisKey(this.environment, key));
       return typeof value === 'number' && Number.isSafeInteger(value) ? value : null;
     } catch { this.warn('Redis telemetry counter unavailable'); return null; }
@@ -131,6 +152,7 @@ export class RedisStore {
 
   async readCounter(key: string): Promise<number | null> {
     try {
+      await this.ensureConnected();
       const value = await this.commands.get(redisKey(this.environment, key));
       if (value === null) return 0;
       const parsed = Number(value);
@@ -145,7 +167,7 @@ export class RedisStore {
 }
 
 export function createRedisStore(url: string, environment: 'development' | 'test' | 'production', warn?: (message: string) => void): RedisStore {
-  const client = new Redis(url, { connectTimeout: 2000, maxRetriesPerRequest: 1, keepAlive: 10000,
+  const client = new Redis(url, { lazyConnect: true, connectTimeout: 5000, maxRetriesPerRequest: 1, keepAlive: 10000,
     retryStrategy: attempt => Math.min(250 * 2 ** Math.min(attempt - 1, 4), 3000), enableOfflineQueue: false });
   client.on('error', () => warn?.('Redis connection unavailable'));
   return new RedisStore(client, environment, warn);

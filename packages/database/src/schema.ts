@@ -584,6 +584,52 @@ export const orders = pgTable('orders', {
   check('orders_amounts_valid', sql`${table.subtotalAmount} >= 0 and ${table.feesAmount} >= 0 and ${table.discountAmount} >= 0 and ${table.taxAmount} >= 0 and ${table.totalAmount} >= 0 and ${table.totalAmount} = ${table.subtotalAmount} + ${table.feesAmount} + ${table.taxAmount} - ${table.discountAmount}`),
 ]);
 
+/** Promotions are managed by staff; applied discounts are snapshotted per order. */
+export const discountCoupons = pgTable('discount_coupons', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  code: varchar('code', { length: 40 }).notNull(),
+  discountType: varchar('discount_type', { length: 12 }).notNull(),
+  discountValue: numeric('discount_value', { precision: 18, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull(),
+  minimumSpend: numeric('minimum_spend', { precision: 18, scale: 2 }).notNull().default('0.00'),
+  maximumDiscount: numeric('maximum_discount', { precision: 18, scale: 2 }),
+  startsAt: timestamp('starts_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  usageLimit: integer('usage_limit'),
+  perCustomerLimit: integer('per_customer_limit').notNull().default(1),
+  appliesTo: varchar('applies_to', { length: 16 }).notNull().default('FLIGHT'),
+  active: boolean('active').notNull().default(false),
+  version: integer('version').notNull().default(1),
+  createdByStaffId: uuid('created_by_staff_id').notNull(),
+  updatedByStaffId: uuid('updated_by_staff_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  uniqueIndex('discount_coupons_code_unique').on(table.code),
+  check('discount_coupons_code_valid', sql`${table.code} ~ '^[A-Z0-9][A-Z0-9_-]{2,39}$'`),
+  check('discount_coupons_rules_valid', sql`${table.discountValue} > 0 and ${table.minimumSpend} >= 0 and (${table.maximumDiscount} is null or ${table.maximumDiscount} > 0) and ${table.perCustomerLimit} > 0 and (${table.usageLimit} is null or ${table.usageLimit} > 0) and ${table.version} > 0`),
+  check('discount_coupons_type_valid', sql`${table.discountType} in ('PERCENT','FIXED') and (${table.discountType} <> 'PERCENT' or ${table.discountValue} <= 100)`),
+  check('discount_coupons_currency_valid', sql`${table.currency} in ('BDT','MYR','USD','SGD','EUR','GBP','AUD')`),
+  check('discount_coupons_scope_valid', sql`${table.appliesTo} in ('FLIGHT','VISA','ALL')`),
+  check('discount_coupons_window_valid', sql`${table.startsAt} is null or ${table.expiresAt} is null or ${table.expiresAt} > ${table.startsAt}`),
+]);
+export const couponRedemptions = pgTable('coupon_redemptions', {
+  orderId: uuid('order_id').primaryKey().references(() => orders.id),
+  couponId: uuid('coupon_id').notNull().references(() => discountCoupons.id),
+  customerId: uuid('customer_id').notNull().references(() => customers.id),
+  code: varchar('code', { length: 40 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull(),
+  discountAmount: numeric('discount_amount', { precision: 18, scale: 2 }).notNull(),
+  state: varchar('state', { length: 16 }).notNull().default('RESERVED'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  index('coupon_redemptions_coupon_customer_idx').on(table.couponId, table.customerId),
+  check('coupon_redemptions_amount_valid', sql`${table.discountAmount} > 0`),
+  check('coupon_redemptions_state_valid', sql`${table.state} in ('RESERVED','CAPTURED','RELEASED')`),
+]);
+
 export const orderItems = pgTable('order_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').notNull().references(() => orders.id),

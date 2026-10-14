@@ -142,7 +142,9 @@ export class PointsRepository {
   }
   async quote(customerId: string, orderId: string, enabled: boolean): Promise<PointsQuote> {
     await this.reconcile(customerId,orderId);
-    return this.transaction(async c=>{const s=await this.source(c,customerId,orderId);await this.lock(c,customerId);await this.expire(c,customerId);return this.quoteFor(c,s,enabled);});
+    return this.transaction(async c=>{const s=await this.source(c,customerId,orderId);
+      if((await c.query("SELECT order_id FROM coupon_redemptions WHERE order_id=$1 AND state<>'RELEASED'",[orderId])).rowCount)throw conflict('Remove the coupon before using points.');
+      await this.lock(c,customerId);await this.expire(c,customerId);return this.quoteFor(c,s,enabled);});
   }
   async apply(customerId: string, orderId: string, points: number, enabled: boolean): Promise<void> {
     if (!Number.isSafeInteger(points) || points<0) throw conflict('Choose a whole number of points.');

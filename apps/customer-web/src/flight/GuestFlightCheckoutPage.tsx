@@ -1,8 +1,12 @@
+import { CheckoutActionBar } from '../components/CheckoutActionBar';
+import { checkoutPrice } from '../components/checkoutPrice';
 import { CheckoutPageHeader } from './CheckoutPageHeader';
+import { CheckoutHelpPanel } from '../components/CheckoutHelpPanel';
+import { FlightSupportLink } from './FlightSupportLink';
 import './checkout-step-style.css';
 import { FlightBaggageDetails, FlightServiceDetails } from './FlightFareInformation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { FlightOffer, FlightSearchRequest, TravellerProfile, FlightAncillaryRequest, FlightIdentityDocumentType } from '@flyseri/types';
 import {keepCheckoutPassports} from './checkoutPassportDraft';
 import { emptyServicePreferences, FlightServiceRequestFields, hasServiceRequest } from './FlightServiceRequests';
@@ -19,6 +23,7 @@ import { randomUUID } from '../lib/randomUUID';
 import { FlightPriceDetails } from './FlightPriceDetails';
 import { BookingProgress } from './BookingProgress';
 import { BoundedSelect } from '../components/BoundedSelect';
+import { CalendarDateField } from '../components/CalendarDateField';
 import { useCheckoutShoppingFare } from './useCheckoutShoppingFare';
 import { checkoutJourneyDraftKey, clearCheckoutDraft, keepCheckoutDraft, readCheckoutDraft } from './checkoutDrafts';
 import './checkout-fare-recovery.css';
@@ -35,10 +40,10 @@ interface GuestCheckoutState {
   seriReturnTo?: string;
 }
 type PassengerKind = 'Adult' | 'Child' | 'Infant';
-type Passenger = { kind: PassengerKind; givenNames: string; surname: string; gender: string; birthDate: string; nationality: string; idType: FlightIdentityDocumentType; idNumber: string; idExpiryDate: string; issuingCountryCode:string; saveForFuture:boolean; frequentFlyer: string; confirmed: boolean };
+type Passenger = { kind: PassengerKind; givenNames: string; surname: string; gender: string; birthDate: string; nationality: string; idType: FlightIdentityDocumentType; idNumber: string; idExpiryDate: string; issuingCountryCode:string; residenceCountryCode:string; saveForFuture:boolean; frequentFlyer: string; confirmed: boolean };
 type Contact = { name: string; email: string; dialCode: string; phone: string };
 type GuestDraft = { selectedExtras?: FlightAncillaryRequest[]; passengers: Passenger[]; contact: Contact; servicePreferences: ReturnType<typeof emptyServicePreferences>[]; contactNameManuallyEdited: boolean; submissionKey: string; submittedAttemptId: string | null };
-const emptyPassenger = (kind: PassengerKind): Passenger => ({ kind, givenNames: '', surname: '', gender: '', birthDate: '', nationality: '', idType: 'PASSPORT', idNumber: '', idExpiryDate: '', issuingCountryCode:'', saveForFuture:false, frequentFlyer: '', confirmed: false });
+const emptyPassenger = (kind: PassengerKind): Passenger => ({ kind, givenNames: '', surname: '', gender: '', birthDate: '', nationality: '', idType: 'PASSPORT', idNumber: '', idExpiryDate: '', issuingCountryCode:'', residenceCountryCode:'', saveForFuture:false, frequentFlyer: '', confirmed: false });
 const documentTypes: Array<{value:FlightIdentityDocumentType;label:string}> = [{value:'PASSPORT',label:'Passport'},{value:'NATIONAL_ID_CARD',label:'National ID card'},{value:'VISA',label:'Visa'},{value:'ALIEN_RESIDENT',label:'Resident permit'},{value:'BORDER_CROSSING_CARD',label:'Border crossing card'},{value:'REFUGEE_REENTRY_PERMIT',label:'Refugee travel document'}];
 const passengersFor = (request: FlightSearchRequest): Passenger[] => [
   ...Array.from({ length: request.adults }, () => emptyPassenger('Adult')),
@@ -47,10 +52,7 @@ const passengersFor = (request: FlightSearchRequest): Passenger[] => [
 ];
 const validPassenger = (passenger: Passenger, departureDate: string, lastTravelDate: string) => !checkoutPassengerError(passenger, departureDate, lastTravelDate);
 
-const money = (amount: string, currency: string) => {
-  const value = Number(amount);
-  return Number.isFinite(value) ? new Intl.NumberFormat('en-MY', { style: 'currency', currency }).format(value) : `${currency} ${amount}`;
-};
+const money = (amount: string, currency: string) => checkoutPrice(amount,currency) ?? 'Price unavailable';
 const dateTime = (value: string) => {
   const local = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.exec(value);
   if (!local) return value;
@@ -71,7 +73,7 @@ function isCheckoutState(value: unknown): value is GuestCheckoutState {
 export function GuestFlightCheckoutPage() {
   const location = useLocation();
   const state = isCheckoutState(location.state) ? location.state : null;
-  if (!state) return <Navigate to="/flights" replace state={{ notice: 'Choose a flight again to continue.' }} />;
+  if (!state) return <div className="guest-checkout-shell"><PremiumNavbar/><main className="guest-checkout-content"><CheckoutPageHeader title="Your flight checkout" description="Choose a flight to load its price and continue."/><Link className="account-outline-button" to="/flights">Choose a flight</Link><CheckoutActionBar label="Continue checkout" caption="Flight total" total="Price unavailable"><button type="button" className="btn-primary" disabled>Continue to extras</button></CheckoutActionBar></main></div>;
   return <CheckoutContent key={`${state.searchId}:${state.offer.offerId}`} checkout={state} />;
 }
 
@@ -107,7 +109,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   const [checkoutNotice, setCheckoutNotice] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const controlId = (key: string) => `checkout-field-${key.replace(/\./g, '-')}`;
-  const fieldLabels: Record<string,string> = {givenNames:'First / given names *',surname:'Last name (surname) *',birthDate:'Date of birth *',idNumber:'Document number',idExpiryDate:'Expiry date','contact.name':'Contact name *','contact.email':'Email *','contact.phone':'Mobile phone number'};
+  const fieldLabels: Record<string,string> = {givenNames:'First / given names *',surname:'Last name (surname) *',birthDate:'Date of birth *',idNumber:'Document number *',idExpiryDate:'Expiry date *',residenceCountryCode:'Country of residence *','contact.name':'Contact name *','contact.email':'Email *','contact.phone':'Mobile phone number'};
   const fieldProps = (key: string) => ({ id: controlId(key), 'aria-label':fieldLabels[key]??fieldLabels[key.split('.')[1]??''], 'aria-invalid': fieldErrors[key] ? true : undefined, 'aria-describedby': fieldErrors[key] ? `${controlId(key)}-error` : undefined });
   const selectProps = (key: string) => ({ controlId: controlId(key), invalid: !!fieldErrors[key], describedBy: fieldErrors[key] ? `${controlId(key)}-error` : undefined });
   const fieldError = (key: string) => fieldErrors[key] ? <small className="checkout-field-error" id={`${controlId(key)}-error`}>{fieldErrors[key]}</small> : null;
@@ -162,6 +164,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     } catch { /* The fare checker displays the error once. */ }
   }
   const travelers = passengers.length;
+  const checkoutTotal = selectedExtras.length ? checkoutPrice(ancillaryTotal?.amount,ancillaryTotal?.currency) : checkoutPrice(pricedOffer.totalAmount,pricedOffer.currency);
   const tripDescription = searchRequest.tripType === 'ROUND_TRIP' ? 'Round trip' : searchRequest.tripType === 'MULTI_CITY' ? 'Multi-city' : 'One way';
   function markDetailsChanged() {
     submissionKey.current = randomUUID();
@@ -214,7 +217,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   }
   async function handleNext() {
     if (sending.current) return;
-    if (submittedAttemptId) { navigate(`/app/flights/booking-intents/${submittedAttemptId}/extras`, {state:{returnTo,passportsCaptured:true,bookingContact:{contactEmail:contact.email.trim(),contactPhone:`${contact.dialCode}${contact.phone.replace(/\D/g,'').replace(/^0/,'')}`}}}); return; }
+
     if (passengers.some((passenger) => !passenger.confirmed || !validPassenger(passenger, searchRequest.departureDate, lastTravelDate) || checkoutPassportError(passenger,lastTravelDate))) {
       const index = passengers.findIndex(person => !person.confirmed || !validPassenger(person, searchRequest.departureDate, lastTravelDate) || checkoutPassportError(person,lastTravelDate));
       const errors = passengerFieldErrors(passengers[index]!, searchRequest.departureDate, lastTravelDate);
@@ -224,6 +227,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
       setCheckoutNotice('Confirm every passenger before continuing.');
       return;
     }
+    if (submittedAttemptId) { navigate(`/app/flights/booking-intents/${submittedAttemptId}/extras`, {state:{returnTo,passportsCaptured:true,bookingContact:{contactEmail:contact.email.trim(),contactPhone:`${contact.dialCode}${contact.phone.replace(/\D/g,'').replace(/^0/,'')}`}}}); return; }
     if (!contact.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim()) || contact.phone.replace(/\D/g, '').length < 6) {
       showFieldErrors(Object.fromEntries(Object.entries(contactFieldErrors(contact)).map(([field, message]) => [`contact.${field}`, message])));
       setCheckoutNotice('Enter a contact name, valid email address, and mobile phone number before continuing.');
@@ -261,7 +265,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
         serviceRequests: servicePreferences.flatMap((value, index) => hasServiceRequest(value) ? [{ ...value, note: value.note.trim(), travellerId: travellerIds[index]! }] : []) });
       setSubmittedAttemptId(intent.id);
       keepCheckoutDraft(draftKey,session.user.id,{passengers,contact,servicePreferences,selectedExtras,contactNameManuallyEdited,submissionKey:submissionKey.current,submittedAttemptId:intent.id});
-      keepCheckoutPassports(intent.id,session.user.id,passengers.flatMap((person,index)=>person.idNumber?[{travellerId:travellerIds[index]!,documentType:person.idType,documentNumber:person.idNumber,expiryDate:person.idExpiryDate,issuingCountryCode:person.issuingCountryCode}]:[]));
+      keepCheckoutPassports(intent.id,session.user.id,passengers.flatMap((person,index)=>person.idNumber?[{travellerId:travellerIds[index]!,documentType:person.idType,documentNumber:person.idNumber,expiryDate:person.idExpiryDate,issuingCountryCode:person.issuingCountryCode,residenceCountryCode:person.residenceCountryCode}]:[]));
       navigate(`/app/flights/booking-intents/${intent.id}/extras`, { state: { checkLatestFare: true, returnTo,
         passportsCaptured:true, bookingContact: { contactEmail: contact.email.trim(), contactPhone: `${contact.dialCode}${contact.phone.replace(/\D/g, '').replace(/^0/, '')}` } } });
     } catch (error) {
@@ -274,9 +278,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
     <PremiumNavbar />
 
     <main className="guest-checkout-content">
-      <BookingProgress current={1} stage={0} />
-      <h1>Complete your traveler details</h1>
-      <p className="guest-checkout-intro">Enter your details, then sign in or create an account to check the fare and manage your test reservation.</p>
+      <CheckoutPageHeader progress={<BookingProgress current={1} stage={0} />} title="Complete your traveler details" description="Add traveler and contact details to continue with your booking." />
 
       <div className="guest-checkout-layout">
         <section className="guest-checkout-main">
@@ -318,8 +320,8 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
                   })}</div>
                 </details>}
                 <div className="guest-checkout-fields two"><label>First / given names <span>*</span><input {...fieldProps(`${index}.givenNames`)} required autoComplete="given-name" value={passenger.givenNames} onChange={(event) => editPassenger(index, { givenNames: event.target.value })} />{fieldError(`${index}.givenNames`)}</label><label>Last name (surname) <span>*</span><input {...fieldProps(`${index}.surname`)} required autoComplete="family-name" value={passenger.surname} onChange={(event) => editPassenger(index, { surname: event.target.value })} />{fieldError(`${index}.surname`)}</label></div>
-                <div className="guest-checkout-fields three"><label>Gender on ID <span>*</span><BoundedSelect {...selectProps(`${index}.gender`)} required ariaLabel={`Passenger ${index+1} gender`} value={passenger.gender} placeholder="Select gender" options={[{value:'FEMALE',label:'Female'},{value:'MALE',label:'Male'},{value:'X',label:'Other'}]} onChange={gender=>editPassenger(index,{gender})}/>{fieldError(`${index}.gender`)}</label><label>Date of birth <span>*</span><input {...fieldProps(`${index}.birthDate`)} required type="date" max={new Date().toISOString().slice(0, 10)} value={passenger.birthDate} onChange={(event) => editPassenger(index, { birthDate: event.target.value })} />{fieldError(`${index}.birthDate`)}</label><label>Nationality (country/region) <span>*</span><BoundedSelect {...selectProps(`${index}.nationality`)} required searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} nationality`} value={passenger.nationality} placeholder="Select nationality" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={nationality=>editPassenger(index,{nationality})}/>{fieldError(`${index}.nationality`)}</label></div>
-                <div className="guest-checkout-passport"><h3>Travel document details</h3><div className="guest-checkout-fields three"><label>Document type<BoundedSelect ariaLabel={`Passenger ${index+1} document type`} value={passenger.idType} placeholder="Select document type" options={documentTypes} onChange={idType=>editPassenger(index,{idType:idType as FlightIdentityDocumentType,idNumber:'',idExpiryDate:'',issuingCountryCode:''})}/></label><label>Document number<input {...fieldProps(`${index}.idNumber`)} autoComplete="off" maxLength={30} pattern="[A-Z0-9]{3,30}" value={passenger.idNumber} onChange={event=>editPassenger(index,{idNumber:event.target.value.toUpperCase().replace(/\s/g,'')})}/>{fieldError(`${index}.idNumber`)}</label><label>Expiry date<input {...fieldProps(`${index}.idExpiryDate`)} type="date" autoComplete="off" min={lastTravelDate} value={passenger.idExpiryDate} onChange={event=>editPassenger(index,{idExpiryDate:event.target.value})}/>{fieldError(`${index}.idExpiryDate`)}</label><label>Issuing country<BoundedSelect {...selectProps(`${index}.issuingCountryCode`)} searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} document issuing country`} value={passenger.issuingCountryCode} placeholder="Select issuing country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={issuingCountryCode=>editPassenger(index,{issuingCountryCode})}/>{fieldError(`${index}.issuingCountryCode`)}</label></div></div>
+                <div className="guest-checkout-fields three"><label>Gender on ID <span>*</span><BoundedSelect {...selectProps(`${index}.gender`)} required ariaLabel={`Passenger ${index+1} gender`} value={passenger.gender} placeholder="Select gender" options={[{value:'FEMALE',label:'Female'},{value:'MALE',label:'Male'},{value:'X',label:'Other'}]} onChange={gender=>editPassenger(index,{gender})}/>{fieldError(`${index}.gender`)}</label><label>Date of birth <span>*</span><CalendarDateField label="Date of birth" className="checkout-calendar-field" controlId={controlId(`${index}.birthDate`)} required maxDate={new Date().toLocaleDateString('en-CA')} maxYear={new Date().getFullYear()} value={passenger.birthDate} error={fieldErrors[`${index}.birthDate`]} onChange={birthDate=>editPassenger(index,{birthDate})}/></label><label>Nationality (country/region) <span>*</span><BoundedSelect {...selectProps(`${index}.nationality`)} required searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} nationality`} value={passenger.nationality} placeholder="Select nationality" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={nationality=>editPassenger(index,{nationality})}/>{fieldError(`${index}.nationality`)}</label></div>
+                <div className="guest-checkout-passport"><h3>Travel document details <span aria-label="required">*</span></h3><div className="guest-checkout-fields three"><label>Document type *<BoundedSelect ariaLabel={`Passenger ${index+1} document type`} value={passenger.idType} placeholder="Select document type" options={documentTypes} onChange={idType=>editPassenger(index,{idType:idType as FlightIdentityDocumentType,idNumber:'',idExpiryDate:'',issuingCountryCode:''})}/></label><label>Document number *<input required {...fieldProps(`${index}.idNumber`)} autoComplete="off" maxLength={30} pattern="[A-Z0-9]{3,30}" value={passenger.idNumber} onChange={event=>editPassenger(index,{idNumber:event.target.value.toUpperCase().replace(/\s/g,'')})}/>{fieldError(`${index}.idNumber`)}</label><label>Expiry date *<CalendarDateField label="Document expiry date" className="checkout-calendar-field" controlId={controlId(`${index}.idExpiryDate`)} required minDate={new Date(Date.parse(lastTravelDate)+86400000).toISOString().slice(0,10)} value={passenger.idExpiryDate} error={fieldErrors[`${index}.idExpiryDate`]} onChange={idExpiryDate=>editPassenger(index,{idExpiryDate})}/></label><label>Issuing country *<BoundedSelect {...selectProps(`${index}.issuingCountryCode`)} searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} document issuing country`} value={passenger.issuingCountryCode} placeholder="Select issuing country" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={issuingCountryCode=>editPassenger(index,{issuingCountryCode})}/>{fieldError(`${index}.issuingCountryCode`)}</label><label>Country of residence *<BoundedSelect {...selectProps(`${index}.residenceCountryCode`)} required searchable searchPlaceholder="Search countries" ariaLabel={`Passenger ${index+1} country of residence`} value={passenger.residenceCountryCode??''} placeholder="Where the traveler lives" options={countries.map(country=>({value:country.code,label:country.name}))} onChange={residenceCountryCode=>editPassenger(index,{residenceCountryCode})}/>{fieldError(`${index}.residenceCountryCode`)}</label></div></div>
                 <label className="guest-checkout-save-choice"><input type="checkbox" checked={passenger.saveForFuture} onChange={event=>editPassenger(index,{saveForFuture:event.target.checked})}/><span>Save this traveler to my account for future bookings.</span></label>
                 <button id={`confirm-passenger-${index}`} className="guest-checkout-confirm" type="submit">Confirm passenger</button>
               </form>}
@@ -347,29 +349,37 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
             <p className="guest-checkout-note">Available airline baggage, seats and meals are on the next step.</p>
           </section>
 
-          <section className="guest-checkout-finish" id="checkout-fare-review" aria-label="Checkout total">
-            <p className="guest-checkout-acknowledgment">The fare shown is a shopping price and may change when checked again. A reservation is created only after Sabre confirms a PNR; ticket issuance is a separate step.</p>
-            <div className="guest-checkout-finish-card">
-              <div className="guest-checkout-finish-total"><strong>{selectedExtras.length?'Estimated total with extras':'Total'}</strong><strong>{selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'Awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}</strong></div>
+          <section className="guest-checkout-finish" id="checkout-fare-review" aria-label="Booking information and options">
+            <CheckoutHelpPanel title="Before you continue">
+              <FlightSupportLink offer={pricedOffer} passengerLabel={`${travelers} ${travelers===1?'traveler':'travelers'}`}/>
+              <p>Fares can change. We’ll check the latest price before booking. No payment is taken at this step.</p>
               {fareChanged && <div className="guest-checkout-next-notice"><strong>{latestSelection?.replacement ? 'Alternative fare for your review' : 'Fare updated'} · {money(pricedOffer.totalAmount,pricedOffer.currency)}</strong><p>{fareExplanation}</p><small>Previously {money(offer.totalAmount,offer.currency)} · {pricedOffer.cabin?.replace(/_/g,' ') ?? 'Cabin not supplied'}{pricedOffer.fareBrand ? ` · ${pricedOffer.fareBrand}` : ''}. Review the fare details above.</small></div>}
-              <button className="guest-checkout-next" type="button" onClick={() => void handleNext()} disabled={submitting || checkingFare}>{submitting ? 'Preparing checkout…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept updated fare & continue' : 'Continue to extras'}</button>
-              <div className="checkout-fare-links"><button type="button" disabled={checkingFare || submitting || !!submittedAttemptId} onClick={()=>void recheckFare()}>{checkingFare ? 'Rechecking price…' : 'Recheck latest price'}</button><Link to={returnTo ? returnTo.pathname+returnTo.search : seriReturnTo ?? '/flights'+flightBrowseSearchQuery(searchRequest)} state={returnTo ? {flightBrowseKey:returnTo.key} : {resumeSeri:!!seriReturnTo}}>Choose another flight</Link><small>Your traveler details stay saved in this tab for 30 minutes.</small></div>
+              <div className="checkout-fare-links">
+                <button type="button" disabled={checkingFare || submitting || !!submittedAttemptId} onClick={()=>void recheckFare()}>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 7v5h-5M4 17v-5h5M5.5 7a7.5 7.5 0 0 1 12.8-1L20 8M4 16l1.7 2A7.5 7.5 0 0 0 18.5 17"/></svg>
+                  <span>{checkingFare ? 'Rechecking price…' : 'Recheck latest price'}</span>
+                </button>
+                <Link to={returnTo ? returnTo.pathname+returnTo.search : seriReturnTo ?? '/flights'+flightBrowseSearchQuery(searchRequest)} state={returnTo ? {flightBrowseKey:returnTo.key} : {resumeSeri:!!seriReturnTo}}>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg>
+                  <span>Choose another flight</span>
+                </Link>
+              </div>
               {fareCheckError && <p className="guest-checkout-next-notice" role="status">{fareCheckError}</p>}
               {checkoutNotice && checkoutNotice !== fareCheckError && <p className="guest-checkout-next-notice" role="status">{checkoutNotice}</p>}
-            </div>
-            <div className="guest-checkout-assurance" aria-label="Checkout information"><span>✓ Guest details</span><span>✓ Fare breakdown</span><span>✓ No payment taken yet</span></div>
+              <p className="checkout-help-meta"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Your traveler details stay saved in this tab for 30 minutes.</span></p>
+            </CheckoutHelpPanel>
           </section>
         </section>
 
         <FlightPriceDetails offer={pricedOffer} search={searchRequest} requests={servicePreferences} selectedExtras={selectedExtras} onEstimatedTripTotal={reportAncillaryTotal} />
       </div>
       <div className="checkout-mobile-bar" aria-label="Continue checkout">
-        <button type="button" className="checkout-mobile-total" aria-haspopup="dialog" aria-expanded={mobilePriceDetailsOpen} aria-label={`Price details. ${selectedExtras.length?'Estimated total with extras':'Total'} ${selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}`} onClick={() => setMobilePriceDetailsOpen(true)}>
+        <button type="button" className="checkout-mobile-total" aria-haspopup="dialog" aria-expanded={mobilePriceDetailsOpen} aria-label={`Price details. ${selectedExtras.length?'Estimated total with extras':'Total'} ${checkoutTotal ?? 'Price unavailable'}`} onClick={() => setMobilePriceDetailsOpen(true)}>
           <small>{selectedExtras.length?'Estimated total with extras':`Total · ${travelers} ${travelers === 1 ? 'traveler' : 'travelers'}`}</small>
-          <strong>{selectedExtras.length?(ancillaryTotal?money(String(ancillaryTotal.amount),ancillaryTotal.currency):'Awaiting prices'):money(pricedOffer.totalAmount,pricedOffer.currency)}</strong>
+          <strong>{checkoutTotal ?? (checkingFare ? 'Checking price…' : 'Price unavailable')}</strong>
           <span>Price details <i aria-hidden="true" /></span>
         </button>
-        <button type="button" className="btn-primary" disabled={submitting || checkingFare} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept & continue' : 'Continue to extras'}</button>
+        <button type="button" className="btn-primary" disabled={submitting || checkingFare || !checkoutTotal || !!fareCheckError} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept updated fare & continue' : 'Continue to extras'}</button>
       </div>
       {mobilePriceDetailsOpen && <div className="checkout-mobile-price-layer">
         <button type="button" className="checkout-mobile-price-scrim" aria-label="Close price details" onClick={() => setMobilePriceDetailsOpen(false)} />

@@ -1,0 +1,6 @@
+.coupon-checkout{margin:14px 0;padding:16px;border:1px solid #dbe8f8;border-radius:16px;background:#f8fbff;color:#26466d}
+.coupon-checkout h3{margin:0 0 12px;font-size:16px;font-weight:700}.coupon-checkout label{display:block;margin-bottom:6px;font-size:13px;font-weight:600}
+.coupon-entry,.coupon-applied{display:flex;align-items:center;gap:10px}.coupon-entry input{flex:1;min-width:0;padding:11px 12px;border:1px solid #bbd5f5;border-radius:10px;background:#fff;font-size:16px;color:#203c60}
+.coupon-checkout button{min-height:44px;padding:10px 18px;border:1px solid #c7ddfb;border-radius:10px;background:#e8f2ff;color:#1465cf;font:inherit;font-weight:700;cursor:pointer}.coupon-checkout button:disabled{opacity:.5;cursor:default}
+.coupon-applied>div{flex:1;min-width:0}.coupon-applied strong,.coupon-applied span{display:block;overflow-wrap:anywhere}.coupon-applied span{font-size:14px;margin-top:4px;color:#167753}.coupon-checkout small{display:block;margin-top:10px;line-height:1.5;color:#567293}.coupon-checkout p{margin:10px 0;font-size:14px}
+.coupon-entry input:focus-visible,.coupon-checkout button:focus-visible{outline:2px solid #3488f5;outline-offset:2px}

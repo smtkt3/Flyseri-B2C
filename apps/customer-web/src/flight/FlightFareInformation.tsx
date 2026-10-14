@@ -1,5 +1,6 @@
 import type { FlightBaggageAllowance, FlightOffer } from '@flyseri/types';
 import { FlightMealDetails } from './FlightMealDetails';
+import { airlineBaggageLimit, baggagePolicySources, hasBaggageWeight } from './airlineBaggagePolicy';
 
 const segmentsOf = (offer: FlightOffer) => (offer.multiCityLegs ?? [offer.outbound, ...(offer.inbound ? [offer.inbound] : [])]).flatMap((leg) => leg.segments);
 const status = { INCLUDED: 'Included', FOR_FEE: 'Available for a fee', NOT_INCLUDED: 'Not included', UNKNOWN: 'Not specified by airline' };
@@ -21,6 +22,16 @@ export function hasIncludedCheckedBaggage(offer: FlightOffer, legIndex: number) 
 }
 
 export const hasKnownBaggage = (offer: FlightOffer) => (offer.baggageAllowances ?? []).some(item => item.availability !== 'UNKNOWN');
+export function includedCheckedBaggageLabel(offer: FlightOffer, legIndex: number): string | null {
+  if (!hasIncludedCheckedBaggage(offer, legIndex)) return null;
+  const legs = offer.multiCityLegs ?? [offer.outbound, ...(offer.inbound ? [offer.inbound] : [])];
+  const offset = legs.slice(0, legIndex).reduce((sum, leg) => sum + leg.segments.length, 0);
+  const descriptions = legs[legIndex]!.segments.map((_, index) => unique((offer.baggageAllowances ?? [])
+    .filter(item => item.type === 'CHECKED' && item.availability === 'INCLUDED' && applies(item.segmentIndexes, offset + index))
+    .map(item => item.description?.trim() ?? '')));
+  if (descriptions.every(value => value === descriptions[0])) return descriptions[0] ? `Checked bag: ${descriptions[0]}` : 'Checked baggage included';
+  return 'Checked bag varies by flight';
+}
 export const hasKnownServices = (offer: FlightOffer) => (offer.amenities ?? []).some(item => item.category !== 'BAGGAGE' && item.availability !== 'UNKNOWN');
 
 export function FlightBaggageDetails({ offer, knownOnly = false, legIndex }: { offer: FlightOffer; knownOnly?: boolean; legIndex?: number }) {
@@ -37,12 +48,21 @@ export function FlightBaggageDetails({ offer, knownOnly = false, legIndex }: { o
       const known = applicable.filter((item) => item.availability !== 'UNKNOWN');
       if (knownOnly && !known.length) return null;
       const bags = known.length ? known : applicable;
-      const labels = bags.map(bagLabel);
+      const policyLimits = bags.map(item => airlineBaggageLimit(offer,item));
+      const labels = bags.map((item,bagIndex) => {
+        const policy=policyLimits[bagIndex];
+        return bagLabel(item)+(policy ? ` · up to ${policy.kg} kg ${policy.basis}` : '');
+      });
       const availability = bags.length && bags.every(item => item.availability === bags[0]!.availability) ? bags[0]!.availability : 'UNKNOWN';
+      const weightMissing = type !== 'PERSONAL_ITEM' && bags.some((item,bagIndex) => item.availability === 'INCLUDED' && !hasBaggageWeight(item.description) && !policyLimits[bagIndex]);
+      const policySource = policyLimits.find(Boolean)?.url;
+      const airlineSource = baggagePolicySources[segment.marketingCarrier];
       return <div className="flight-baggage-allowance-row" key={type}>
         <span className="flight-baggage-allowance-icon" aria-hidden="true">{baggageIcon[type]}</span>
         <span className="flight-baggage-allowance-name">{baggageTypeNames[type]}:</span>
         <strong className={`flight-baggage-allowance-value is-${availability.toLowerCase().replace('_', '-')}`}>{bags.length ? unique(labels) : 'Not specified by airline'}</strong>
+        {policySource && <small className="flight-baggage-weight-missing"><a href={policySource} target="_blank" rel="noopener noreferrer">Airline weight policy ↗</a> · Ticket-specific allowance applies.</small>}
+        {weightMissing && <small className="flight-baggage-weight-missing">{airlineSource?<a href={airlineSource} target="_blank" rel="noopener noreferrer">Check weight for this fare ↗</a>:'Contact our team to confirm the weight limit.'}</small>}
       </div>;
     })}
   </div>;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const hintKey='flyseri.aircraft-hint-seen-v3';
+const hintKey='flyseri.aircraft-hint-seen-v4';
 
 /** Keep guidance visible until interaction; pulling instructions remain available on every flight. */
 export function AircraftGestureHint({phase,boosted,eligible=true}:{phase:string;boosted:boolean;eligible?:boolean}) {
@@ -41,7 +41,7 @@ export function AircraftGestureHint({phase,boosted,eligible=true}:{phase:string;
   },[eligible,checkout,seen,phase]);
   const pulling=phase==='pulling'&&eligible&&!checkout;
   return <span ref={anchor} className="seri-aircraft-hint-anchor">{(visible||pulling)&&<span className={`seri-aircraft-hint${pulling?'':' is-invitation'}`} role="status">
-    <strong>{pulling ? boosted ? 'Ready for takeoff!' : 'Release to open chat' : 'Pull down to open chat ↓'}</strong>
-    <small>{pulling ? boosted ? 'Release to fly & chat' : 'Hold for a boost' : 'Or tap to chat'}</small>
+    <strong>{pulling ? boosted ? 'Ready for takeoff!' : 'Release to open chat' : 'Hold, then pull down to fly ↓'}</strong>
+    <small>{pulling ? boosted ? 'Release to fly & chat' : 'Hold for a boost' : 'Drag to move · tap to chat'}</small>
   </span>}</span>;
 }

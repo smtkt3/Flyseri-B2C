@@ -5,6 +5,7 @@ import { PremiumNavbar } from '../components/PremiumNavbar';
 import { PageRecovery, PageRecoveryBoundary } from '../account/PageRecovery';
 import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 import { PageLoading } from '../components/PageLoading';
+import { DeferredHomeSeriSearch } from '../components/home/DeferredHomeSeriSearch';
 
 const BudgetPage = lazy(() => import('../travel/TravelPages').then(module => ({ default: module.BudgetPage })));
 const PublicHelpPage = lazy(() => import('../travel/PublicHelpPage').then(module => ({ default: module.PublicHelpPage })));
@@ -37,6 +38,7 @@ export function AuthRoutes() {
   const overlay = overlayPaths.has(location.pathname);
   const background = overlay ? lastPage.current : location;
   const backgroundPath = `${background.pathname}${background.search}${background.hash}`;
+  const flightResultsPage = /^\/(?:app\/)?flights\/?$/.test(background.pathname);
 
   return <>
     <div className={overlay ? 'auth-background auth-background-blurred' : 'auth-background'} inert={overlay} aria-hidden={overlay}>
@@ -66,5 +68,7 @@ export function AuthRoutes() {
         <Route path="/forgot-password" element={<AuthPage mode="forgot-password" modal backgroundPath={backgroundPath} backgroundState={background.state} />} />
       </Routes>
     </Suspense>}
+    {/* The homepage owns its inline/floating chat; all other routes share this host. */}
+    {background.pathname !== '/' && !flightResultsPage && <DeferredHomeSeriSearch active={false} floatingOnly />}
   </>;
 }

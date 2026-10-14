@@ -14,8 +14,7 @@ export function HeroDestinations() {
   const [loaded, setLoaded] = useState<number[]>([]);
   const [requested, setRequested] = useState(1);
   const dataSaving = useDataSaving();
-  const [userPaused, setUserPaused] = useState(false);
-  const paused = dataSaving || userPaused;
+  const paused = dataSaving;
   const [visible, setVisible] = useState(() => !document.hidden);
   const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
@@ -51,8 +50,5 @@ export function HeroDestinations() {
       {slides.slice(0, requested).map((item, index) => <img key={item.image} className={index === active ? 'is-active' : ''} src={imageUrl(item.image, 800)} srcSet={`${imageUrl(item.image, 480)} 480w, ${imageUrl(item.image, 800)} 800w, ${imageUrl(item.image, 1280)} 1280w`} sizes="(max-width: 1366px) 100vw, 70vw" alt="" aria-hidden="true" decoding="async" fetchPriority={index === 0 ? 'high' : 'low'} style={{ objectPosition: item.position }} onLoad={() => setLoaded(current => current.includes(index) ? current : [...current, index])} />)}
     </div>
     <div className="premium-hero-note"><img src={imageUrl(slide.image, 100)} alt="" /><span>{slide.name}</span></div>
-    {!reduced && !dataSaving && <button type="button" className="premium-hero-motion" aria-label={userPaused ? 'Play destination slideshow' : 'Pause destination slideshow'} onClick={() => setUserPaused(value => !value)}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{userPaused ? <path d="M8 5v14l11-7z"/> : <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>}</svg>
-    </button>}
   </>;
 }

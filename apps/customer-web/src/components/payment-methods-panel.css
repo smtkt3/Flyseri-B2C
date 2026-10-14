@@ -1,0 +1,7 @@
+html body .payment-methods-panel {margin-top:14px;padding:16px;border:1px solid #dce8f4;border-radius:14px;background:#f7fbff;min-width:0}
+html body .payment-methods-panel h3 {margin:0 0 12px;color:#213e60;font-size:16px;font-weight:700;line-height:1.4}
+html body .payment-methods-panel ul {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
+html body .payment-methods-panel li {display:flex;align-items:center;gap:9px;padding:12px;border:1px solid #d7e7f5;border-radius:10px;background:#fff;color:#31577b;font-size:13px;font-weight:650;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+html body .payment-methods-panel svg {width:23px;height:23px;flex:none;color:#357fd4}
+html body .payment-methods-panel p {margin:10px 0 0;color:#536c87;font-size:12px;line-height:1.6}
+@media(max-width:600px){html body .payment-methods-panel{padding:14px}html body .payment-methods-panel li{flex-direction:column;justify-content:flex-start;text-align:center;padding:12px 6px;font-size:12px;gap:8px}}

@@ -2,6 +2,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { redisKey, RedisStore, type RedisCommands } from './index.js';
 
 describe('RedisStore', () => {
+  it('shares the initial connection before health, cache and critical lock commands', async () => {
+    let finish!: () => void;
+    const commands = {
+      status: 'wait',
+      connect: vi.fn(()=>new Promise<void>(resolve=>{commands.status='connecting';finish=()=>{commands.status='ready';resolve();};})),
+      ping: vi.fn(async()=> 'PONG'), get: vi.fn(async()=> '{"ready":true}'),
+      eval: vi.fn(async()=> 'OK'),
+    } as unknown as RedisCommands;
+    const store=new RedisStore(commands,'test');
+    const health=store.health(), cache=store.getJson('item'), lock=store.tryLock('booking','owner',1000);
+    expect(commands.connect).toHaveBeenCalledOnce();
+    expect(commands.ping).not.toHaveBeenCalled();expect(commands.get).not.toHaveBeenCalled();expect(commands.eval).not.toHaveBeenCalled();
+    finish();
+    expect(await health).toBe(true);expect(await cache).toEqual({ready:true});expect(await lock).toBe('acquired');
+  });
+  it('fails closed on a failed initial connection without issuing lock commands', async () => {
+    const commands={status:'wait',connect:vi.fn().mockRejectedValue(new Error('offline')),eval:vi.fn()} as unknown as RedisCommands;
+    expect(await new RedisStore(commands,'test').tryLock('booking','owner',1000)).toBe('unavailable');
+    expect(commands.eval).not.toHaveBeenCalled();
+  });
   it('namespaces keys and serializes values with a TTL', async () => {
     const commands: RedisCommands = {
       get: vi.fn().mockResolvedValue('{"ready":true}'),

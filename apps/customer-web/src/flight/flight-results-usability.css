@@ -1,0 +1,30 @@
+html body #root .flight-search-organized :is(button,input,select,a,summary):focus-visible,
+html body :is(.flight-fare-drawer,.flight-comparison-dialog) :is(button,input,select,a,summary,[tabindex]):focus-visible {outline:3px solid #1766ca;outline-offset:3px}
+html body #root .flight-search-organized button.btn-primary,
+html body :is(.flight-fare-drawer,.flight-comparison-dialog) button.btn-primary {background:#1766ca!important;color:#fff!important}
+html body #root .flight-search-organized button.btn-primary:disabled,
+html body :is(.flight-fare-drawer,.flight-comparison-dialog) button.btn-primary:disabled {background:#e4e9f0!important;color:#526178!important;opacity:1;cursor:not-allowed}
+html body #root .flight-search-organized .flight-row-connections .flight-connection-warning {display:flex;align-items:flex-start;justify-content:center;gap:6px;padding:5px 8px;border:1px solid #e9d5ac;border-radius:6px;background:#fff8ea;color:#785119;font-weight:500;text-align:left}
+html body #root .flight-connection-warning svg {flex:none;margin-top:2px}
+html body #root .flight-search-organized .flight-empty {padding:20px;text-align:left;border:1px solid #e1e6ed;border-radius:16px;background:#fff}
+html body #root .flight-empty h3 {margin:0 0 8px;font-size:18px;font-weight:600;line-height:1.4}
+html body #root .flight-empty p {margin:0 0 12px;font-size:14px;line-height:1.5;color:#526178}
+html body #root .flight-empty-actions,html body #root .flight-empty-filter-list {display:flex;flex-wrap:wrap;gap:8px}
+html body #root .flight-empty-filter-list {margin-bottom:12px}
+html body #root .flight-empty-filter-list button {min-height:44px;padding:8px 10px;border:1px solid #c9d9ee;border-radius:8px;background:#edf4ff;color:#175da9;font-size:13px;text-align:left}
+html body #root .flight-empty-actions button {min-height:44px;margin:0;padding:10px 14px;border-radius:10px;font-size:13px}
+html body .flight-comparison-controls {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin:0 0 14px;padding:10px 12px;border:1px solid #dce5f0;border-radius:10px;background:#f7faff}
+html body .flight-comparison-controls p {margin:0;font-size:13px;color:#526178;line-height:1.5}
+html body .flight-comparison-controls label {display:flex;align-items:center;gap:8px;min-height:44px;font-size:13px;color:#25364b;cursor:pointer}
+html body .flight-comparison-controls input {width:18px;height:18px;min-height:0;margin:0;accent-color:#1766ca}
+html body .flight-comparison-table .flight-comparison-difference>* {background:#f0f6ff}
+html body .flight-comparison-card-details>.flight-comparison-difference {background:#f0f6ff;padding:10px;border-radius:8px;border:1px solid #dae7f7;margin:5px 0}
+html body .flight-comparison-card-summary.flight-comparison-difference {background:#f0f6ff;padding:10px;border-radius:8px}
+html body .flight-difference-label {display:inline-block!important;margin-left:6px;padding:1px 5px;border-radius:4px;background:#dfeafe;color:#235997;font-size:10px!important;font-weight:500;line-height:1.5}
+html body .flight-comparison-dialog button {min-height:44px}
+html body #root .flight-search-organized .flight-row-airline>small,
+html body #root .flight-search-organized .flight-row-endpoint>small,
+html body #root .flight-search-organized .flight-row-purchase>small {color:#586b80}
+@media (prefers-reduced-motion:reduce) {
+  html body #root .flight-search-organized *,html body .flight-comparison-dialog * {scroll-behavior:auto!important;transition:none!important}
+}
