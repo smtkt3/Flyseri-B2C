@@ -12,7 +12,7 @@
 .git/
 .vercel/
 artifacts/
-.figma/
+.figma/design-context/
 .plugins/
 .opencode-skills/
 .claude-replay.*
