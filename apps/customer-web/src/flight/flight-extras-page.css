@@ -1,3 +1,41 @@
 .flight-extras-title{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:24px 0}.flight-extras-title h1{margin:4px 0 8px}.flight-extras-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:24px;align-items:start}.flight-extras-options{min-width:0}.flight-extras-route{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}.flight-extras-route>span{margin-left:auto;color:#647d99;font-size:13px}.flight-extras-summary{position:sticky;top:100px;min-width:0}.flight-extras-summary h2{font-size:19px;margin:0 0 20px}.flight-extras-base{display:flex;justify-content:space-between;gap:16px;padding-bottom:16px;border-bottom:1px solid #e0ebf5}.flight-extras-summary .flight-selected-extras{border:0;padding:16px 0;background:transparent;margin:0}.flight-extras-summary .flight-selected-extra{align-items:start}.flight-extras-summary .flight-selected-extra>span{white-space:nowrap}.flight-extras-actions{display:grid;gap:10px;margin-top:20px}.flight-extras-actions button{min-height:48px;width:100%}.flight-extras-summary .account-muted{font-size:12px;line-height:1.6;margin-top:16px}.flight-extras-options .flight-airline-services{margin-top:0}.flight-extras-page button:focus-visible,.flight-extras-page a:focus-visible{outline:3px solid #77b9ff;outline-offset:3px}
 @media(max-width:1000px){.flight-extras-layout{grid-template-columns:1fr}.flight-extras-summary{position:static}.flight-extras-title{align-items:flex-start}.flight-extras-title h1{font-size:28px}.flight-extras-route{gap:10px}.flight-extras-actions{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.flight-extras-actions{grid-template-columns:1fr}.flight-extras-title{display:block}.flight-extras-title>button{margin-top:12px}.flight-extras-route>span{margin-left:0;width:100%}}
+
+/* Clear surface hierarchy and stronger text contrast for extras. */
+.flight-extras-page .flight-airline-offers{background:#f2f6fc;border-color:#bdcee3;color:#1c3556}
+.flight-extras-page .flight-airline-offers-heading h3{color:#183457;font-weight:750}
+.flight-extras-page .flight-airline-offers-heading p,
+.flight-extras-page .flight-airline-offers-currency,
+.flight-extras-page .flight-airline-offers .guest-checkout-note,
+.flight-extras-page .flight-airline-offers-traveler{color:#445b77}
+.flight-extras-page .flight-airline-offers-filters button{color:#294667;border-color:#b8cbe2;background:#fff}
+.flight-extras-page .flight-airline-offers-filters button:hover:not(:disabled){background:#e2edfc;border-color:#6f99cf}
+.flight-extras-page .flight-airline-offers-filters button[aria-pressed=true]{background:#1764c5;border-color:#1764c5;color:#fff;box-shadow:0 2px 5px #164d9520}
+.flight-extras-page .flight-airline-offers-filters button[aria-pressed=true] span{background:#ffffff24;color:#fff}
+.flight-extras-page .flight-airline-offers-filters button:disabled{background:#e7edf4;color:#68788c;border-color:#d0dae6}
+.flight-extras-page .flight-airline-offers-filters button span{background:#e5eefb;color:#284c79}
+.flight-extras-page .flight-seat-plan{background:#eaf2ff;border:1px solid #bdd0ec;box-shadow:none;color:#19365d}
+.flight-extras-page .flight-seat-plan-heading p{color:#445b77}
+.flight-extras-page .flight-airline-offers .account-outline-button{background:#fff;border-color:#8dafdc;color:#1559ae}
+.flight-extras-page .flight-airline-offers-search{color:#294b74}
+.flight-extras-page .flight-airline-offers-search input{border-color:#a9bfdc;color:#183457;background:#fff}
+.flight-extras-page .flight-airline-offers-search input::placeholder{color:#63758d;opacity:1}
+.flight-extras-page .flight-airline-offers-flight{border-color:#b7cbe3;background:#fff}
+.flight-extras-page .flight-airline-offers-flight>summary{background:#e9f0fa;color:#203e64}
+.flight-extras-page .flight-airline-offers-flight[open]>summary{background:#dce9fa;border-bottom-color:#b7cbe3}
+.flight-extras-page .flight-airline-offers-flight>summary small,
+.flight-extras-page .flight-airline-offers-category-summary small,
+.flight-extras-page .flight-airline-service small{color:#4a617e}
+.flight-extras-page .flight-airline-offers-category-summary,
+.flight-extras-page .flight-airline-offers .flight-airline-service{border-color:#c0cfe1}
+.flight-extras-page .flight-airline-offers .flight-airline-service.is-selected{border-color:#24734e;background:#f1faf5;box-shadow:0 0 0 1px #24734e}
+.flight-extras-page .flight-airline-offers .flight-airline-service-price>strong{color:#1559ae}
+.flight-extras-page .flight-airline-offers .flight-airline-service-select{background:#1764c5;border-color:#1764c5;color:#fff}
+.flight-extras-page .flight-airline-offers .flight-airline-service-select[aria-pressed=true]{background:#e5f3eb;border-color:#83b598;color:#205f40}
+.flight-extras-page .flight-airline-offers .flight-extra-guidance,
+.flight-extras-page .flight-airline-offers-notice,
+.flight-extras-page .flight-airline-offers-empty{color:#405773}
+.flight-extras-page .flight-extras-summary{background:#fff;border-color:#bdcee3}
+.flight-extras-page .flight-selected-extra small,
+.flight-extras-page .flight-selected-extras p{color:#4a617e}

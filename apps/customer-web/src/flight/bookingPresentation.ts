@@ -1,5 +1,15 @@
 import type { FlightBooking } from '@flyseri/types';
 
+export type BookingOutcome = 'confirmed' | 'pending' | 'unsuccessful';
+export function bookingOutcome(booking: FlightBooking): BookingOutcome {
+  if (['BOOKING_FAILED', 'CANCELLED', 'PNR_EXPIRED', 'PAYMENT_FAILED', 'TICKETING_FAILED', 'REFUND_REQUIRED'].includes(booking.status) ||
+    booking.order && ['PAYMENT_FAILED', 'CANCELLED', 'EXPIRED'].includes(booking.order.status)) return 'unsuccessful';
+  if (!booking.pnr || ['BOOKING_PENDING', 'BOOKING_IN_PROGRESS', 'BOOKING_UNKNOWN', 'MANUAL_REVIEW_REQUIRED', 'FARE_CHANGED'].includes(booking.status)) return 'pending';
+  if (booking.status === 'TICKETED') return bookingHasIssuedTickets(booking) ? 'confirmed' : 'pending';
+  return booking.order?.status === 'PAID' && !!booking.order.paidAt && Number.isFinite(Date.parse(booking.order.paidAt)) &&
+    ['PAID', 'AWAITING_STAFF_TICKETING', 'TICKETING_IN_PROGRESS'].includes(booking.status) ? 'confirmed' : 'pending';
+}
+
 export function bookingHasIssuedTickets(booking: FlightBooking): boolean {
   const tickets = booking.providerView?.tickets;
   const count = booking.passengerNames?.length ?? 0;

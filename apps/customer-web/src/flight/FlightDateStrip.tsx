@@ -21,12 +21,56 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
   const [offset, setOffset] = useState(0);
   const days = useRef<HTMLDivElement>(null);
   const [quotes, setQuotes] = useState<Record<string, { amount: number; currency: string; expiresAt: string }>>({});
+  const [now,setNow]=useState(Date.now);
+  const [cacheRevision,setCacheRevision]=useState(0);
+  const [cacheChecking,setCacheChecking]=useState(false);
   const [checking, setChecking] = useState(false);
   const [checkNotice, setCheckNotice] = useState('');
   const controller = useRef<AbortController | null>(null);
   useEffect(() => { controller.current?.abort(); setChecking(false); setCheckNotice(''); return () => controller.current?.abort(); }, [criteriaKey, departureDate, returnDate]);
   const duration = returnDate ? Math.round((Date.parse(returnDate) - Date.parse(departureDate)) / 86400000) : 0;
   const keyFor = (date: string) => `${criteriaKey}|${date}|${returnDate ? shiftFlightDate(date, duration) : ''}`;
+  const cacheRequestKey=searchRequest?JSON.stringify({...searchRequest,tripId:undefined,departureDate,returnDate:returnDate||undefined}):'';
+  useEffect(()=>{
+    const clock=window.setInterval(()=>setNow(Date.now()),60_000);
+    const refresh=()=>{if(document.visibilityState!=='hidden')setCacheRevision(value=>value+1);};
+    const timer=window.setInterval(refresh,60_000);
+    window.addEventListener('focus',refresh);
+    document.addEventListener('visibilitychange',refresh);
+    return()=>{window.clearInterval(clock);window.clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+  },[]);
+  useEffect(()=>{
+    const expirations=Object.values(quotes).map(quote=>Date.parse(quote.expiresAt)).filter(expiry=>Number.isFinite(expiry)&&expiry>now);
+    if(!expirations.length)return;
+    const timer=window.setTimeout(()=>setNow(Date.now()),Math.max(1,Math.min(2_147_483_647,Math.min(...expirations)-Date.now()+1)));
+    return()=>window.clearTimeout(timer);
+  },[quotes,now]);
+  useEffect(()=>{
+    setCacheChecking(false);
+    if(!cacheRequestKey||busy||!shiftFlightDate(departureDate,0)||document.visibilityState==='hidden')return;
+    const request=JSON.parse(cacheRequestKey) as FlightSearchRequest;
+    const visibleDates=Array.from({length:7},(_,index)=>shiftFlightDate(departureDate,offset+index-3)).filter(date=>date>=new Date().toISOString().slice(0,10));
+    const months=[...new Set(visibleDates.map(date=>date.slice(0,7)))];
+    if(!months.length)return;
+    const abort=new AbortController();setCacheChecking(true);
+    void Promise.allSettled(months.map(month=>flightService.cachedCalendarFares(request,month,'departure',abort.signal,{keepTripLength:true,dates:visibleDates.filter(date=>date.startsWith(`${month}-`))}))).then(results=>{
+      if(abort.signal.aborted)return;
+      const updatedAt=Date.now();setNow(updatedAt);
+      setQuotes(previous=>{
+        const next=Object.fromEntries(Object.entries(previous).filter(([,quote])=>Date.parse(quote.expiresAt)>updatedAt).slice(-200));
+        for(const result of results){
+          if(result.status!=='fulfilled')continue;
+          for(const quote of result.value){
+            if(!visibleDates.includes(quote.date)||quote.currency!==request.currency||!Number.isFinite(quote.amount)||quote.amount<=0||!Number.isFinite(Date.parse(quote.expiresAt))||Date.parse(quote.expiresAt)<=updatedAt)continue;
+            const key=`${criteriaKey}|${quote.date}|${returnDate?shiftFlightDate(quote.date,duration):''}`;
+            next[key]={amount:quote.amount,currency:quote.currency,expiresAt:quote.expiresAt};
+          }
+        }
+        return next;
+      });
+    }).finally(()=>{if(!abort.signal.aborted)setCacheChecking(false);});
+    return()=>abort.abort();
+  },[cacheRequestKey,criteriaKey,departureDate,returnDate,duration,offset,busy,cacheRevision,result?.searchId]);
   useEffect(() => { setOffset(0); }, [departureDate]);
   useEffect(() => {
     const container=days.current;
@@ -42,7 +86,7 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
   }, [departureDate,offset,compact]);
   useEffect(() => {
     if (!result?.offers.length) return;
-    const amounts = result.offers.map(offer => Number(offer.totalAmount)).filter(Number.isFinite);
+    const amounts = result.offers.map(offer => Number(offer.totalAmount)).filter(amount=>Number.isFinite(amount)&&amount>0);
     if (!amounts.length || new Set(result.offers.map(offer => offer.currency)).size !== 1) return;
     const key = keyFor(departureDate);
     setQuotes(previous => ({ ...previous, [key]: {amount: Math.min(...amounts), currency: result.offers[0]!.currency, expiresAt: result.expiresAt} }));
@@ -76,12 +120,13 @@ export function FlightDateStrip({ departureDate, returnDate, criteriaKey, result
       const date = shiftFlightDate(departureDate, offset + index - 3);
       const quote = quotes[keyFor(date)];
       const current = date === departureDate;
-      const fresh = quote && Date.parse(quote.expiresAt) > Date.now();
+      const fresh = quote && Date.parse(quote.expiresAt) > now;
+      const priceLoading=!fresh&&(busy&&current||cacheChecking);
       const label = new Intl.DateTimeFormat('en-MY', {weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(`${date}T12:00:00Z`));
       const shortLabel=new Intl.DateTimeFormat('en-MY',{month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(`${date}T12:00:00Z`));
       const priceLabel=fresh?new Intl.NumberFormat('en-MY',{style:'currency',currency:quote.currency}).format(quote.amount).replace(/\u00a0/g,' '):current?(compact?'Selected':'Selected date'):'Search date';
-      return <button type="button" key={date} disabled={busy || date < today} aria-label={`${label} ${date.slice(0,4)}, ${busy&&current&&!fresh?'Checking fare':priceLabel}`} aria-pressed={current} className={current?'is-selected':''} onClick={() => {if(!current)onChoose(date,returnDate?shiftFlightDate(date,duration):undefined);}}>
-        <strong>{compact?shortLabel:label}</strong><small>{busy&&current&&!fresh?<span className="flight-skeleton-shape skeleton-date-price" aria-label="Checking fare"/>:priceLabel}</small>
+      return <button type="button" key={date} disabled={busy || date < today} aria-label={`${label} ${date.slice(0,4)}, ${priceLoading?'Checking price':priceLabel}`} aria-pressed={current} className={current?'is-selected':''} onClick={() => {if(!current)onChoose(date,returnDate?shiftFlightDate(date,duration):undefined);}}>
+        <strong>{compact?shortLabel:label}</strong><small>{priceLoading?<span className="flight-skeleton-shape skeleton-date-price" aria-label="Checking price"/>:priceLabel}</small>
       </button>;
     })}</div>
     <button className="flight-date-arrow" type="button" aria-label="Next seven dates" disabled={busy} onClick={() => setOffset(value => value + 7)}>›</button>

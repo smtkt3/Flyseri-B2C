@@ -1,14 +1,15 @@
 import { CheckoutActionBar } from '../components/CheckoutActionBar';
 import { checkoutPrice } from '../components/checkoutPrice';
 import { CheckoutPageHeader } from './CheckoutPageHeader';
+import { BookingLoading } from './BookingLoading';
 import { CheckoutHelpPanel } from '../components/CheckoutHelpPanel';
 import { FlightSupportLink } from './FlightSupportLink';
 import './checkout-step-style.css';
 import { FlightBaggageDetails, FlightServiceDetails } from './FlightFareInformation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { FlightOffer, FlightSearchRequest, TravellerProfile, FlightAncillaryRequest, FlightIdentityDocumentType } from '@flyseri/types';
-import {keepCheckoutPassports} from './checkoutPassportDraft';
+import {keepCheckoutPassports,checkoutPassports} from './checkoutPassportDraft';
 import { emptyServicePreferences, FlightServiceRequestFields, hasServiceRequest } from './FlightServiceRequests';
 import { refreshAncillarySelections } from './flightAncillarySelections';
 import { PremiumNavbar } from '../components/PremiumNavbar';
@@ -38,6 +39,7 @@ interface GuestCheckoutState {
   searchId: string;
   returnTo?: FlightBrowseReturn;
   seriReturnTo?: string;
+  editIntentId?: string;
 }
 type PassengerKind = 'Adult' | 'Child' | 'Infant';
 type Passenger = { kind: PassengerKind; givenNames: string; surname: string; gender: string; birthDate: string; nationality: string; idType: FlightIdentityDocumentType; idNumber: string; idExpiryDate: string; issuingCountryCode:string; residenceCountryCode:string; saveForFuture:boolean; frequentFlyer: string; confirmed: boolean };
@@ -75,6 +77,41 @@ export function GuestFlightCheckoutPage() {
   const state = isCheckoutState(location.state) ? location.state : null;
   if (!state) return <div className="guest-checkout-shell"><PremiumNavbar/><main className="guest-checkout-content"><CheckoutPageHeader title="Your flight checkout" description="Choose a flight to load its price and continue."/><Link className="account-outline-button" to="/flights">Choose a flight</Link><CheckoutActionBar label="Continue checkout" caption="Flight total" total="Price unavailable"><button type="button" className="btn-primary" disabled>Continue to extras</button></CheckoutActionBar></main></div>;
   return <CheckoutContent key={`${state.searchId}:${state.offer.offerId}`} checkout={state} />;
+}
+
+/** Reuse the traveler form; private draft values never enter route history. */
+export function FlightTravelerEditPage(){
+  const {intentId}=useParams(),{session}=useAuth(),navigate=useNavigate();
+  const [checkout,setCheckout]=useState<GuestCheckoutState|null>(null),[error,setError]=useState('');
+  useEffect(()=>{
+    let active=true;setCheckout(null);setError('');
+    if(!intentId||!session)return;
+    const owner=session.user.id;
+    void (async()=>{
+      try{
+        const [intent,booking]=await Promise.all([flightService.intent(intentId),flightService.bookingForIntent(intentId)]);
+        if(!active)return;
+        if(booking){navigate(`/app/bookings/${booking.id}`,{replace:true});return;}
+        const saved=readCheckoutDraft<{checkout:GuestCheckoutState;draft:GuestDraft}>(`traveler-edit:${intentId}`,owner);
+        const people=await Promise.all(intent.travellerIds.map(id=>travellerService.get(id)));
+        if(!active)return;
+        const request=saved?.checkout.searchRequest??(intent.searchRequest?{...intent.searchRequest,...(intent.tripId?{tripId:intent.tripId}:{})}:null);
+        if(!request)throw new Error('Your traveler form could not be reopened. Please choose your flight again or contact Flyseri.');
+        const value:GuestCheckoutState={...saved?.checkout,searchId:`edit-intent:${intentId}`,offer:intent.selectedOffer,searchRequest:request,editIntentId:intentId};
+        const documents=checkoutPassports(intentId,owner);
+        const passengers=saved?.draft.passengers??people.map((person,index)=>{
+          const document=documents.find(item=>item.travellerId===person.id);
+          return {...passengersFor(request)[index]!,givenNames:[person.legalFirstName,person.legalMiddleName].filter(Boolean).join(' '),surname:person.legalLastName,gender:person.gender??'',birthDate:person.dateOfBirth??'',nationality:person.nationalityCountryCode??'',idType:document?.documentType??'PASSPORT',idNumber:document?.documentNumber??'',idExpiryDate:document?.expiryDate??'',issuingCountryCode:document?.issuingCountryCode??'',residenceCountryCode:document?.residenceCountryCode??'',saveForFuture:person.saveForFuture??false};
+        });
+        keepCheckoutDraft(`guest:${value.searchId}:${value.offer.offerId}`,owner,{...saved?.draft,passengers:passengers.map(person=>({...person,confirmed:false})),contact:saved?.draft.contact??{name:'',email:session.user.email??'',dialCode:'+60',phone:''},servicePreferences:saved?.draft.servicePreferences??people.map(person=>({...emptyServicePreferences(),...intent.serviceRequests?.find(request=>request.travellerId===person.id)})),selectedExtras:intent.ancillaryRequests??[],contactNameManuallyEdited:saved?.draft.contactNameManuallyEdited??false,submissionKey:randomUUID(),submittedAttemptId:null} satisfies GuestDraft);
+        setCheckout(value);
+      }catch(cause){if(active)setError(cause instanceof Error?cause.message:'We could not reopen your traveler details.');}
+    })();
+    return()=>{active=false;};
+  },[intentId,session?.user.id]);
+  if(error)return <main className="account-page"><p className="account-error" role="alert">{error}</p><Link to={`/app/flights/booking-intents/${intentId}/extras`}>Return to extras</Link></main>;
+  if(!checkout)return <main className="account-page"><BookingLoading label="Opening your traveler details…" heading="Edit traveler details" description="Review and confirm your traveler details."/></main>;
+  return <CheckoutContent checkout={checkout}/>;
 }
 
 function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
@@ -246,6 +283,12 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
         setCheckoutNotice('The fare has changed. Review the updated total, then continue.');
         return;
       }
+      if(checkout.editIntentId){
+        const booking=await flightService.bookingForIntent(checkout.editIntentId);
+        if(booking){navigate(`/app/bookings/${booking.id}`,{replace:true});return;}
+        const previous=await flightService.intent(checkout.editIntentId);
+        if(previous.status!=='CANCELLED')await flightService.cancelIntent(checkout.editIntentId);
+      }
       const people = await travellerService.list();
       const travellerIds: string[] = [];
       for (const [index,passenger] of passengers.entries()) {
@@ -265,6 +308,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
         serviceRequests: servicePreferences.flatMap((value, index) => hasServiceRequest(value) ? [{ ...value, note: value.note.trim(), travellerId: travellerIds[index]! }] : []) });
       setSubmittedAttemptId(intent.id);
       keepCheckoutDraft(draftKey,session.user.id,{passengers,contact,servicePreferences,selectedExtras,contactNameManuallyEdited,submissionKey:submissionKey.current,submittedAttemptId:intent.id});
+      keepCheckoutDraft(`traveler-edit:${intent.id}`,session.user.id,{checkout:{...checkout,searchId:selection.searchId,offer:selection.offer,editIntentId:undefined},draft:{passengers,contact,servicePreferences,selectedExtras,contactNameManuallyEdited,submissionKey:submissionKey.current,submittedAttemptId:intent.id}});
       keepCheckoutPassports(intent.id,session.user.id,passengers.flatMap((person,index)=>person.idNumber?[{travellerId:travellerIds[index]!,documentType:person.idType,documentNumber:person.idNumber,expiryDate:person.idExpiryDate,issuingCountryCode:person.issuingCountryCode,residenceCountryCode:person.residenceCountryCode}]:[]));
       navigate(`/app/flights/booking-intents/${intent.id}/extras`, { state: { checkLatestFare: true, returnTo,
         passportsCaptured:true, bookingContact: { contactEmail: contact.email.trim(), contactPhone: `${contact.dialCode}${contact.phone.replace(/\D/g, '').replace(/^0/, '')}` } } });
@@ -275,10 +319,11 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
   }
 
   return <div className="guest-checkout-shell">
+    {submitting && <BookingLoading label="Saving your traveler details…" heading={checkout.editIntentId ? "Edit traveler details" : "Complete your traveler details"} description="Saving your details and preparing the next step."/>}
     <PremiumNavbar />
 
     <main className="guest-checkout-content">
-      <CheckoutPageHeader progress={<BookingProgress current={1} stage={0} />} title="Complete your traveler details" description="Add traveler and contact details to continue with your booking." />
+      <CheckoutPageHeader introOnly progress={<BookingProgress current={1} stage={0} />} title={checkout.editIntentId?"Edit traveler details":"Complete your traveler details"} description={checkout.editIntentId?"Review and confirm your traveler details. We’ll recheck your flight and extras when you save.":"Add traveler and contact details to continue with your booking."} back={checkout.editIntentId?<Link to={`/app/flights/booking-intents/${checkout.editIntentId}/extras`}>← Back to extras</Link>:undefined} />
 
       <div className="guest-checkout-layout">
         <section className="guest-checkout-main">
@@ -335,7 +380,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
           <section className="guest-checkout-card guest-checkout-baggage">
             <div className="guest-checkout-card-heading"><div><span className="guest-checkout-eyebrow">FARE INFORMATION</span><h2>Baggage allowance</h2></div></div>
             <FlightBaggageDetails offer={pricedOffer} />
-            {pricedOffer.baggageCharge && <p className="guest-checkout-note">Sabre returned an additional baggage charge: {money(pricedOffer.baggageCharge.amount, pricedOffer.baggageCharge.currency)}{pricedOffer.baggageCharge.description ? ` · ${pricedOffer.baggageCharge.description}` : ''}. Purchase isn’t available here.</p>}
+            {pricedOffer.baggageCharge && <p className="guest-checkout-note">Additional baggage fee: {money(pricedOffer.baggageCharge.amount, pricedOffer.baggageCharge.currency)}{pricedOffer.baggageCharge.description ? ` · ${pricedOffer.baggageCharge.description}` : ''}. Purchase isn’t available here.</p>}
           </section>
 
           <section className="guest-checkout-card">
@@ -379,7 +424,7 @@ function CheckoutContent({ checkout }: { checkout: GuestCheckoutState }) {
           <strong>{checkoutTotal ?? (checkingFare ? 'Checking price…' : 'Price unavailable')}</strong>
           <span>Price details <i aria-hidden="true" /></span>
         </button>
-        <button type="button" className="btn-primary" disabled={submitting || checkingFare || !checkoutTotal || !!fareCheckError} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept updated fare & continue' : 'Continue to extras'}</button>
+        <button type="button" className="btn-primary" disabled={submitting || checkingFare || !checkoutTotal || !!fareCheckError} onClick={() => void handleNext()}>{submitting ? 'Preparing…' : checkingFare ? 'Checking fare…' : !session ? 'Sign in to continue' : fareChanged ? 'Accept updated fare & continue' : checkout.editIntentId ? 'Save & return to extras' : 'Continue to extras'}</button>
       </div>
       {mobilePriceDetailsOpen && <div className="checkout-mobile-price-layer">
         <button type="button" className="checkout-mobile-price-scrim" aria-label="Close price details" onClick={() => setMobilePriceDetailsOpen(false)} />

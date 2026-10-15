@@ -97,10 +97,10 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
     if(!open||fareCriteria==='null')return;
     const request=JSON.parse(fareCriteria) as FlightSearchRequest;
     if(!/^[A-Z]{3}$/.test(request.origin)||!/^[A-Z]{3}$/.test(request.destination)||!request.departureDate||request.tripType==='MULTI_CITY')return;
-    const abort=new AbortController();setFareNotice('Loading cached fares…');
+    const abort=new AbortController();setFareNotice('Loading prices…');
     void flightService.cachedCalendarFares(request,monthKey,fareDateField,abort.signal).then(values=>{
-      if(abort.signal.aborted)return;setFares(values);setNow(Date.now());setFareNotice(values.length?'Cached total fares · prices may change':'No cached fares for this month. Choose any date to search.');
-    },()=>{if(!abort.signal.aborted)setFareNotice('Cached fares are temporarily unavailable. You can still choose a date.');});
+      if(abort.signal.aborted)return;setFares(values);setNow(Date.now());setFareNotice(values.length?'Indicative total prices · final price confirmed before booking':'Choose a date to see flight prices.');
+    },()=>{if(!abort.signal.aborted)setFareNotice('Choose a date to see flight prices.');});
     return()=>abort.abort();
   },[open,fareCriteria,monthKey,fareDateField]);
   const firstOffset = (new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1).getDay() + 6) % 7;
@@ -163,10 +163,10 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
           const fare=fareMap.get(key);
           const fareLabel=fare?new Intl.NumberFormat('en-MY',{notation:'compact',maximumFractionDigits:1}).format(fare.amount):'';
           const classes = ['calendar-day', key === value ? 'selected' : '', key === todayKey ? 'today' : ''].filter(Boolean).join(' ');
-          return <button key={key} type="button" className={`${classes}${fare&&fare.amount===lowestFare?' is-lowest-fare':''}`} data-calendar-date={key} aria-label={`${formatDate(key)}${key === value ? ', selected' : ''}${fare?`, cached total ${fare.currency} ${fare.amount}`:''}`} title={fare?`${fare.currency} ${fare.amount} total · cached fare`:undefined} aria-current={key === todayKey ? 'date' : undefined} disabled={disabled} onClick={() => { onChange(key); setOpen(false); trigger.current?.focus(); }}><span>{date.getDate()}</span>{fareSearch&&<small className="calendar-day-fare">{fareLabel||'—'}</small>}</button>;
+          return <button key={key} type="button" className={`${classes}${fare&&fare.amount===lowestFare?' is-lowest-fare':''}`} data-calendar-date={key} aria-label={`${formatDate(key)}${key === value ? ', selected' : ''}${fare?`, indicative total ${fare.currency} ${fare.amount}`:''}`} title={fare?`${fare.currency} ${fare.amount} total · final price confirmed before booking`:undefined} aria-current={key === todayKey ? 'date' : undefined} disabled={disabled} onClick={() => { onChange(key); setOpen(false); trigger.current?.focus(); }}><span>{date.getDate()}</span>{fareSearch&&<small className="calendar-day-fare">{fareLabel||'—'}</small>}</button>;
         })}
       </div>
-      {fareSearch&&<p className="calendar-fare-notice" role="status">{fareSearch.currency} · {fareSearch.adults+fareSearch.children+fareSearch.infants} traveler{fareSearch.adults+fareSearch.children+fareSearch.infants===1?'':'s'} · {fareNotice}{freshFares.length>0&&<span>Green marks the lowest cached fare. — means no cached price.</span>}</p>}
+      {fareSearch&&<p className="calendar-fare-notice" role="status">{fareSearch.currency} · {fareSearch.adults+fareSearch.children+fareSearch.infants} traveler{fareSearch.adults+fareSearch.children+fareSearch.infants===1?'':'s'} · {fareNotice}{freshFares.length>0&&<span>Green marks the lowest displayed price. Select a date for full flight options.</span>}</p>}
       <footer className="calendar-popover-footer"><span>{value ? `Selected · ${formatDate(value)}` : 'Choose a date'}</span><button type="button" disabled={!!maximumKey&&todayKey>maximumKey} onClick={() => { const target = minimum && minimumKey > todayKey ? minimum : today(); const key = dateKey(target); onChange(key); setVisibleMonth(monthStart(target)); setOpen(false); trigger.current?.focus(); }}>{minimum && minimumKey > todayKey ? 'Earliest' : 'Today'}</button></footer>
     </section>, document.body)}
   </div>;

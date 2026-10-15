@@ -47,18 +47,23 @@ export class FlightService {
     @Inject(FLIGHT_TELEMETRY) private readonly telemetry: FlightTelemetry,
   ) {}
 
-  async calendarCachedFares(input:FlightSearchRequest,month:string,field:'departure'|'return') {
+  async calendarCachedFares(input:FlightSearchRequest,month:string,field:'departure'|'return',keepTripLength=false,selectedDates?:string[]) {
     if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new ApiException('VALIDATION_ERROR','Choose a valid calendar month.',400);
     const year=Number(month.slice(0,4)),monthIndex=Number(month.slice(5))-1;
     if(year<new Date().getUTCFullYear()-1||year>new Date().getUTCFullYear()+3)throw new ApiException('VALIDATION_ERROR','Choose a month within the travel calendar.',400);
     if(input.tripType==='MULTI_CITY'||field==='return'&&input.tripType!=='ROUND_TRIP')return [];
-    const dates=Array.from({length:new Date(Date.UTC(year,monthIndex+1,0)).getUTCDate()},(_,index)=>`${month}-${String(index+1).padStart(2,'0')}`);
+    normalizeFlightSearch(input);
+    const allDates=Array.from({length:new Date(Date.UTC(year,monthIndex+1,0)).getUTCDate()},(_,index)=>`${month}-${String(index+1).padStart(2,'0')}`);
+    if(selectedDates?.some(date=>!allDates.includes(date)))throw new ApiException('VALIDATION_ERROR','Choose valid travel dates.',400);
+    const dates=selectedDates?[...new Set(selectedDates)]:allDates;
+    const tripLength=input.tripType==='ROUND_TRIP'&&input.returnDate?Date.parse(`${input.returnDate}T00:00:00Z`)-Date.parse(`${input.departureDate}T00:00:00Z`):0;
     const result:import('@flyseri/types').CachedCalendarFare[]=[];
     // Reads only: opening a month must never trigger a provider search or create a search session.
     for(let offset=0;offset<dates.length;offset+=4) {
       const batch=await Promise.all(dates.slice(offset,offset+4).map(async date=>{
         if(date<new Date().toISOString().slice(0,10))return null;
         const request={...input,...(field==='return'?{returnDate:date}:{departureDate:date})};
+        if(keepTripLength&&field==='departure'&&input.tripType==='ROUND_TRIP')request.returnDate=new Date(Date.parse(`${date}T00:00:00Z`)+tripLength).toISOString().slice(0,10);
         if(request.tripType==='ROUND_TRIP'&&(!request.returnDate||request.returnDate<request.departureDate))return null;
         const cached=await this.readCache(flightSearchHash(normalizeFlightSearch(request),this.config));
         if(!cached)return null;

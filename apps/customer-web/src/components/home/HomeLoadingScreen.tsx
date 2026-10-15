@@ -1,5 +1,5 @@
 import aircraft from '../../assets/seri-aircraft-render.png';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import './home-loading.css';
 
@@ -10,7 +10,7 @@ let rotationEpoch: number | null = (typeof document === 'undefined' ? [] :
   .find(animation => typeof animation.startTime === 'number')?.startTime as number | undefined ?? null;
 
 /** Keep this fallback in sync with the first-paint markup in index.html. */
-export function HomeLoadingScreen({label='Loading Flyseri',overlay=false}:{label?:string;overlay?:boolean}) {
+export function HomeLoadingScreen({label='Loading Flyseri',overlay=false,message}:{label?:string;overlay?:boolean;message?:ReactNode}) {
   const journey = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     let frame = 0;
@@ -36,6 +36,7 @@ export function HomeLoadingScreen({label='Loading Flyseri',overlay=false}:{label
         <img src={aircraft} alt="" width={96} height={96}/>
       </div>
     </div>
+    {message && <div className="home-loading-message">{message}</div>}
   </div>;
   return createPortal(content, document.body);
 }

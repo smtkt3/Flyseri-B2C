@@ -24,12 +24,17 @@ html body .booking-progress.booking-stepper ol li strong {
   display:block;max-width:100%;font-size:13px;font-weight:650;line-height:1.35;
   white-space:nowrap;word-break:normal;overflow-wrap:normal;
 }
-html body .booking-progress.booking-stepper ol li.is-current {color:#1269cf}
+html body .booking-progress.booking-stepper ol li.is-current {color:#1269cf;background:transparent;border-color:transparent;box-shadow:none}
 html body .booking-progress.booking-stepper ol li.is-current>span {background:#247ce6;color:#fff;box-shadow:0 0 0 3px #dfecff}
 html body .booking-progress.booking-stepper ol li.is-current strong {font-weight:800}
 html body .booking-progress.booking-stepper ol li.is-complete {color:#18796e}
 html body .booking-progress.booking-stepper ol li.is-complete>span {background:#e0f5ef;color:#18796e;font-size:16px}
 html body .booking-progress.booking-stepper ol li.is-complete::before {background:#9bd5c8}
+html body .booking-progress.booking-stepper .booking-step-edit{display:flex;flex-direction:column;align-items:center;gap:7px;border:0;background:transparent;padding:0;color:inherit;cursor:pointer;font:inherit;min-height:44px}
+html body .booking-progress.booking-stepper .booking-step-edit>span{position:relative;z-index:1;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#e0f5ef;color:#18796e;font-size:16px;font-weight:750;line-height:1}
+html body .booking-progress.booking-stepper .booking-step-edit:hover strong{text-decoration:underline;text-underline-offset:3px}
+html body .booking-progress.booking-stepper .booking-step-edit:focus-visible{outline:3px solid #78b3fb;outline-offset:5px;border-radius:8px}
+html body .booking-progress.booking-stepper .booking-step-edit:disabled{cursor:wait;opacity:.6}
 @media(max-width:600px) {
   html body .booking-progress.booking-stepper ol {padding:10px 4px;gap:2px;border-radius:14px}
   html body .booking-progress.booking-stepper ol li {gap:6px}
@@ -40,3 +45,11 @@ html body .booking-progress.booking-stepper ol li.is-complete::before {backgroun
 @media(max-width:360px) {
   html body .booking-progress.booking-stepper ol li strong {font-size:11px}
 }
+
+html body .booking-progress.booking-stepper ol li.is-result strong{white-space:normal;overflow-wrap:anywhere}
+html body .booking-progress.booking-stepper ol li.result-confirmed{color:#18796e}
+html body .booking-progress.booking-stepper ol li.result-confirmed>span{background:#e0f5ef;color:#18796e;box-shadow:0 0 0 3px #e0f5ef}
+html body .booking-progress.booking-stepper ol li.result-pending{color:#865300}
+html body .booking-progress.booking-stepper ol li.result-pending>span{background:#fff0ce;color:#865300;box-shadow:0 0 0 3px #fff6e3}
+html body .booking-progress.booking-stepper ol li.result-unsuccessful{color:#ad2834}
+html body .booking-progress.booking-stepper ol li.result-unsuccessful>span{background:#ffe5e8;color:#ad2834;box-shadow:0 0 0 3px #fff0f2}

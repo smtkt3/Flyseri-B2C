@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { FlightBookingIntent } from '@flyseri/types';
 import { FlightExtrasPage } from './FlightExtrasPage';
@@ -15,6 +15,16 @@ function mount(state:Record<string,unknown>|null=null){return render(<MemoryRout
 beforeEach(()=>{vi.resetAllMocks();api.intent.mockResolvedValue(selection());api.bookingForIntent.mockResolvedValue(null);api.validateIntent.mockResolvedValue(selection());});
 afterEach(()=>cleanup());
 describe('dedicated airline extras step',()=>{
+ it('places the extras introduction below the loader instead of in the page header',()=>{
+  api.intent.mockReturnValue(new Promise(()=>{}));
+  const {container}=mount();
+  const loader=screen.getByRole('status',{name:'Checking your flight and available extras…'});
+  expect(within(loader).getByText('Customize your flight')).toBeTruthy();
+  expect(within(loader).getByText('Choose only what you need. Airline extras are optional.')).toBeTruthy();
+  expect(container.querySelector('.checkout-page-header h1')).toBeNull();
+  expect(container.querySelector('.checkout-page-header>p')).toBeNull();
+  expect(loader.querySelector('.home-loading-journey')?.nextElementSibling?.className).toBe('home-loading-message');
+ });
  it('recovers a failed load without saving or changing extras',async()=>{
   api.intent.mockRejectedValueOnce(new Error('Connection interrupted'));mount();
   await screen.findByRole('alert');fireEvent.click(screen.getByRole('button',{name:'Retry loading extras'}));

@@ -188,7 +188,7 @@ export class SeriOrchestratorService {
     }
 
     if (!this.config.SERI_AI_ENABLED || !this.provider) {
-      const response = 'I can help plan your journey. Live Seri AI is not configured yet; you can still manage trips, search flights, and check your visa, documents, orders, and payments from Flyseri.';
+      const response = 'Chat assistance is temporarily unavailable. You can still search flights, manage your trips, or contact Flyseri for help.';
       const answer = await this.store.addMessage(conversation.id, { role: 'ASSISTANT', content: response });
       await this.store.recordUsage({ customerId: user.customerId, conversationId, requestId, provider: null, model: null, kind: 'DETERMINISTIC', latencyMs: 0, success: true, promptVersion: SERI_PROMPT_VERSION });
       return { conversation, message: answer, deterministic: true, provider: null, promptVersion: SERI_PROMPT_VERSION };

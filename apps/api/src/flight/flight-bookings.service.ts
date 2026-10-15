@@ -154,7 +154,8 @@ export class FlightBookingsService {
         checked = { currency: priced.currency, totalAmount: priced.currentTotalAmount };
         body = buildSabreCreateNdcBooking(priced.ndcContext, associatedPassengers, { email: input.contactEmail, phone: input.contactPhone }, agency);
       } else {
-        body = buildSabreCreateBooking(intent.selectedOffer, associatedPassengers, {email: input.contactEmail, phone: input.contactPhone}, agency, input.billingAddress);
+        body = buildSabreCreateBooking(intent.selectedOffer, associatedPassengers, {email: input.contactEmail, phone: input.contactPhone}, agency,
+          {currency: intent.currency, totalAmount: intent.validatedTotalAmount});
         checked = selectCheckedAtpcoOffer(await this.sabre.flightCheck(intent.selectedOffer, passengers.map(person => person.passengerCode)), intent.selectedOffer, this.config.SABRE_PCC!);
       }
       if (checked.currency !== intent.currency || !amountEquals(checked.totalAmount, intent.validatedTotalAmount)) throw new ApiException('CONFLICT', 'The reservation fare differs from the accepted fare. No booking was sent. Please check the fare again.', 409);
@@ -176,11 +177,14 @@ export class FlightBookingsService {
     let created: {confirmationId: string; sabreBookingId: string};
     try { created = await this.sabre.createBooking(body); }
     catch (error) {
-      if (error instanceof SabreBookingUnknownError) { await repository.unknown(id,error); this.telemetry.increment('booking_unknown_total'); }
-      else {
-        const rejected = error instanceof SabreBookingRejectedError ? error : undefined;
-        await repository.rejected(id, rejected?.failureCode ?? 'PROVIDER_REJECTED', rejected ? {httpStatus:rejected.httpStatus,errors:rejected.diagnostics} : undefined);
+      if (error instanceof SabreBookingRejectedError) {
+        await repository.rejected(id, error.failureCode, {httpStatus:error.httpStatus,errors:error.diagnostics});
         this.telemetry.increment('booking_create_failure_total');
+      } else {
+        // An unexpected adapter error does not prove the airline rejected the
+        // reservation. Preserve uncertainty and the original one-attempt claim.
+        await repository.unknown(id, error instanceof SabreBookingUnknownError ? error : undefined);
+        this.telemetry.increment('booking_unknown_total');
       }
       return this.detail(customerId, id);
     }

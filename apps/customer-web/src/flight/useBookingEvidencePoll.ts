@@ -10,7 +10,7 @@ export function useBookingEvidencePoll(booking: FlightBooking | null, enabled: b
   const allowed = useRef(enabled); allowed.current = enabled;
   const issued = booking ? bookingHasIssuedTickets(booking) : false;
   useEffect(() => {
-    if (!enabled || !booking || issued || !['BOOKING_IN_PROGRESS','TICKETING_IN_PROGRESS','AWAITING_STAFF_TICKETING','PAID'].includes(booking.status)) return;
+    if (!enabled || !booking || issued || !['BOOKING_PENDING','BOOKING_UNKNOWN','MANUAL_REVIEW_REQUIRED','BOOKING_IN_PROGRESS','TICKETING_IN_PROGRESS','AWAITING_STAFF_TICKETING','PAID'].includes(booking.status)) return;
     const id = booking.id;
     let active = true, running = false, ticks = 0;
     const poll = () => {

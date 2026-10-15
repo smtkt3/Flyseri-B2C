@@ -13,6 +13,7 @@ const DemoBookingManagement = lazy(() => import('../flight/DemoBookingManagement
 const DemoPointsPage=lazy(()=>import('../rewards/DemoPointsPage').then(module=>({default:module.DemoPointsPage})));
 const App = lazy(() => import('../App'));
 const AuthPage = lazy(() => import('./AuthPage').then((module) => ({ default: module.AuthPage })));
+const AuthCallbackPage = lazy(() => import('./AuthCallbackPage').then(module=>({default:module.AuthCallbackPage})));
 const CustomerShell = lazy(() => import('../account/CustomerShell').then((module) => ({ default: module.CustomerShell })));
 const PublicFlightPage = lazy(() => import('../flight/PublicFlightPage').then((module) => ({ default: module.PublicFlightPage })));
 const GuestFlightCheckoutPage = lazy(() => import('../flight/GuestFlightCheckoutPage').then((module) => ({ default: module.GuestFlightCheckoutPage })));
@@ -27,7 +28,7 @@ function homeLocation(location: Location): Location {
 }
 
 function publicLocation(location: Location): boolean {
-  return !overlayPaths.has(location.pathname) && !location.pathname.startsWith('/app') && location.pathname !== '/reset-password';
+  return !overlayPaths.has(location.pathname) && !location.pathname.startsWith('/app') && location.pathname !== '/reset-password' && location.pathname !== '/auth/callback';
 }
 
 export function AuthRoutes() {
@@ -45,6 +46,7 @@ export function AuthRoutes() {
       <PageRecoveryBoundary key={background.pathname} fallback={<div className="customer-site-shell"><PremiumNavbar/><PageRecovery failed /></div>}><Suspense fallback={background.pathname === '/' ? <HomeLoadingScreen /> : <PageLoading />}>
         <Routes location={background}>
           <Route path="/" element={<App />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/reset-password" element={<div className="customer-site-shell"><PremiumNavbar/><AuthPage mode="reset-password" /></div>} />
           <Route path="/plan-budget" element={<BudgetPage />} />
           <Route path="/help" element={<PublicHelpPage />} />
@@ -69,6 +71,6 @@ export function AuthRoutes() {
       </Routes>
     </Suspense>}
     {/* The homepage owns its inline/floating chat; all other routes share this host. */}
-    {background.pathname !== '/' && !flightResultsPage && <DeferredHomeSeriSearch active={false} floatingOnly />}
+    {background.pathname !== '/' && background.pathname !== '/auth/callback' && !flightResultsPage && <DeferredHomeSeriSearch active={false} floatingOnly />}
   </>;
 }

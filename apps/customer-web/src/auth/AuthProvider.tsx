@@ -4,13 +4,13 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { PageLoading } from '../components/PageLoading';
 
-interface AuthState { session: Session | null; resolving: boolean; error: string | null; acceptSession: (session: Session) => void }
+interface AuthState { session: Session | null; resolving: boolean; recovery: boolean; error: string | null; acceptSession: (session: Session) => void }
 type AuthSnapshot = Omit<AuthState, 'acceptSession'>;
-const AuthContext = createContext<AuthState>({ session: null, resolving: true, error: null, acceptSession: () => undefined });
+const AuthContext = createContext<AuthState>({ session: null, resolving: true, recovery:false, error: null, acceptSession: () => undefined });
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthSnapshot>({ session: null, resolving: true, error: null });
+  const [state, setState] = useState<AuthSnapshot>({ session: null, resolving: true, recovery:false, error: null });
   const authEventVersion = useRef(0);
   useEffect(() => {
     let active = true;
@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = authService.onChange((session, event) => {
       if (event === 'INITIAL_SESSION' && authEventVersion.current !== restoreVersion) return;
       authEventVersion.current += 1;
-      if (active) setState((current) => ({ ...current, session, resolving: false, error: null }));
+      if (active) setState((current) => ({ ...current, session, resolving: false, recovery:event==='PASSWORD_RECOVERY'||Boolean(current.recovery&&session&&session.user.id===current.session?.user.id), error: null }));
     });
     void authService.restore().then(
       (session) => {
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   const acceptSession = (session: Session) => {
     authEventVersion.current += 1;
-    setState({ session, resolving: false, error: null });
+    setState({ session, resolving: false, recovery:false, error: null });
   };
   return <AuthContext.Provider value={{ ...state, acceptSession }}>{children}</AuthContext.Provider>;
 }

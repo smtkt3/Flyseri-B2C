@@ -1,33 +1,56 @@
 // @vitest-environment jsdom
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-import {MemoryRouter,Routes,Route,useLocation} from 'react-router-dom';
+import {cleanup,render,screen} from '@testing-library/react';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
 import type {FlightBooking} from '@flyseri/types';
-import {ApiClientError} from '../lib/api/client';
 import {FlightPaymentPreparation} from './FlightPaymentPreparation';
-const api=vi.hoisted(()=>({booking:vi.fn(),refreshCheckout:vi.fn(),reviewExtras:vi.fn(),skipExtras:vi.fn(),confirmExtras:vi.fn()}));
-const order=vi.hoisted(()=>vi.fn());
+
+const api=vi.hoisted(()=>({refreshCheckout:vi.fn()}));
+const commerce=vi.hoisted(()=>({createFlightOrder:vi.fn()}));
 vi.mock('../services/flightService',()=>({flightService:api}));
-vi.mock('../services/commerceService',()=>({commerceService:{createFlightOrder:order}}));
-vi.mock('./FlightAncillaryPurchasePanel',()=>({FlightAncillaryPurchasePanel:()=>null}));
-vi.mock('./FlightSelectedExtras',()=>({FlightSelectedExtras:()=>null}));
-const booking={id:'booking',bookingIntentId:'intent',ancillaryRequests:[{id:'extra',amount:'50',currency:'BDT'}],ancillaryPurchase:{id:'purchase',status:'UNAVAILABLE',items:[]}} as unknown as FlightBooking;
-function Status(){const location=useLocation();return <p>{location.state?.checkoutBlocked}</p>;}
-function mount(){render(<MemoryRouter initialEntries={['/prepare']}><Routes><Route path="/prepare" element={<FlightPaymentPreparation booking={booking}/>}/><Route path="/app/bookings/:id" element={<Status/>}/><Route path="/app/orders/:id" element={<p>Payment order</p>}/></Routes></MemoryRouter>);}
-beforeEach(()=>{vi.resetAllMocks();api.booking.mockResolvedValue(booking);api.refreshCheckout.mockResolvedValue(booking);api.skipExtras.mockResolvedValue({...booking.ancillaryPurchase,status:'SKIPPED'});order.mockResolvedValue({id:'order'});});
+vi.mock('../services/commerceService',()=>({commerceService:commerce}));
+const booking={id:'booking-one',bookingIntentId:'intent-one',status:'PNR_CREATED',pnr:'ABC123',amount:'100.00',currency:'MYR',ancillaryRequests:[]} as unknown as FlightBooking;
+beforeEach(()=>{vi.resetAllMocks();api.refreshCheckout.mockReturnValue(new Promise(()=>{}));});
 afterEach(cleanup);
-it('saves ticket-only choice and opens payment after reservation verification',async()=>{
- mount();fireEvent.click(await screen.findByRole('button',{name:'Continue without extras'}));
- await screen.findByText('Payment order');expect(api.skipExtras).toHaveBeenCalledWith('booking');expect(order).toHaveBeenCalledWith('intent');
+
+it('keeps the airline PNR hidden while the reservation is being checked before the final page',()=>{
+  render(<MemoryRouter><FlightPaymentPreparation booking={booking}/></MemoryRouter>);
+  expect(screen.queryByRole('region',{name:'Airline booking reference'})).toBeNull();
+  expect(screen.queryByText('ABC123')).toBeNull();
+  expect(screen.getByRole('listitem',{name:'Review trip, current step'})).toBeTruthy();
+  expect(screen.queryByRole('region',{name:'Payment methods'})).toBeNull();
+  expect(screen.queryByRole('heading',{name:'Complete your payment'})).toBeNull();
+  expect(screen.queryByRole('button',{name:/Preparing payment/})).toBeNull();
+  expect(screen.queryByText('Payment confirmed')).toBeNull();
+  expect(screen.queryByText('Confirmed')).toBeNull();
+  expect(commerce.createFlightOrder).not.toHaveBeenCalled();
+  expect(booking.order).toBeUndefined();
 });
-it('shows reservation status when verification fails instead of offering an ineffective skip',async()=>{
- api.refreshCheckout.mockRejectedValue(new ApiClientError('CONFLICT','Your reservation needs airline verification before payment. Contact Flyseri.'));
- mount();await screen.findByText('Your reservation needs airline verification before payment. Contact Flyseri.');
- expect(screen.queryByRole('button',{name:'Continue without extras'})).toBeNull();expect(api.skipExtras).not.toHaveBeenCalled();expect(order).not.toHaveBeenCalled();
+
+it('does not invent a reference when the supplier has not returned a PNR',()=>{
+  render(<MemoryRouter><FlightPaymentPreparation booking={{...booking,pnr:null}}/></MemoryRouter>);
+  expect(screen.queryByRole('region',{name:'Airline booking reference'})).toBeNull();
 });
-it('does not open payment when skipping extras fails',async()=>{
- api.skipExtras.mockRejectedValue(new Error('Could not save ticket-only choice'));
- mount();fireEvent.click(await screen.findByRole('button',{name:'Continue without extras'}));
- await waitFor(()=>expect(screen.getByRole('alert').textContent).toContain('Could not save ticket-only choice'));
- expect(order).not.toHaveBeenCalled();
+
+it('continues directly to the single payment page after verification and creates one order',async()=>{
+  api.refreshCheckout.mockResolvedValue(booking);
+  commerce.createFlightOrder.mockResolvedValue({id:'order-one'});
+  render(<MemoryRouter initialEntries={['/app/bookings/booking-one']}><Routes>
+    <Route path="/app/bookings/:id" element={<FlightPaymentPreparation booking={booking}/>}/>
+    <Route path="/app/orders/:id" element={<h1>Complete your payment</h1>}/>
+  </Routes></MemoryRouter>);
+  await screen.findByRole('heading',{name:'Complete your payment'});
+  expect(screen.queryByRole('heading',{name:'Checking your booking'})).toBeNull();
+  expect(api.refreshCheckout).toHaveBeenCalledOnce();
+  expect(commerce.createFlightOrder).toHaveBeenCalledOnce();
+});
+
+it('opens an existing order without another fare check or order creation',async()=>{
+  render(<MemoryRouter initialEntries={['/app/bookings/booking-one']}><Routes>
+    <Route path="/app/bookings/:id" element={<FlightPaymentPreparation booking={{...booking,order:{id:'order-one'} as FlightBooking['order']}}/>}/>
+    <Route path="/app/orders/:id" element={<h1>Complete your payment</h1>}/>
+  </Routes></MemoryRouter>);
+  await screen.findByRole('heading',{name:'Complete your payment'});
+  expect(api.refreshCheckout).not.toHaveBeenCalled();
+  expect(commerce.createFlightOrder).not.toHaveBeenCalled();
 });

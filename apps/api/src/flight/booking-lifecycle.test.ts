@@ -45,7 +45,8 @@ describe('flight reservation and payment lifecycle with isolated provider fixtur
       const airlineView = {retrievedAt:new Date().toISOString(),cancellationCheckComplete:true,tickets:[],travellers:[{givenName:'Test',surname:'Traveler'}],flights:[{origin:'KUL',destination:'PEN',airlineCode:'MH',flightNumber:'1148',departureDate:'2027-02-18',departureTime:'09:00',arrivalDate:'2027-02-18',arrivalTime:'10:00',status:'Confirmed'}]};
       const getBookingView=vi.fn(async()=>({bookingId:'provider-1',view:airlineView}));
       Object.assign(provider,{getBookingView,fulfillFlightTickets:vi.fn()});
-      const input = { namesConfirmed: true, contactEmail: 'test@example.com', contactPhone: '+12025550100', billingAddress: agency.address };
+      const input = { namesConfirmed: true, contactEmail: 'test@example.com', contactPhone: '+12025550100', billingAddress: agency.address,
+        passports: [{ travellerId: travelerId, documentType: 'PASSPORT' as const, documentNumber: 'TEST00001', expiryDate: '2030-01-01', issuingCountryCode: 'MY', residenceCountryCode: 'MY' }] };
       async function selection() {
         const { intent } = await store.create({ customerId, tripId: null, searchId: randomUUID(), offerId: offer.offerId, idempotencyKey: randomUUID(), travellerIds: [travelerId], offer, search });
         await store.saveValidation(customerId, intent.id, { result: 'AVAILABLE', currentTotalAmount: offer.totalAmount, currency: offer.currency, itinerary: offer, validatedAt: new Date().toISOString() }, 600);
@@ -90,6 +91,13 @@ describe('flight reservation and payment lifecycle with isolated provider fixtur
       expect((await bookings.reserve(customerId, unknownIntent, input)).id).toBe(unknown.id);
       expect(createBooking).toHaveBeenCalledTimes(2);
       await expect(commerce.createFlightOrder(customerId, unknownIntent, 'unknown')).rejects.toThrow();
+      const unexpectedIntent = await selection();
+      createBooking.mockRejectedValueOnce(new Error('Unexpected adapter failure after submission'));
+      const unexpected = await bookings.reserve(customerId, unexpectedIntent, input);
+      expect(unexpected.status).toBe('BOOKING_UNKNOWN');
+      expect((await bookings.reserve(customerId, unexpectedIntent, input)).id).toBe(unexpected.id);
+      expect(createBooking).toHaveBeenCalledTimes(3);
+      await expect(commerce.createFlightOrder(customerId, unexpectedIntent, 'unexpected')).rejects.toThrow();
     } finally { await database.close(); }
   }, 60000);
 });

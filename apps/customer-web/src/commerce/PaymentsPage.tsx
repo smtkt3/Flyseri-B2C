@@ -19,9 +19,9 @@ export function PaymentsPage() {
     {loading && <HomeLoadingScreen overlay label="Loading payments…"/>}
     {!loading && error && <div className="account-panel" role="alert">We couldn't load your payments. <button className="account-link" onClick={() => setAttempt((value) => value + 1)}><Translated text="Retry" /></button></div>}
     {!loading && !error && !payments.length && <div className="account-panel"><h2>No payments yet</h2>
-      <p>Your payment history will appear here after checkout starts. Open an order to continue Stripe sandbox payment or check its latest status.</p><div className="checkout-actions"><Link className="account-outline-button" to="/app/orders">View my orders →</Link></div></div>}
+      <p>Your payment history will appear here after checkout starts. Open an order to continue test payment or check its latest status.</p><div className="checkout-actions"><Link className="account-outline-button" to="/app/orders">View my orders →</Link></div></div>}
     {!loading && !error && payments.map((payment) => <Link className="account-panel commerce-order-link" key={payment.id} to={`/app/orders/${payment.orderId}`}>
-      <div><strong>{paymentStatus(payment.status)}</strong><p>{formatTimestamp(payment.createdAt)}{payment.provider === 'STRIPE_TEST' ? ' · Stripe sandbox' : ''}</p><small>{payment.status === 'SUCCEEDED' ? 'View order and receipt' : ['PENDING','PROCESSING','UNKNOWN'].includes(payment.status) ? 'Open order to check or resume checkout' : 'View order details'}</small></div>
+      <div><strong>{paymentStatus(payment.status)}</strong><p>{formatTimestamp(payment.createdAt)}{payment.provider === 'STRIPE_TEST' ? ' · Test payment' : ''}</p><small>{payment.status === 'SUCCEEDED' ? 'View order and receipt' : ['PENDING','PROCESSING','UNKNOWN'].includes(payment.status) ? 'Open order to check or resume checkout' : 'View order details'}</small></div>
       <strong>{formatMoney(payment.amount, payment.currency)}</strong><span aria-hidden="true">→</span></Link>)}
   </div>;
 }

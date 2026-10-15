@@ -9,7 +9,7 @@ export function bookingMilestones(booking: FlightBooking, paymentConfirmed?: boo
   const issued = bookingHasIssuedTickets(booking);
   return [
     { label: 'Reservation', value: booking.status === 'CANCELLED' ? 'Cancelled' : uncertain ? 'Needs verification' : booking.pnr ? 'PNR confirmed' : booking.status === 'BOOKING_FAILED' ? 'Unsuccessful' : 'Not confirmed', tone: booking.status === 'CANCELLED' ? 'neutral' : !uncertain && booking.pnr ? 'confirmed' : 'attention' },
-    { label: 'Payment', value: paid ? 'Sandbox payment confirmed' : booking.order?.status === 'PAYMENT_PROCESSING' ? 'Processing' : booking.order?.status === 'PAYMENT_FAILED' ? 'Failed' : booking.order?.status === 'EXPIRED' ? 'Payment window expired' : booking.order ? 'Payment due' : 'No confirmed payment', tone: paid ? 'confirmed' : 'neutral' },
+    { label: 'Payment', value: paid ? 'Test payment confirmed' : booking.order?.status === 'PAYMENT_PROCESSING' ? 'Processing' : booking.order?.status === 'PAYMENT_FAILED' ? 'Failed' : booking.order?.status === 'EXPIRED' ? 'Payment window expired' : booking.order ? 'Payment due' : 'No confirmed payment', tone: paid ? 'confirmed' : 'neutral' },
     { label: 'Ticket', value: issued ? 'Issued documents reported' : booking.status === 'TICKETING_IN_PROGRESS' ? 'Issuance in progress' : 'Not verified', tone: issued ? 'confirmed' : 'neutral' },
   ];
 }

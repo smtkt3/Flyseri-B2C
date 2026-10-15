@@ -2,6 +2,15 @@
 .flight-airline-offers-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
 .flight-airline-offers-heading h3{margin:0!important;color:#203a5d;font-size:17px!important}
 .flight-airline-offers-heading p{margin:5px 0 0;font-size:12px;line-height:1.5;color:#637e98}
+.flight-airline-offers .flight-extra-guidance{margin:0 0 10px;font-size:12px;line-height:1.5;color:#526e8f}
+.flight-extra-conditions{margin-top:12px;padding-top:10px;border-top:1px solid #e5edf5;font-size:12px;color:#526e8f}
+.flight-extra-conditions>summary{min-height:36px;display:flex;align-items:center;color:#2476d3;cursor:pointer;list-style:none}
+.flight-extra-conditions>summary:after{content:'+';margin-left:auto;font-size:18px}
+.flight-extra-conditions[open]>summary:after{content:'−'}
+.flight-extra-conditions>summary::-webkit-details-marker{display:none}
+.flight-airline-offers .flight-airline-service-select[aria-pressed=true]{background:#edf8f2;border-color:#9ecab3;color:#226b49}
+.flight-selected-extra-remove{display:block;margin-top:6px;min-height:36px;border:0;border-radius:6px;background:transparent;color:#2476d3;font:600 12px Inter,system-ui,sans-serif;cursor:pointer;padding:4px 0}
+.flight-selected-extra-remove:disabled{opacity:.5;cursor:wait}
 .flight-airline-offers-heading button{flex:none;min-height:44px;padding:9px 12px;border-radius:10px;font-size:12px}
 .flight-airline-offers-filters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:18px 0 14px}
 .flight-airline-offers-filters button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:48px;padding:9px 8px;border:1px solid #dce8f5;border-radius:10px;background:#fff;color:#3e5878;font-size:12px;font-weight:650;cursor:pointer}
@@ -95,3 +104,6 @@
 .flight-airline-rules-pending{color:#344f70}
 .flight-selected-extra .flight-airline-rules{margin:8px 0 0}
 @media(max-width:380px){.flight-airline-rules{padding:9px}.flight-selected-extra:has(.flight-airline-rules){flex-wrap:wrap}.flight-selected-extra:has(.flight-airline-rules)>div{flex-basis:100%}.flight-selected-extra:has(.flight-airline-rules)>span{max-width:100%;text-align:left}}
+
+.flight-airline-offers article.flight-airline-service>.flight-airline-service-summary{grid-template-columns:minmax(0,1fr) auto;cursor:default}
+@media(max-width:650px){.flight-airline-offers-filters{display:flex;overflow-x:auto;gap:8px;padding:3px 2px 8px;scrollbar-width:thin}.flight-airline-offers-filters button{flex:0 0 auto;white-space:nowrap;padding:10px 14px}.flight-airline-offers .flight-airline-service-list{grid-template-columns:1fr}}

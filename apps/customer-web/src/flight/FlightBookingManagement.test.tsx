@@ -16,9 +16,19 @@ const value={id:'one',bookingIntentId:'intent',status:'PNR_CREATED',pnr:'ABC123'
 beforeEach(()=>{vi.resetAllMocks();api.booking.mockResolvedValue(value);api.bookingCapabilities.mockResolvedValue({reservationAvailable:true,ticketIssuanceAvailable:false});});
 afterEach(cleanup);
 function Switch(){const navigate=useNavigate();return <button onClick={()=>navigate('/app/bookings/two')}>Other booking</button>;}
-function open(){render(<MemoryRouter initialEntries={['/app/bookings/one']}><Switch/><Routes><Route path="/app/bookings/:bookingId" element={<FlightBookingPage/>}/></Routes></MemoryRouter>);}
-it('routes every new payment through preparation instead of creating an order directly',async()=>{
- open();fireEvent.click(await screen.findByRole('button',{name:'Continue to secure payment →'}));
+function open(checkoutBlocked?:string){render(<MemoryRouter initialEntries={[{pathname:'/app/bookings/one',state:checkoutBlocked?{checkoutBlocked}:undefined}]}><Switch/><Routes><Route path="/app/bookings/:bookingId" element={<FlightBookingPage/>}/></Routes></MemoryRouter>);}
+it('lets a paused checkout run reservation verification again without creating an order directly',async()=>{
+ open('Your reservation needs verification.');
+ const retry=await screen.findByRole('button',{name:'Check & continue to payment'});
+ expect(screen.queryByText('ABC123')).toBeNull();
+ expect(screen.queryByRole('region',{name:'Airline booking reference'})).toBeNull();
+ expect(screen.queryByText('Reservation verification before payment')).toBeNull();
+ fireEvent.click(retry);
+ await screen.findByText('Reservation verification before payment');
+ expect(commerce.createFlightOrder).not.toHaveBeenCalled();
+});
+it('automatically routes a new reservation through payment preparation without creating an order directly',async()=>{
+ open();
  await screen.findByText('Reservation verification before payment');expect(commerce.createFlightOrder).not.toHaveBeenCalled();
 });
 it('blocks payment for uncertain PNRs and does not display a confirmed reservation badge',async()=>{
@@ -27,8 +37,8 @@ it('blocks payment for uncertain PNRs and does not display a confirmed reservati
 });
 it('ignores a late airline refresh after the customer opens a different booking',async()=>{
  let resolve!:(value:unknown)=>void;api.refreshBooking.mockReturnValue(new Promise(done=>{resolve=done;}));
- api.booking.mockImplementation(async(id:string)=>id==='two'?{...value,id:'two',pnr:'XYZ789'}:value);
+ api.booking.mockImplementation(async(id:string)=>({...value,status:'MANUAL_REVIEW_REQUIRED',...(id==='two'?{id:'two',pnr:'XYZ789'}:{})}));
  open();fireEvent.click(await screen.findByRole('button',{name:'Check airline status'}));fireEvent.click(screen.getByRole('button',{name:'Other booking'}));
- await screen.findByRole('heading',{name:'Booking XYZ789'});await act(async()=>resolve({...value,pnr:'LATE01'}));
- expect(screen.getByRole('heading',{name:'Booking XYZ789'})).toBeTruthy();expect(screen.queryByRole('heading',{name:'Booking LATE01'})).toBeNull();
+ await screen.findByText('XYZ789');await act(async()=>resolve({...value,pnr:'LATE01'}));
+ expect(screen.getByText('XYZ789')).toBeTruthy();expect(screen.queryByText('LATE01')).toBeNull();
 });

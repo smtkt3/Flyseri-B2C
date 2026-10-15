@@ -145,13 +145,13 @@ export function VisaApplicationPage() {
   async function advanceFromDetails() {
     if (!application || busy) return;
     setError('');
-    if (!form.length) { setError('The application form is not configured for this service.'); return; }
+    if (!form.length) { setError('This application is temporarily unavailable. Please contact Flyseri for help.'); return; }
     if (completedFormFields !== totalFormFields) { setError('Complete the required application answers before continuing.'); return; }
     if (await saveAll()) { setStage('documents'); setNotice('Application details saved. Add the required documents next.'); }
   }
   function advanceFromDocuments() {
     setError('');
-    if (!application?.requirements.length) { setError('Document requirements are not configured for this service.'); return; }
+    if (!application?.requirements.length) { setError('Please contact Flyseri to confirm the required documents before submitting.'); return; }
     if (completeDocuments !== requiredDocuments.length) { setError('Attach every required document and wait for its security check before reviewing.'); return; }
     setStage('review');
   }
@@ -177,7 +177,7 @@ export function VisaApplicationPage() {
       const result = await commerceService.startPayment(order.id, crypto.randomUUID());
       if (result.redirectUrl) { window.location.assign(result.redirectUrl); return; }
       await load(application.id);
-      setNotice('Payment is being checked. The status updates only after the provider confirms it.');
+      setNotice('Payment is being checked. Please wait for confirmation before paying again.');
     } catch (cause) { setError(cause instanceof ApiClientError ? cause.message : "We couldn't open checkout. No payment has been confirmed."); }
     finally { setBusy(false); }
   }
@@ -298,10 +298,10 @@ export function VisaApplicationPage() {
         })}
       </section>)}
       <div className="visa-stage-actions"><span>{completedFormFields} / {totalFormFields} required answers</span><button type="button" className="btn-primary visa-submit" disabled={busy || saving || !canEdit} onClick={() => void advanceFromDetails()}>{saving ? 'Saving…' : 'Save & continue to documents →'}</button></div>
-    </div> : <section className="account-panel visa-unconfigured"><h2>Application form is not configured</h2><p>This service cannot accept an application until its reviewed form is published. Your saved travellers and files remain available.</p></section>)}
+    </div> : <section className="account-panel visa-unconfigured"><h2>Application temporarily unavailable</h2><p>Please contact Flyseri for help with this application. Your saved travelers and files remain available.</p></section>)}
 
     {stage === 'documents' && <section className="visa-documents-section"><div className="visa-section-title"><div><p className="account-eyebrow">STEP 03 / 05 · SECURE DOCUMENT VAULT</p><h2>Upload your documents</h2><p className="account-muted">Add each applicant's required files, then wait for the security check to finish.</p></div><span>{completeDocuments}/{requiredDocuments.length} ready</span></div>
-      {application.requirements.length === 0 ? <div className="account-panel visa-unconfigured"><p>No document requirements have been configured for this service. Contact Seri Mechan before submitting.</p></div>
+      {application.requirements.length === 0 ? <div className="account-panel visa-unconfigured"><p>Please contact Flyseri to confirm the required documents before submitting.</p></div>
         : applicants.map((person) => <section className="account-panel visa-person-section" key={person.id}><div className="visa-person-heading"><span className="trip-person-avatar">{person.legalFirstName[0]}</span><div><p className="account-eyebrow">APPLICANT CHECKLIST</p><h3>{person.legalFirstName} {person.legalLastName}</h3></div></div>
           <div className="visa-requirement-list">{application.requirements.filter((item) => item.travellerId === person.id && requirementApplies(item)).map((requirement) => {
             const canReplace = correctionMode && actionRequests.some((request) => request.requirementId === requirement.id);
@@ -358,11 +358,11 @@ export function VisaApplicationPage() {
         {order && <Link className="account-link" to={`/app/orders/${order.id}`}>View order details →</Link>}
       </section>}
 
-    </div><aside className="visa-flow-aside"><section className="visa-service-summary account-panel"><div><p className="account-eyebrow">YOUR VISA SERVICE</p><h2>{countryName(application.destinationCountryCode)} · {application.visaTypeName}</h2><p>{String(application.serviceSnapshot?.processingTimeText ?? 'Processing time information has not been configured.')}</p>
+    </div><aside className="visa-flow-aside"><section className="visa-service-summary account-panel"><div><p className="account-eyebrow">YOUR VISA SERVICE</p><h2>{countryName(application.destinationCountryCode)} · {application.visaTypeName}</h2><p>{String(application.serviceSnapshot?.processingTimeText ?? 'Contact Flyseri for the estimated processing time.')}</p>
       {typeof application.serviceSnapshot?.entryType === 'string' && <span>{String(application.serviceSnapshot.entryType)} entry</span>}
       {typeof application.serviceSnapshot?.validityText === 'string' && <span>{String(application.serviceSnapshot.validityText)}</span>}</div>
       <div className="visa-fee-list"><strong>Fee summary</strong>
-        {application.feeSnapshot?.length ? application.feeSnapshot.map((fee) => <div key={fee.code}><span>{fee.label}</span><b>{formatMoney(fee.amount, fee.currency)}</b></div>) : <small>Fees are not configured for this service.</small>}
+        {application.feeSnapshot?.length ? application.feeSnapshot.map((fee) => <div key={fee.code}><span>{fee.label}</span><b>{formatMoney(fee.amount, fee.currency)}</b></div>) : <small>Contact Flyseri for the service fee.</small>}
         {order && <div className="visa-aside-total"><strong>Total</strong><b>{formatMoney(order.totalAmount, order.currency)}</b></div>}
       </div>
       <div className="visa-aside-applicants"><strong>Applicants</strong>{applicants.map((person) => <span key={person.id}>{person.legalFirstName} {person.legalLastName}</span>)}</div>

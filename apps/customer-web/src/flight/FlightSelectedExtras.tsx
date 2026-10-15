@@ -6,7 +6,7 @@ import './FlightAirlineServices.css';
 import { FlightAirlineRules } from './FlightAirlineRules';
 
 const money = (value: string | number, currency: string) => new Intl.NumberFormat('en-MY', { style: 'currency', currency, currencyDisplay: 'code' }).format(Number(value));
-export function FlightSelectedExtras({ requests, airfare, onEstimatedTripTotal }: { requests: FlightAncillaryRequest[]; airfare?: { amount: string; currency: string }; onEstimatedTripTotal?: (total: {amount:number;currency:string}|null) => void }) {
+export function FlightSelectedExtras({ requests, airfare, onEstimatedTripTotal, onRemove, disabled=false }: { requests: FlightAncillaryRequest[]; airfare?: { amount: string; currency: string }; onEstimatedTripTotal?: (total: {amount:number;currency:string}|null) => void; onRemove?:(id:string)=>void; disabled?:boolean }) {
   const [currency, setCurrency] = useState(preferredCurrency);
   const prices = [...requests.map(({ amount, currency }) => ({ amount, currency })), ...(airfare ? [airfare] : [])];
   const key = JSON.stringify([currency, prices]);
@@ -33,10 +33,10 @@ export function FlightSelectedExtras({ requests, airfare, onEstimatedTripTotal }
   if (!requests.length) return null;
   return <section className="flight-selected-extras" aria-label="Selected airline extras">
     <h3>Selected extras <span>{requests.length}</span></h3>
-    {requests.map((extra, index) => <div className="flight-selected-extra" key={extra.id}><div><strong>{extra.name}</strong><small>{extra.segmentLabels.join(' / ')}</small><small>Traveler {extra.passengerIndexes.map(index => index + 1).join(', ')}</small><FlightAirlineRules rules={extra.rules}/></div><span>{extra.rules?.requiresWeightConfirmation && 'Rate: '}{amounts[index] !== null ? `${extra.currency !== currency && Number(extra.amount) !== 0 ? '≈ ' : ''}${money(amounts[index]!, currency)}` : 'Price needs confirmation'}</span></div>)}
+    {requests.map((extra, index) => <div className="flight-selected-extra" key={extra.id}><div><strong>{extra.name}</strong><small>{extra.segmentLabels.join(' / ')}</small><small>Traveler {extra.passengerIndexes.map(index => index + 1).join(', ')}</small>{onRemove&&<button type="button" className="flight-selected-extra-remove" disabled={disabled} aria-label={`Remove ${extra.name}`} onClick={()=>onRemove(extra.id)}>Remove</button>}{extra.rules&&<details className="flight-extra-conditions"><summary>Details &amp; conditions</summary><FlightAirlineRules rules={extra.rules}/></details>}</div><span>{extra.rules?.requiresWeightConfirmation && 'Rate: '}{amounts[index] !== null ? `${extra.currency !== currency && Number(extra.amount) !== 0 ? '≈ ' : ''}${money(amounts[index]!, currency)}` : 'Price needs confirmation'}</span></div>)}
     <div className="flight-selected-extra-total"><span>Estimated extras</span><strong>{extrasTotal !== null ? `≈ ${money(extrasTotal, currency)}` : needsWeightQuote ? 'Awaiting weight quote' : 'Awaiting prices'}</strong></div>
     {airfare && extrasTotal !== null && fare !== null && <div className="flight-selected-extra-total"><span>Estimated trip with extras</span><strong>≈ {money(Number(fare) + extrasTotal, currency)}</strong></div>}
-    <p>Selected for your booking as requests. Airline confirmation and final charges are pending; these extras are not purchased or included in the amount payable.</p>
+    <p>Extras are requested, not purchased yet. Availability and final prices need confirmation.</p>
     {converted?.key === key && converted.data.provider && <p>Converted estimates · <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by ExchangeRate-API</a></p>}
   </section>;
 }

@@ -25,6 +25,7 @@ const VisaAssistanceRequestPage = lazy(() => import('../visa/VisaAssistanceReque
 const FlightSearchPage = lazy(() => import('../flight/FlightSearchPage').then((module) => ({ default: module.FlightSearchPage })));
 const FlightIntentPage = lazy(() => import('../flight/FlightIntentPage').then((module) => ({ default: module.FlightIntentPage })));
 const FlightExtrasPage = lazy(() => import('../flight/FlightExtrasPage').then((module) => ({ default: module.FlightExtrasPage })));
+const FlightTravelerEditPage=lazy(()=>import('../flight/GuestFlightCheckoutPage').then(module=>({default:module.FlightTravelerEditPage})));
 const FlightBookingsPage = lazy(() => import('../flight/FlightBookingsPage').then(module => ({default: module.FlightBookingsPage})));
 const FlightBookingPage = lazy(() => import('../flight/FlightBookingsPage').then(module => ({default: module.FlightBookingPage})));
 const OrdersPage = lazy(() => import('../commerce/OrdersPage').then((module) => ({ default: module.OrdersPage })));
@@ -73,6 +74,7 @@ export function CustomerShell() {
       <Route path="flights" element={<FlightSearchPage />} />
       <Route path="flights/booking-intents/:intentId" element={<FlightIntentPage />} />
       <Route path="flights/booking-intents/:intentId/extras" element={<FlightExtrasPage />} />
+      <Route path="flights/booking-intents/:intentId/travelers" element={<FlightTravelerEditPage />} />
       <Route path="bookings" element={<TravelWorkspace tab="bookings"><FlightBookingsPage embedded /></TravelWorkspace>} />
       <Route path="bookings/:bookingId" element={<FlightBookingPage />} />
       <Route path="orders" element={<TravelWorkspace tab="orders"><OrdersPage embedded /></TravelWorkspace>} />

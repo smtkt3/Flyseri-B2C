@@ -26,6 +26,7 @@ import './flight/flight-fare-compact.css'
 import './flight/flight-result-polish.css'
 import './flight/flight-results-usability.css'
 import './flight/flight-help-preferences.css'
+import './primary-actions.css'
 import { FixedActionInsets } from './components/FixedActionInsets'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

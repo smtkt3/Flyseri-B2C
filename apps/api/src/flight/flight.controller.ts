@@ -120,9 +120,12 @@ export class PublicFlightController {
   }
   @Post('calendar-cache') @HttpCode(200) @Header('Cache-Control','no-store')
   @UseGuards(OptionalCustomerAuthGuard, FlightRateGuard)
-  async calendarCache(@Body(validated) body:FlightSearchDto,@Query('month') month:string,@Query('field') field='departure',@Req() request:ContextRequest) {
+  async calendarCache(@Body(validated) body:FlightSearchDto,@Query('month') month:string,@Query('field') field='departure',@Req() request:ContextRequest,@Query('keepTripLength') keepTripLength='false',@Query('dates') dates?:string) {
     if(field!=='departure'&&field!=='return')throw new BadRequestException('Choose a valid calendar date field.');
-    return {success:true,data:await this.service.calendarCachedFares(body,month,field),requestId:request.requestId};
+    if(!['true','false'].includes(keepTripLength))throw new BadRequestException('Choose valid travel dates.');
+    const selectedDates=dates===undefined?undefined:dates.split(',');
+    if(selectedDates&&(!selectedDates.length||selectedDates.length>7||selectedDates.some(date=>!/^\d{4}-\d{2}-\d{2}$/.test(date)||!date.startsWith(`${month}-`))))throw new BadRequestException('Choose valid travel dates.');
+    return {success:true,data:await this.service.calendarCachedFares(body,month,field,keepTripLength==='true',selectedDates),requestId:request.requestId};
   }
   @Post('search')
   @UseGuards(OptionalCustomerAuthGuard, FlightRateGuard)

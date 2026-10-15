@@ -1,0 +1,29 @@
+:root{--action-blue:#1764c5;--action-blue-hover:#1254aa;--action-blue-active:#10488f}
+
+/* One readable primary-action color across desktop, tablet and mobile. */
+html body #root :is(.btn-primary,.account-primary-button,.premium-primary,.holiday-primary,.travel-primary,.guest-checkout-confirm,.flight-airline-service-select:not([aria-pressed=true])){
+  background:var(--action-blue)!important;
+  background-image:none!important;
+  color:#fff!important;
+  border-color:var(--action-blue)!important;
+  box-shadow:none!important;
+  text-shadow:none;
+}
+html body #root :is(.btn-primary,.account-primary-button,.premium-primary,.holiday-primary,.travel-primary,.guest-checkout-confirm,.flight-airline-service-select:not([aria-pressed=true])):hover:not(:disabled):not([aria-disabled=true]){
+  background:var(--action-blue-hover)!important;
+  border-color:var(--action-blue-hover)!important;
+}
+html body #root :is(.btn-primary,.account-primary-button,.premium-primary,.holiday-primary,.travel-primary,.guest-checkout-confirm,.flight-airline-service-select:not([aria-pressed=true])):active:not(:disabled):not([aria-disabled=true]){
+  background:var(--action-blue-active)!important;
+}
+html body #root :is(.btn-primary,.account-primary-button,.premium-primary,.holiday-primary,.travel-primary,.guest-checkout-confirm,.flight-airline-service-select):focus-visible{
+  outline:3px solid #87b8f2;
+  outline-offset:3px;
+}
+html body #root :is(.btn-primary,.account-primary-button,.premium-primary,.holiday-primary,.travel-primary,.guest-checkout-confirm,.flight-airline-service-select):is(:disabled,[aria-disabled=true]){
+  background:#dde6f1!important;
+  color:#53657d!important;
+  border-color:#c8d5e5!important;
+  opacity:1!important;
+  cursor:not-allowed;
+}

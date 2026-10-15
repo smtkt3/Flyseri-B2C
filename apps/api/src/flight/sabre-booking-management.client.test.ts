@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AppConfig } from '@flyseri/config';
 import type { FlightOffer } from '@flyseri/types';
 import type { SabreAuthService } from './sabre-auth.service.js';
-import { buildBookingFlightCheck, buildSabreCreateBooking, buildSabreGetBooking,
+import { buildBookingFlightCheck, buildSabreCreateBooking, buildSabreCreateNdcBooking, buildSabreGetBooking,
   readSabreCreateBooking, readSabreGetBooking, SabreBookingManagementClient, SabreBookingUnknownError,
   selectCheckedAtpcoOffer } from './sabre-booking-management.client.js';
 
@@ -13,21 +13,48 @@ const offer = { offerId: 'offer', totalAmount: '650.00', currency: 'MYR', airlin
   inbound: null } satisfies FlightOffer;
 const agency = { address: { name: 'Configured Agency', street: 'Street', city: 'City', stateProvince: 'State',
   postalCode: '00000', countryCode: 'MY', freeText: 'Configured Agency' }, agencyCustomerNumber: '123', ticketingPolicy: 'TODAY' };
-const billingAddress = { name: 'Billing contact', street: 'Street', city: 'City', stateProvince: 'State',
-  postalCode: '00000', countryCode: 'MY' };
 
 describe('Booking Management 2026.08 ATPCO boundary', () => {
+  it('preserves NDC traveler gender, assistance and infant associations with priced passenger IDs', () => {
+    const context = { offerId:'priced-offer', offerItemIds:['priced-item'], expiresAt:new Date(Date.now()+60000).toISOString(),
+      passengers:[{passengerId:'adult-id',passengerTypeCode:'ADT' as const},{passengerId:'infant-id',passengerTypeCode:'INF' as const}] };
+    const body = buildSabreCreateNdcBooking(context, [
+      {givenName:'Adult',surname:'Traveler',birthDate:'1990-01-01',passengerCode:'ADT',gender:'X',infantTravelerIndex:2,specialServices:[{code:'WCHR',flightIndices:[1]}]},
+      {givenName:'Infant',surname:'Traveler',birthDate:'2026-01-01',passengerCode:'INF',gender:'FEMALE'},
+    ], {email:'test@example.invalid',phone:'+60123456789'}, agency);
+    expect(body.travelers[0]).toMatchObject({id:'adult-id',gender:'UNDEFINED',infantTravelerIndex:2,specialServices:[{code:'WCHR',flightIndices:[1]}],identityDocuments:[{gender:'UNDEFINED'}]});
+    expect(body.travelers[1]).toMatchObject({id:'infant-id',gender:'FEMALE'});
+    expect(body.travelers[1]).not.toHaveProperty('infantTravelerIndex');
+    expect(body).not.toHaveProperty('payment');
+    expect(()=>buildSabreCreateNdcBooking({...context,expiresAt:'invalid'},[],{email:'test@example.invalid',phone:'+60123456789'},agency)).toThrow();
+  });
+
+  it('translates profile gender X to the documented Sabre identity-document value', () => {
+    const body = buildSabreCreateBooking(offer, [{givenName:'Test',surname:'Traveler',birthDate:'1990-01-01',passengerCode:'ADT',
+      identityDocuments:[{documentType:'PASSPORT',documentNumber:'TEST00001',expiryDate:'2030-01-01',issuingCountryCode:'MY',residenceCountryCode:'MY',givenName:'Test',surname:'Traveler',birthDate:'1990-01-01',gender:'X'}]}],
+      {email:'test@example.invalid',phone:'+60123456789'},agency);
+    expect(body.travelers[0]?.identityDocuments?.[0]?.gender).toBe('UNDEFINED');
+  });
+
   it('maps the supplied FlightCheck and CreateBooking shapes without claiming a ticket', () => {
     expect(buildBookingFlightCheck(offer, 1)).toEqual({ journeys: [{ flights: [{ departureAirportCode: 'KUL',
       departureDate: '2026-12-10', departureTime: '09:00', arrivalAirportCode: 'PEN', arrivalDate: '2026-12-10',
       arrivalTime: '10:30', operatingAirlineCode: 'MH', operatingFlightNumber: 1122,
       marketingAirlineCode: 'MH', marketingFlightNumber: 1122 }] }], travelers: [{ passengerTypeCode: 'ADT' }] });
     const body = buildSabreCreateBooking(offer, [{ givenName: 'Test', surname: 'Flyer', birthDate: '1990-01-01', passengerCode: 'ADT' }],
-      { email: 'test@example.invalid', phone: '+60123456789' }, agency, billingAddress);
+      { email: 'test@example.invalid', phone: '+60123456789' }, agency);
     expect(body.flightDetails).toEqual({ flights: [{ flightNumber: 1122, airlineCode: 'MH', fromAirportCode: 'KUL',
       toAirportCode: 'PEN', departureDate: '2026-12-10', departureTime: '09:00', bookingClass: 'K', flightStatusCode: 'NN' }],
-      flightPricing: [{}] });
+      flightPricing: [{qualifiers:{currencyPricing:'MYR'},priceComparisons:[
+        {desiredAmount:'650.00',comparisonType:'INCREASE_BY_AMOUNT',amount:'0.00'},
+        {desiredAmount:'650.00',comparisonType:'DECREASE_BY_AMOUNT',amount:'0.00'},
+      ]}] });
     expect(body).not.toHaveProperty('ticketing');
+    expect(body).not.toHaveProperty('payment');
+    const repriced = buildSabreCreateBooking(offer,[{givenName:'Test',surname:'Flyer',birthDate:'1990-01-01',passengerCode:'ADT'}],
+      {email:'test@example.invalid',phone:'+60123456789'},agency,{currency:'BDT',totalAmount:'10198.00'});
+    expect(repriced.flightDetails.flightPricing[0]?.qualifiers.currencyPricing).toBe('BDT');
+    expect(repriced.flightDetails.flightPricing[0]?.priceComparisons.every(comparison => comparison.desiredAmount==='10198.00')).toBe(true);
     expect(readSabreCreateBooking({ confirmationId: 'ABC123', booking: { bookingId: 'booking-123' } }))
       .toEqual({ confirmationId: 'ABC123', sabreBookingId: 'booking-123' });
     expect(buildSabreGetBooking('ABC123')).toEqual({ confirmationId: 'ABC123' });
@@ -47,7 +74,16 @@ describe('Booking Management 2026.08 ATPCO boundary', () => {
     const auth = { token: vi.fn(async () => 'test-token') } as unknown as SabreAuthService;
     const client = new SabreBookingManagementClient(config, auth, http as unknown as typeof fetch);
     const body = buildSabreCreateBooking(offer, [{ givenName: 'Test', surname: 'Flyer', birthDate: '1990-01-01', passengerCode: 'ADT' }],
-      { email: 'test@example.invalid', phone: '+60123456789' }, agency, billingAddress);
+      { email: 'test@example.invalid', phone: '+60123456789' }, agency);
+    await expect(client.createBooking(body)).rejects.toBeInstanceOf(SabreBookingUnknownError);
+    expect(http).toHaveBeenCalledOnce();
+  });
+
+  it.each([408, 429, 500, 503, 200])('preserves uncertainty without a second supplier submission for HTTP %s failure', async status => {
+    const http = vi.fn(async () => new Response(JSON.stringify({errors:[{category:'APPLICATION_ERROR',type:'SABRE_COMMAND_FAILURE',description:'General problem with SabreCommandLLSRQ service.'}]}),{status}));
+    const client = new SabreBookingManagementClient({SABRE_ENV:'CERT',SABRE_BASE_URL:'https://api.cert.platform.sabre.com',SABRE_REQUEST_TIMEOUT_MS:1000} as AppConfig,
+      {token:vi.fn(async ()=>'test-token')} as unknown as SabreAuthService, http as unknown as typeof fetch);
+    const body = buildSabreCreateBooking(offer,[{givenName:'Test',surname:'Traveler',birthDate:'1990-01-01',passengerCode:'ADT'}],{email:'test@example.invalid',phone:'+60123456789'},agency);
     await expect(client.createBooking(body)).rejects.toBeInstanceOf(SabreBookingUnknownError);
     expect(http).toHaveBeenCalledOnce();
   });
@@ -74,7 +110,7 @@ describe('Booking Management 2026.08 ATPCO boundary', () => {
     const auth = { token: vi.fn(async () => 'test-token') } as unknown as SabreAuthService;
     const client = new SabreBookingManagementClient(config, auth, http as unknown as typeof fetch);
     const body = buildSabreCreateBooking(offer, [{ givenName: 'Test', surname: 'Flyer', birthDate: '1990-01-01', passengerCode: 'ADT' }],
-      { email: 'test@example.invalid', phone: '+60123456789' }, agency, billingAddress);
+      { email: 'test@example.invalid', phone: '+60123456789' }, agency);
     const created = await client.createBooking(body);
     const refreshed = await client.getBooking(created.confirmationId);
     expect(created).toEqual({ confirmationId: 'ABC123', sabreBookingId: 'booking-123' });

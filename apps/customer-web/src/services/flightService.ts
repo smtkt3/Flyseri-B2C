@@ -6,10 +6,13 @@ export const flightService = {
   async seatMap(intentId:string,segment:number,passenger:number,signal?:AbortSignal):Promise<import('@flyseri/types').FlightSeatMapResponse> {
     return (await apiClient.get<import('@flyseri/types').FlightSeatMapResponse>(`/flights/booking-intents/${encodeURIComponent(intentId)}/seat-map?${new URLSearchParams({segment:String(segment),passenger:String(passenger)})}`,{signal,timeoutMs:25000})).data;
   },
-  async cachedCalendarFares(input:FlightSearchRequest,month:string,field:'departure'|'return',signal?:AbortSignal):Promise<import('@flyseri/types').CachedCalendarFare[]> {
+  async cachedCalendarFares(input:FlightSearchRequest,month:string,field:'departure'|'return',signal?:AbortSignal,options?:{keepTripLength?:boolean;dates?:string[]}):Promise<import('@flyseri/types').CachedCalendarFare[]> {
     const {tripId:_privateTrip,...criteria}=input;
     if(!criteria.returnDate)delete criteria.returnDate;
-    return (await apiClient.post<import('@flyseri/types').CachedCalendarFare[]>(`/flights/calendar-cache?${new URLSearchParams({month,field})}`,criteria,{signal,timeoutMs:10000,anonymous:true})).data;
+    const query=new URLSearchParams({month,field});
+    if(options?.keepTripLength)query.set('keepTripLength','true');
+    if(options?.dates)query.set('dates',options.dates.join(','));
+    return (await apiClient.post<import('@flyseri/types').CachedCalendarFare[]>(`/flights/calendar-cache?${query}`,criteria,{signal,timeoutMs:10000,anonymous:true})).data;
   },
   async ancillaryDisplayPrices(prices: { amount: string | null; currency: string | null }[], currency: string): Promise<import('@flyseri/types').FlightAncillaryDisplayPrices> {
     return (await apiClient.post<import('@flyseri/types').FlightAncillaryDisplayPrices>('/flights/ancillary-display-prices', { prices, currency }, { anonymous: true, timeoutMs: 12000 })).data;

@@ -26,6 +26,6 @@ export function OrdersPage({embedded=false}:{embedded?:boolean}={}) {
     {visible.map((order) => <Link className="account-panel commerce-order-link" key={order.id} to={`/app/orders/${order.id}`}>
       <div><strong>{order.orderNumber}</strong><p>{formatTimestamp(order.createdAt)} · {orderStatus(order.status)}</p></div>
       <strong>{formatMoney(order.totalAmount, order.currency)}</strong><span aria-hidden="true">→</span></Link>)}</>}
-      <div className="checkout-trial-note"><div><strong>Test reservations and sandbox payments</strong>Payment confirmation and airline ticket issuance are separate. A payment receipt is not an airline ticket.</div></div></>}
+      <div className="checkout-trial-note"><div><strong>Test reservations and payments</strong>Payment confirmation and airline ticket issuance are separate. A payment receipt is not an airline ticket.</div></div></>}
   </div>;
 }

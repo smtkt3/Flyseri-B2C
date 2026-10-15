@@ -1,5 +1,6 @@
 import type { ApiErrorResponse, ApiSuccess, HealthResponse } from '@flyseri/types';
 import { authService } from '../../services/authService';
+import { customerErrorMessage } from './customerErrorMessage';
 
 export class ApiClientError extends Error {
   constructor(
@@ -10,7 +11,7 @@ export class ApiClientError extends Error {
     readonly details?: unknown,
     readonly retryAfterSeconds?: number,
   ) {
-    super(message);
+    super(customerErrorMessage(code,message,status));
     this.name = 'ApiClientError';
   }
 }

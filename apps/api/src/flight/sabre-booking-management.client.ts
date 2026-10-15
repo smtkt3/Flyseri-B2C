@@ -32,6 +32,14 @@ const datePart = (value: string) => {
   return { date: value.slice(0, 10), time: value.slice(11, 16) };
 };
 
+/** Customer profiles use X; Sabre GenderEnum uses UNDEFINED. */
+const sabreGender = (gender: string) => {
+  if (gender === 'X') return 'UNDEFINED';
+  if (['MALE', 'FEMALE', 'UNDEFINED', 'UNDISCLOSED', 'INFANT_MALE', 'INFANT_FEMALE'].includes(gender)) return gender;
+  throw new Error('Unsupported traveler gender');
+};
+const sabreDocuments = (documents: BookingIdentityDocument[]) => documents.map(document => ({ ...document, gender: sabreGender(document.gender) }));
+
 /** The collection's FlightCheck shape, built from server-selected shopping segments. */
 export function buildBookingFlightCheck(offer: FlightOffer, adultCount: number | BookingPassengerCode[]) {
   if (typeof adultCount === 'number' && (!Number.isInteger(adultCount) || adultCount < 1 || adultCount > 9)) throw new Error('Passenger count is invalid');
@@ -91,9 +99,11 @@ export function selectCheckedAtpcoOffer(response: unknown, selected: FlightOffer
 
 /** The basic ATPCO CreateBooking variant. No ticket issuance or card charge is requested. */
 export function buildSabreCreateBooking(offer: FlightOffer, passengers: BookingPassenger[],
-  contact: BookingContact, agency: BookingAgency, billingAddress: BillingAddress) {
+  contact: BookingContact, agency: BookingAgency,
+  acceptedFare: { currency: string; totalAmount: string } = { currency: offer.currency, totalAmount: offer.totalAmount }) {
   if (!passengers.length || !segmentsOf(offer).length || !agency.address.name || !agency.ticketingPolicy ||
       !contact.email || !contact.phone) throw new Error('Incomplete CreateBooking inputs');
+  if (!/^[A-Z]{3}$/.test(acceptedFare.currency) || !/^\d+(\.\d{1,2})?$/.test(acceptedFare.totalAmount)) throw new Error('Accepted reservation fare is invalid');
   const flights = segmentsOf(offer).map((segment) => {
     if (!segment.bookingClass) throw new Error('Sabre booking class is missing');
     const departure = datePart(segment.departureAt);
@@ -103,9 +113,18 @@ export function buildSabreCreateBooking(offer: FlightOffer, passengers: BookingP
       bookingClass: segment.bookingClass, flightStatusCode: 'NN' as const };
   });
   return { agency, travelers: passengers.map(({ givenName, surname, birthDate, passengerCode, infantTravelerIndex, specialServices, identityDocuments }) => ({
-    givenName, surname, birthDate, passengerCode, ...(infantTravelerIndex ? { infantTravelerIndex } : {}), ...(specialServices?.length ? { specialServices } : {}), ...(identityDocuments?.length ? { identityDocuments } : {}) })),
+    givenName, surname, birthDate, passengerCode, ...(infantTravelerIndex ? { infantTravelerIndex } : {}), ...(specialServices?.length ? { specialServices } : {}), ...(identityDocuments?.length ? { identityDocuments: sabreDocuments(identityDocuments) } : {}) })),
     contactInfo: { emails: [contact.email], phones: [contact.phone] },
-    flightDetails: { flights, flightPricing: [{}] }, payment: { billingAddress } };
+    // This operation only reserves and prices flights. Keep billing information in
+    // the application until a separate payment operation needs it; sending a
+    // payment object here invokes optional supplier payment/address processing.
+    flightDetails: { flights, flightPricing: [{
+      qualifiers: { currencyPricing: acceptedFare.currency },
+      priceComparisons: [
+        { desiredAmount: acceptedFare.totalAmount, comparisonType: 'INCREASE_BY_AMOUNT' as const, amount: '0.00' },
+        { desiredAmount: acceptedFare.totalAmount, comparisonType: 'DECREASE_BY_AMOUNT' as const, amount: '0.00' },
+      ],
+    }] } };
 }
 
 /** NDC CreateBooking variant in the supplied agency collection. No fulfillment
@@ -114,7 +133,7 @@ export function buildSabreCreateBooking(offer: FlightOffer, passengers: BookingP
  */
 export function buildSabreCreateNdcBooking(context: NonNullable<FlightOffer['ndcContext']>,
   passengers: (BookingPassenger & { gender: string | null })[], contact: BookingContact, agency: BookingAgency) {
-  if (Date.parse(context.expiresAt) <= Date.now() || !context.offerItemIds?.length || passengers.length !== context.passengers.length) throw new Error('Priced NDC context is unavailable');
+  if (!Number.isFinite(Date.parse(context.expiresAt)) || Date.parse(context.expiresAt) <= Date.now() || !context.offerItemIds?.length || passengers.length !== context.passengers.length) throw new Error('Priced NDC context is unavailable');
   const remaining = [...context.passengers];
   const travelers = passengers.map(person => {
     if (!person.givenName.trim() || !person.surname.trim() || !person.birthDate || !['MALE','FEMALE','X'].includes(person.gender ?? '')) throw new Error('Complete traveler gender and birth date for NDC booking');
@@ -122,7 +141,10 @@ export function buildSabreCreateNdcBooking(context: NonNullable<FlightOffer['ndc
     if (index < 0) throw new Error('NDC passenger types do not match');
     const [entry] = remaining.splice(index, 1);
     return { id: entry!.passengerId, givenName: person.givenName, surname: person.surname, birthDate: person.birthDate, passengerCode: person.passengerCode,
-      identityDocuments: person.identityDocuments?.length ? person.identityDocuments : [{ documentType: 'SECURE_FLIGHT_PASSENGER_DATA', givenName: person.givenName, surname: person.surname, birthDate: person.birthDate, gender: person.gender! }] };
+      gender: sabreGender(person.gender!),
+      ...(person.infantTravelerIndex ? { infantTravelerIndex: person.infantTravelerIndex } : {}),
+      ...(person.specialServices?.length ? { specialServices: person.specialServices } : {}),
+      identityDocuments: person.identityDocuments?.length ? sabreDocuments(person.identityDocuments) : [{ documentType: 'SECURE_FLIGHT_PASSENGER_DATA', givenName: person.givenName, surname: person.surname, birthDate: person.birthDate, gender: sabreGender(person.gender!) }] };
   });
   return { flightOffer: { offerId: context.offerId, selectedOfferItems: [...context.offerItemIds] }, travelers,
     contactInfo: { emails: [contact.email], phones: [contact.phone] }, agency };
@@ -155,9 +177,15 @@ export function readSabreBookingView(value: unknown): {bookingId: string; view: 
   const records = (value: unknown) => Array.isArray(value) ? value.slice(0,100).filter((item): item is Record<string,unknown> => !!item && typeof item === 'object' && !Array.isArray(item)) : [];
   const text = (value: unknown, max = 120) => typeof value === 'string' && value.length <= max ? value : '';
   const flightNumber = (value: unknown) => typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 9999 ? String(value) : text(value, 8);
-  return {...identity, view: {retrievedAt: new Date().toISOString(), cancellationCheckComplete: Array.isArray(data.flights) && Array.isArray(data.flightTickets) &&
-      records(data.flights).length === data.flights.length && records(data.flightTickets).length === data.flightTickets.length &&
-      Array.isArray(data.hotels) && data.hotels.length === 0 && Array.isArray(data.cars) && data.cars.length === 0,
+  // Get Booking omits optional empty collections. Treat omission as empty only
+  // with explicit evidence, never for null/malformed or incomplete responses.
+  const flightsComplete = Array.isArray(data.flights) && data.flights.length > 0 && records(data.flights).length === data.flights.length;
+  const allFlightSegments = flightsComplete && Array.isArray(data.flights) && Array.isArray(data.allSegments) && data.allSegments.length === data.flights.length &&
+    records(data.allSegments).length === data.allSegments.length && records(data.allSegments).every(segment => segment.type === 'FLIGHT');
+  const noOtherContent = ['hotels','cars'].every(key => Array.isArray(data[key]) ? data[key].length === 0 : data[key] === undefined && allFlightSegments);
+  const ticketsComplete = Array.isArray(data.flightTickets) ? records(data.flightTickets).length === data.flightTickets.length :
+    data.flightTickets === undefined && data.isTicketed === false;
+  return {...identity, view: {retrievedAt: new Date().toISOString(), cancellationCheckComplete: flightsComplete && ticketsComplete && noOtherContent,
     flights: records(data.flights).map(flight => ({airlineCode: text(flight.airlineCode, 3), flightNumber: flightNumber(flight.flightNumber), origin: text(flight.fromAirportCode, 3), destination: text(flight.toAirportCode, 3),
       departureDate: text(flight.departureDate, 10), departureTime: text(flight.departureTime, 8), arrivalDate: text(flight.arrivalDate, 10), arrivalTime: text(flight.arrivalTime, 8), status: text(flight.flightStatusName, 40)})),
     travellers: records(data.travelers).map(person => ({givenName: text(person.givenName), surname: text(person.surname)})),

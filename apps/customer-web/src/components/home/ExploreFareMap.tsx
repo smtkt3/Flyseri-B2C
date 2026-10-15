@@ -709,7 +709,7 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
           </label>
           <input
             id="map-price"
-            aria-label="Maximum cached fare"
+            aria-label="Maximum indicative fare"
             type="range"
             min="100"
             max={budgetLimit}
@@ -829,7 +829,7 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
               {selectedFare?.durationMinutes != null && Number.isFinite(selectedFare.durationMinutes) && selectedFare.durationMinutes > 0 && <p className="explore-map-flight-duration">{Math.floor(selectedFare.durationMinutes / 60) > 0 ? `${Math.floor(selectedFare.durationMinutes / 60)}h ` : ''}{selectedFare.durationMinutes % 60 > 0 ? `${selectedFare.durationMinutes % 60}m` : ''}{selectedFare.stops != null && ` · ${selectedFare.stops === 0 ? 'Non-stop' : `${selectedFare.stops} stop${selectedFare.stops === 1 ? '' : 's'}`}`}</p>}
               {selectedFare && <span title={`One adult · Economy · One-way · ${selectedFare.currency} · Checked ${new Date(selectedFare.searchedAt).toLocaleString('en-GB')} · Subject to recheck`}>Travel {selectedFare.departureDate}</span>}
             </div>
-            <strong>{selectedFare && <small className="explore-map-cached-label">Cached fare</small>}{money(selectedFare)}</strong>
+            <strong>{selectedFare && <small className="explore-map-cached-label">Indicative fare</small>}{money(selectedFare)}</strong>
             <Link to={homeSearchUrl({ ...search, departure: departureDate || selectedFare?.departureDate || "" }, selected.code) + "&currency=" + currency}>
               <Translated text="View flights" /><span aria-hidden="true">→</span>
             </Link>
