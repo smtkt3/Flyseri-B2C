@@ -13,7 +13,7 @@ vi.mock('../travel/TravelCompanion',()=>({TravelCompanion:()=>null}));
 vi.mock('../flight/FlightTicketIssuanceNotice',()=>({FlightTicketIssuanceNotice:()=>null}));
 vi.mock('../flight/FlightFareInformation',()=>({FlightBaggageDetails:()=>null,FlightServiceDetails:()=>null}));
 vi.mock('../flight/usePreferredDisplayPrices',()=>({usePreferredDisplayPrices:()=>({currency:'MYR',prices:[{amount:'100.00',estimated:false}]})}));
-const booking={id:'pnr-booking',pnr:'ABC123',status:'PNR_CREATED',passengerNames:['Test Traveler'],selectedOffer:{airlineCodes:['MH']},ancillaryRequests:[],serviceRequests:[]};
+const booking={id:'pnr-booking',pnr:'ABC123',status:'PNR_CREATED',passengerNames:['Test Traveler'],selectedOffer:{airlineCodes:['MH'],outbound:{durationMinutes:240,segments:[{origin:'DAC',destination:'KUL',departureAt:'2027-01-24T08:00:00+06:00',arrivalAt:'2027-01-24T14:00:00+08:00',marketingCarrier:'MH',flightNumber:'197'}]}},ancillaryRequests:[],serviceRequests:[]};
 const order={id:'pnr-order',orderNumber:'ORDER-1',flightBookingId:booking.id,status:'PENDING_PAYMENT',payment:null,paidAt:null,totalAmount:'100.00',currency:'MYR',items:[],expiresAt:null};
 beforeEach(()=>{vi.resetAllMocks();flights.booking.mockResolvedValue(booking);flights.bookingCapabilities.mockResolvedValue({ticketIssuanceAvailable:false});commerce.paymentCapabilities.mockResolvedValue({checkoutAvailable:true});commerce.order.mockResolvedValue(order);});
 afterEach(cleanup);
@@ -31,5 +31,6 @@ it.each(['PAID','PAYMENT_PROCESSING','PAYMENT_FAILED'])('shows a real PNR at the
  open();
  const reference=await screen.findByRole('region',{name:'Airline booking reference'});
  expect(reference.textContent).toContain('ABC123');
- expect(within(screen.getByRole('complementary',{name:'Order summary'})).getByText('ABC123')).toBeTruthy();
+ expect(screen.getAllByText('ABC123')).toHaveLength(1);
+ expect(within(screen.getByRole('complementary',{name:'Order summary'})).queryByText('ABC123')).toBeNull();
 });

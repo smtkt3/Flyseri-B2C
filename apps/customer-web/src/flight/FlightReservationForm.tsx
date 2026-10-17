@@ -1,10 +1,9 @@
-import { PaymentMethodsPanel } from '../components/PaymentMethodsPanel';
-import { CouponCodeDraft } from '../commerce/CouponCodeDraft';
+import { BookingLoading } from './BookingLoading';
 import { FlightBillingFields } from './FlightBillingFields';
 import { CheckoutHelpPanel } from '../components/CheckoutHelpPanel';
 import { Translated } from '../travel/language';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { FlightReservationInput, TravellerProfile, FlightIdentityDocumentType } from '@flyseri/types';
 import { useAuth } from '../auth/AuthProvider';
 import { flightService } from '../services/flightService';
@@ -17,11 +16,9 @@ import { CheckoutActionBar } from '../components/CheckoutActionBar';
 import { checkoutPassportError } from './checkoutContinuation';
 import { CalendarDateField } from '../components/CalendarDateField';
 
-export function FlightReservationForm({intentId, namesConfirmed, initialContact, people = [], documentValidThrough,passportsCaptured=false,total='Checked fare',priceAvailable=true}: {intentId: string; namesConfirmed: boolean; initialContact?: {contactEmail: string; contactPhone: string}; people?: TravellerProfile[]; documentValidThrough?: string;passportsCaptured?:boolean;total?:string;priceAvailable?:boolean}) {
+export function FlightReservationForm({intentId, namesConfirmed, initialContact, people = [], documentValidThrough,passportsCaptured=false,total='Checked fare',totalCaption='Checked airfare',priceAvailable=true,onBusyChange}: {intentId: string; namesConfirmed: boolean; initialContact?: {contactEmail: string; contactPhone: string}; people?: TravellerProfile[]; documentValidThrough?: string;passportsCaptured?:boolean;total?:string;totalCaption?:string;priceAvailable?:boolean;onBusyChange?:(busy:boolean)=>void}) {
   const formId = useId();
   const navigate = useNavigate();
-  const location = useLocation();
-  const paymentStep = new URLSearchParams(location.search).get('step') === 'payment';
   const {session} = useAuth();
   const draftKey = `reservation:${intentId}`;
   const recoveryKey = reservationRecoveryKey(intentId, session?.user.id ?? 'guest');
@@ -31,6 +28,9 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const sending = useRef(false);
+  const active = useRef(true);
+  useEffect(() => { active.current=true; return () => {active.current=false;}; }, []);
+  useEffect(() => { onBusyChange?.(busy); return () => onBusyChange?.(false); }, [busy,onBusyChange]);
   const [passports, setPassports] = useState<Record<string, {documentType?:FlightIdentityDocumentType;documentNumber: string; expiryDate: string; issuingCountryCode: string; residenceCountryCode?:string}>>({});
   const [passportConsent, setPassportConsent] = useState(false);
   const [usingPassengerPassports,setUsingPassengerPassports]=useState(false);
@@ -65,10 +65,11 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
     sending.current = true; setBusy(true); setError('');
     try {
       const saved = await flightService.bookingForIntent(intentId);
-      if (saved) { clearReservationRecovery(recoveryKey); navigate('/app/bookings/' + saved.id, { state: { continueToPayment: true }, replace: true }); return; }
+      if (saved) { clearReservationRecovery(recoveryKey); if(active.current)navigate('/app/bookings/' + saved.id, { state: { continueToPayment: true }, replace: true }); return; }
+      if (!active.current) return;
       setError('No saved booking was returned yet. Keep this selection reference and contact Flyseri before trying another reservation.');
-    } catch { setError('The booking status could not be retrieved. Please contact Flyseri before reserving again.'); }
-    finally { sending.current = false; setBusy(false); }
+    } catch { if(active.current)setError('The booking status could not be retrieved. Please contact Flyseri before reserving again.'); }
+    finally { sending.current = false; if(active.current)setBusy(false); }
   }
   useEffect(() => {
     let active = true; setCapabilities(null); setError('');
@@ -79,39 +80,35 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
     event.preventDefault();
     if (sending.current || needsRecovery || !priceAvailable || !namesConfirmed || !capabilities?.reservationAvailable || hasPassports && !passportConsent) return;
     if (!documentsComplete) { setError('Complete travel document details for every traveler.'); return; }
+    if (!event.currentTarget.reportValidity()) return;
     sending.current = true; setBusy(true); setError('');
-    if (!paymentStep) {
-      sending.current = false; setBusy(false);
-      keepCheckoutDraft(draftKey, session?.user.id ?? null, input);
-      navigate(location.pathname + '?step=payment', { state: { ...location.state, reviewConfirmed: true } });
-      return;
-    }
     markReservationUncertain(recoveryKey);
     try { const booking = await flightService.reserve(intentId, {...input, namesConfirmed,
-      ...(hasPassports ? { passports: Object.entries(passports).map(([travellerId, document]) => ({ travellerId, ...document })) } : {}) }); clearReservationRecovery(recoveryKey); clearCheckoutDraft(draftKey); clearCheckoutPassports(intentId);setPassports({}); navigate('/app/bookings/' + booking.id, { state: { continueToPayment: true }, replace: true }); }
+      ...(hasPassports ? { passports: Object.entries(passports).map(([travellerId, document]) => ({ travellerId, ...document })) } : {}) }); clearReservationRecovery(recoveryKey); clearCheckoutDraft(draftKey); clearCheckoutPassports(intentId);if(active.current){setPassports({}); navigate('/app/bookings/' + booking.id, { state: { continueToPayment: true }, replace: true });} }
     catch (cause) {
       // A browser timeout can follow a successful provider send. Restore the saved
       // attempt before displaying a retry action; never send another request here.
       let noSavedAttempt = false;
       try {
         const saved = await flightService.bookingForIntent(intentId);
-        if (saved) { clearReservationRecovery(recoveryKey); clearCheckoutDraft(draftKey); clearCheckoutPassports(intentId);setPassports({}); navigate('/app/bookings/' + saved.id, { state: { continueToPayment: true }, replace: true }); return; }
+        if (saved) { clearReservationRecovery(recoveryKey); clearCheckoutDraft(draftKey); clearCheckoutPassports(intentId);if(active.current){setPassports({}); navigate('/app/bookings/' + saved.id, { state: { continueToPayment: true }, replace: true });} return; }
         noSavedAttempt = true;
       } catch { /* The original error remains visible when recovery is unavailable. */ }
-      setError(cause instanceof Error ? cause.message : 'The reservation result could not be retrieved. Open My bookings before retrying.');
+      if(active.current)setError(cause instanceof Error ? cause.message : 'The reservation result could not be retrieved. Open My bookings before retrying.');
       const safeToCorrect = cause instanceof ApiClientError && (['VALIDATION_ERROR', 'OFFER_EXPIRED', 'PRICE_CHANGED', 'AUTHENTICATION_REQUIRED', 'INVALID_SESSION'].includes(cause.code)
         || (cause.code === 'CONFLICT' && noSavedAttempt));
       if (safeToCorrect) clearReservationRecovery(recoveryKey);
-      setNeedsRecovery(!safeToCorrect);
+      if(active.current)setNeedsRecovery(!safeToCorrect);
     }
-    finally {sending.current = false; setBusy(false);}
+    finally {sending.current = false; if(active.current)setBusy(false);}
   }
-  return <section id="flight-reservation-review" className="account-panel account-form reservation-contact-panel"><header className="reservation-contact-heading"><h2>{paymentStep ? 'Contact & billing details' : 'Booking contact'}</h2>{!paymentStep && <p>Where we’ll send booking updates.</p>}</header>
+  return <section id="flight-reservation-review" className="account-panel account-form reservation-contact-panel"><header className="reservation-contact-heading"><h2>Contact &amp; billing details</h2><p>All fields are required. Use the payer’s billing address for your receipt.</p></header>
+    {busy && <BookingLoading label="Preparing secure payment…" heading="Preparing secure payment" description="Please keep this page open while we confirm your flight."/>}
     {needsRecovery && <section className="booking-recovery" role="status"><h3>Check this attempt before continuing</h3><p>The last response could not be verified. Another reservation submission is paused to avoid duplicates.</p><p className="checkout-reference">Selection: {intentId}</p><button type="button" className="account-outline-button" disabled={busy} onClick={() => void recover()}>{busy ? 'Checking saved booking…' : 'Check saved booking'}</button> <Link className="account-link" to={`/app/support?selectionId=${encodeURIComponent(intentId)}`}>Get help</Link></section>}
     {!capabilities && !error && <p role="status">Checking reservation availability…</p>}
     {error && <p role="alert" className="account-error">{error}{!capabilities && <button type="button" onClick={() => setAttempt(value => value + 1)}><Translated text="Retry" /></button>}</p>}
     {capabilities && !capabilities.reservationAvailable && <p>{capabilities.message}</p>}
-    {capabilities?.reservationAvailable && <form id={formId} onSubmit={event => void reserve(event)}><div className="reservation-test-notice" role="note"><span aria-hidden="true">ⓘ</span> Test checkout · reservations and payments are in test mode.</div><fieldset disabled={busy || needsRecovery} style={{border: 0, padding: 0, margin: 0}}><FlightBillingFields value={input} onChange={setInput} disabled={busy || needsRecovery} includeBilling={paymentStep}/>
+    {capabilities?.reservationAvailable && <form id={formId} onSubmit={event => void reserve(event)}><div className="reservation-test-notice" role="note"><span aria-hidden="true">ⓘ</span> Test checkout · reservations and payments are in test mode.</div><fieldset disabled={busy || needsRecovery} style={{border: 0, padding: 0, margin: 0}}><FlightBillingFields value={input} onChange={setInput} disabled={busy || needsRecovery}/>
     {passportsCaptured&&!usingPassengerPassports&&<p role="alert">Travel document details from the passenger form expired. Enter the required details again below.</p>}
     {!usingPassengerPassports && people.length > 0 && <details open className="reservation-passports"><summary>Travel document details <span>Required</span></summary>
       {people.map(person => <section key={person.id}><h3>{person.legalFirstName} {person.legalLastName}</h3>
@@ -122,13 +119,10 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
       </section>)}
       {hasPassports && <label className="reservation-passport-toggle"><input type="checkbox" required checked={passportConsent} onChange={event => setPassportConsent(event.target.checked)} /><span>I checked these travel document details and authorize submitting them for this reservation.</span></label>}
     </details>}
-    {paymentStep && <><p>Check your contact and billing details, then choose a payment method on secure checkout. Your booking reference is shown after payment is verified.</p><button type="button" className="account-outline-button" disabled={busy} onClick={() => navigate(location.pathname, {state:location.state})}>← Back to review</button></>}
-    {paymentStep && <CouponCodeDraft key={`${intentId}:${session?.user.id??'guest'}`} intentId={intentId} disabled={busy||needsRecovery}/>}
-    {paymentStep && <PaymentMethodsPanel/>}
-    <CheckoutHelpPanel title={paymentStep ? 'Next: secure payment' : 'Next: payment details'}><p>{!namesConfirmed ? 'Return to review and confirm each traveler’s name before continuing.' : paymentStep ? 'Check your billing details, then continue to choose a payment method.' : 'You’ll add your billing details next. No payment is taken here.'}</p></CheckoutHelpPanel></fieldset>
+    <CheckoutHelpPanel title="Next: payment"><p>{!namesConfirmed ? 'Confirm the traveler names above before continuing.' : !documentsComplete || !passportConsent ? 'Complete and confirm the travel documents above before continuing.' : !priceAvailable ? 'Please wait while we check your fare, or review the price update above.' : 'Choose your payment method and apply a promo code on the next step.'}</p></CheckoutHelpPanel></fieldset>
 
     </form>}
-    <CheckoutActionBar label="Continue reservation checkout" caption="Checked airfare" total={total} detailsHref="#flight-reservation-review"><button type="submit" form={formId} className="btn-primary account-submit" disabled={!priceAvailable || !capabilities?.reservationAvailable || !namesConfirmed || busy || needsRecovery || !documentsComplete || !passportConsent}>{busy ? 'Preparing payment…' : paymentStep ? 'Continue to secure payment' : 'Continue to payment'}</button></CheckoutActionBar>
+    <CheckoutActionBar label="Continue reservation checkout" caption={totalCaption} total={total} detailsHref="#flight-review-total"><button type="submit" form={formId} className="btn-primary account-submit" disabled={!priceAvailable || !capabilities?.reservationAvailable || !namesConfirmed || busy || needsRecovery || !documentsComplete || !passportConsent}>{busy ? 'Preparing payment…' : 'Continue to payment'}</button></CheckoutActionBar>
 
   </section>;
 }

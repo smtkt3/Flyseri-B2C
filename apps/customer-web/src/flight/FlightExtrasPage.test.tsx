@@ -2,19 +2,52 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import {useEffect} from 'react';
 import type { FlightBookingIntent } from '@flyseri/types';
 import { FlightExtrasPage } from './FlightExtrasPage';
-const api = vi.hoisted(()=>({intent:vi.fn(),bookingForIntent:vi.fn(),validateIntent:vi.fn(),saveAncillarySelections:vi.fn()}));
+const api = vi.hoisted(()=>({intent:vi.fn(),bookingForIntent:vi.fn(),validateIntent:vi.fn(),confirmPrice:vi.fn(),saveAncillarySelections:vi.fn()}));
 vi.mock('../services/flightService',()=>({flightService:api}));
 vi.mock('../services/travellerService',()=>({travellerService:{get:vi.fn(async()=>({legalFirstName:'Test',legalLastName:'Traveler'}))}}));
-vi.mock('./FlightAirlineServices',()=>({FlightAirlineServices:()=> <div>Available airline choices</div>}));
-vi.mock('./FlightSelectedExtras',()=>({FlightSelectedExtras:({requests}:{requests:unknown[]})=><p>{requests.length} saved extras</p>}));
+vi.mock('./FlightAirlineServices',()=>({FlightAirlineServices:({ready}:{ready:boolean})=> <div data-testid="choices" aria-disabled={!ready}>Available airline choices</div>}));
+vi.mock('./FlightSelectedExtras',()=>({FlightSelectedExtras:({requests,onEstimatedTripTotal}:{requests:unknown[];onEstimatedTripTotal?:(total:{amount:number;currency:string}|null)=>void})=>{useEffect(()=>{onEstimatedTripTotal?.(requests.length?{amount:21000,currency:'BDT'}:null);},[requests.length,onEstimatedTripTotal]);return <p>{requests.length} saved extras</p>;}}));
 const selection = ():FlightBookingIntent=>({id:'intent',status:'READY_FOR_PAYMENT',validatedAt:'2026-10-10T00:00:00Z',expiresAt:new Date(Date.now()+600000).toISOString(),validatedTotalAmount:'20000',searchTotalAmount:'19000',currency:'BDT',travellerIds:['person'],ancillaryRequests:[],selectedOffer:{airlineCodes:['BG'],currency:'BDT',outbound:{segments:[{origin:'DAC',destination:'BKK'}]}}} as unknown as FlightBookingIntent);
 function Review(){const location=useLocation(),navigate=useNavigate();return <><pre data-testid="review">{JSON.stringify(location.state)}</pre><button onClick={()=>navigate(-1)}>Back to extras</button></>;}
-function mount(state:Record<string,unknown>|null=null){return render(<MemoryRouter initialEntries={[{pathname:'/app/flights/booking-intents/intent/extras',state}]}><Routes><Route path="/app/flights/booking-intents/:intentId/extras" element={<FlightExtrasPage/>}/><Route path="/app/flights/booking-intents/:intentId" element={<Review/>}/><Route path="/app/bookings/:id" element={<p>Existing booking</p>}/></Routes></MemoryRouter>);}
-beforeEach(()=>{vi.resetAllMocks();api.intent.mockResolvedValue(selection());api.bookingForIntent.mockResolvedValue(null);api.validateIntent.mockResolvedValue(selection());});
-afterEach(()=>cleanup());
+function mount(state:Record<string,unknown>|null=null){return render(<MemoryRouter initialEntries={[{pathname:'/app/flights/booking-intents/intent/extras',state}]}><Routes><Route path="/app/flights/booking-intents/:intentId/extras" element={<FlightExtrasPage/>}/><Route path="/app/flights/booking-intents/:intentId/travelers" element={<h1>Edit travelers</h1>}/><Route path="/app/flights/booking-intents/:intentId" element={<Review/>}/><Route path="/app/bookings/:id" element={<p>Existing booking</p>}/></Routes></MemoryRouter>);}
+beforeEach(()=>{vi.resetAllMocks();vi.spyOn(window,'scrollTo').mockImplementation(()=>undefined);api.intent.mockResolvedValue(selection());api.bookingForIntent.mockResolvedValue(null);api.validateIntent.mockResolvedValue(selection());api.confirmPrice.mockResolvedValue(selection());});
+afterEach(()=>{cleanup();vi.restoreAllMocks();});
 describe('dedicated airline extras step',()=>{
+ it('opens the step at the top instead of retaining the Travelers footer position',async()=>{
+  mount();await screen.findByText('Available airline choices');expect(window.scrollTo).toHaveBeenCalledWith({top:0,behavior:'instant'});
+ });
+ it('keeps a changed entry fare on Extras until accepted, then waits for explicit continuation',async()=>{
+  api.validateIntent.mockResolvedValue({...selection(),status:'PRICE_CHANGED',validatedTotalAmount:'22000'});
+  mount({checkLatestFare:true,passportsCaptured:true,bookingContact:{contactEmail:'test@example.invalid'}});
+  await screen.findByRole('heading',{name:'Your fare has changed'});
+  expect(screen.queryByTestId('review')).toBeNull();
+  expect((screen.getByRole('button',{name:'Skip extras'}) as HTMLButtonElement).disabled).toBe(true);
+  expect(api.confirmPrice).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button',{name:'Accept updated fare'}));
+  await waitFor(()=>expect((screen.getByRole('button',{name:/Continue to review/}) as HTMLButtonElement).disabled).toBe(false));
+  expect(api.confirmPrice).toHaveBeenCalledWith('intent');expect(screen.queryByTestId('review')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:/Continue to review/}));
+  expect(JSON.parse((await screen.findByTestId('review')).textContent!)).toMatchObject({passportsCaptured:true,bookingContact:{contactEmail:'test@example.invalid'}});
+ });
+ it('keeps saved extras on the step when automatic expiry refresh changes the fare',async()=>{
+  api.intent.mockResolvedValue({...selection(),expiresAt:new Date(0).toISOString(),ancillaryRequests:[{id:'bag'}]});
+  api.validateIntent.mockResolvedValue({...selection(),status:'PRICE_CHANGED',validatedTotalAmount:'22000',ancillaryRequests:[{id:'bag'}]});
+  mount();await screen.findByRole('heading',{name:'Your fare has changed'});
+  expect(screen.getByText('1 saved extras')).toBeTruthy();expect(screen.queryByTestId('review')).toBeNull();expect(api.saveAncillarySelections).not.toHaveBeenCalled();
+ });
+ it('stays on Extras with recovery when a fare check is not ready',async()=>{
+  api.validateIntent.mockResolvedValue({...selection(),status:'FAILED'});mount({checkLatestFare:true});
+  await screen.findByRole('heading',{name:'This flight selection needs attention'});
+  expect(screen.queryByTestId('review')).toBeNull();expect((screen.getByRole('button',{name:/Continue to review/}) as HTMLButtonElement).disabled).toBe(true);
+ });
+ it('validates a newly created selection in place before enabling extras',async()=>{
+  api.intent.mockResolvedValue({...selection(),status:'CREATED'});mount();
+  await waitFor(()=>expect(api.validateIntent).toHaveBeenCalledWith('intent'));
+  await waitFor(()=>expect(screen.getByTestId('choices').getAttribute('aria-disabled')).toBe('false'));expect(screen.queryByTestId('review')).toBeNull();
+ });
  it('places the extras introduction below the loader instead of in the page header',()=>{
   api.intent.mockReturnValue(new Promise(()=>{}));
   const {container}=mount();
@@ -32,7 +65,7 @@ describe('dedicated airline extras step',()=>{
  });
  it('continues without clearing saved extras and preserves reservation contact state',async()=>{
   api.intent.mockResolvedValue({...selection(),ancillaryRequests:[{id:'bag'}]});mount({bookingContact:{contactEmail:'test@example.invalid',contactPhone:'+8801000000000'},passportsCaptured:true});
-  await screen.findByText('Available airline choices');fireEvent.click(screen.getByRole('button',{name:/Continue to review/}));
+  await screen.findByText('Available airline choices');await waitFor(()=>expect((screen.getByRole('button',{name:/Continue to review/}) as HTMLButtonElement).disabled).toBe(false));fireEvent.click(screen.getByRole('button',{name:/Continue to review/}));
   expect(JSON.parse((await screen.findByTestId('review')).textContent!)).toMatchObject({passportsCaptured:true,bookingContact:{contactEmail:'test@example.invalid'}});expect(api.saveAncillarySelections).not.toHaveBeenCalled();
  });
  it('waits for a confirmed server save before skipping existing extras',async()=>{
@@ -48,7 +81,10 @@ describe('dedicated airline extras step',()=>{
   mount({checkLatestFare:true,passportsCaptured:true});await screen.findByText('Available airline choices');fireEvent.click(screen.getByRole('button',{name:/Continue to review/}));await screen.findByTestId('review');fireEvent.click(screen.getByRole('button',{name:'Back to extras'}));await screen.findByText('Available airline choices');expect(api.validateIntent).toHaveBeenCalledTimes(1);
  });
  it('blocks choices and continuation for an expired fare',async()=>{
-  api.intent.mockResolvedValue({...selection(),expiresAt:new Date(0).toISOString()});mount();await screen.findByText(/Your fare check expired/);expect(screen.queryByText('Available airline choices')).toBeNull();expect((screen.getByRole('button',{name:'Skip extras'}) as HTMLButtonElement).disabled).toBe(true);
+  api.intent.mockResolvedValue({...selection(),expiresAt:new Date(0).toISOString()});api.validateIntent.mockReturnValue(new Promise(()=>{}));mount();await screen.findByText('Checking the latest fare…');expect(screen.getByTestId('choices').getAttribute('aria-disabled')).toBe('true');expect((screen.getByRole('button',{name:'Skip extras'}) as HTMLButtonElement).disabled).toBe(true);
+ });
+ it('returns to Travelers explicitly when extras was opened from Review',async()=>{
+  mount({passportsCaptured:true});await screen.findByText('Available airline choices');fireEvent.click(screen.getByRole('button',{name:/Back to travelers/}));await screen.findByRole('heading',{name:'Edit travelers'});expect(api.saveAncillarySelections).not.toHaveBeenCalled();
  });
  it('opens an existing reservation instead of offering another extras selection',async()=>{
   api.bookingForIntent.mockResolvedValue({id:'booked'});mount();await screen.findByText('Existing booking');expect(api.validateIntent).not.toHaveBeenCalled();

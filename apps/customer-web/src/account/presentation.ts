@@ -10,7 +10,7 @@ const paymentLabels: Record<PaymentSummary['status'], string> = {
 };
 const intentLabels: Record<FlightBookingIntentStatus, string> = {
   CREATED: 'Fare selected', VALIDATING: 'Checking fare', VALIDATED: 'Fare checked', PRICE_CHANGED: 'Fare changed',
-  EXPIRED: 'Selection expired', READY_FOR_PAYMENT: 'Fare ready for order', FAILED: 'Fare check failed', CANCELLED: 'Selection removed',
+  EXPIRED: 'Selection expired', READY_FOR_PAYMENT: 'Ready to continue', FAILED: 'Fare check failed', CANCELLED: 'Selection removed',
 };
 const visaLabels: Record<VisaApplicationStatus, string> = {
   DRAFT: 'Draft application', INCOMPLETE: 'Checklist incomplete', READY_TO_SUBMIT: 'Ready to submit',
