@@ -28,8 +28,9 @@ function friendlyAuthError(cause: unknown, mode: Mode): string {
 export function AuthPage({ mode, modal = false, backgroundPath = '/', backgroundState }: { mode: Mode; modal?: boolean; backgroundPath?: string; backgroundState?: unknown }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const candidate = (location.state as { from?: unknown } | null)?.from;
+  const candidate = (location.state as { from?: unknown } | null)?.from || new URLSearchParams(location.search).get('returnTo');
   const returnTo = safeAuthReturn(candidate,safeAuthReturn(modal?backgroundPath:'/app'));
+  const authHref = (path:string) => path + '?returnTo=' + encodeURIComponent(returnTo);
   const returnState = modal && returnTo === backgroundPath ? backgroundState : undefined;
   const { session, acceptSession, recovery, resolving } = useAuth();
   const [email, setEmail] = useState('');
@@ -149,9 +150,9 @@ export function AuthPage({ mode, modal = false, backgroundPath = '/', background
       </form>
       {mode==='reset-password'&&!resolving&&!recovery&&<p role="alert" className="account-error">Open the latest password-reset link from your email in the same browser where you requested it. <Link to="/forgot-password">Request a new link</Link></p>}
       <div className="account-auth-links">
-        {mode === 'sign-in' && <><Link to="/forgot-password" state={{from:returnTo}}>Forgot password?</Link><span>New to Flyseri? <Link to="/create-account" state={{ from: returnTo }}>Create account</Link></span></>}
-        {mode === 'create-account' && <span>Already have an account? <Link to="/sign-in" state={{ from: returnTo }}><Translated text="Sign in" /></Link></span>}
-        {(mode === 'forgot-password' || mode === 'reset-password') && <Link to="/sign-in">Back to sign in</Link>}
+        {mode === 'sign-in' && <><Link to={authHref('/forgot-password')} state={{from:returnTo}}>Forgot password?</Link><span>New to Flyseri? <Link to={authHref('/create-account')} state={{ from: returnTo }}>Create account</Link></span></>}
+        {mode === 'create-account' && <span>Already have an account? <Link to={authHref('/sign-in')} state={{ from: returnTo }}><Translated text="Sign in" /></Link></span>}
+        {(mode === 'forgot-password' || mode === 'reset-password') && <Link to={authHref('/sign-in')} state={{from:returnTo}}>Back to sign in</Link>}
       </div>
       {socialMode&&<button type="button" className="auth-resend" disabled={busy||!authService.configured||resendAt>0} onClick={()=>void resend()}>{resendAt>0?'Verification email requested · try again in a minute':'Resend verification email'}</button>}
     </div>

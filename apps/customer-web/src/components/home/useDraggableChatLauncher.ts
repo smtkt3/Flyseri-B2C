@@ -67,8 +67,10 @@ export function useDraggableChatLauncher(button: RefObject<HTMLButtonElement | n
       const box = bounds();
       if (saved.current) move({ x: box.left + saved.current.x * (box.right - box.left), y: box.top + saved.current.y * (box.bottom - box.top) });
       else {
-        const rect = button.current.getBoundingClientRect();
-        move(currentPosition.current ?? { x: rect.left, y: rect.top });
+        // An untouched launcher follows its responsive CSS dock after resizing.
+        // Only an intentional drag should retain a custom viewport position.
+        currentPosition.current = null;
+        setPosition(previous => previous === null ? previous : null);
       }
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(fit); };

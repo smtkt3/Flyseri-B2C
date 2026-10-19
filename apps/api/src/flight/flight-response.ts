@@ -14,10 +14,16 @@ function segment(value: unknown): FlightSegment | null {
   const aircraftTypeCode = text(row.aircraftTypeCode, 4);
   const operatingCarrier = row.operatingCarrier === undefined ? undefined : text(row.operatingCarrier, 3);
   const seatsAvailable = row.seatsAvailable;
+  const connection = row.connectionAfter === undefined ? undefined : object(row.connectionAfter);
+  if (row.connectionAfter !== undefined && (!connection ||
+    !['RECHECK_REQUIRED','THROUGH_CHECKED','UNKNOWN'].includes(String(connection.baggageTransfer)) ||
+    connection.selfTransfer !== undefined && typeof connection.selfTransfer !== 'boolean')) return null;
   if (seatsAvailable !== undefined && (!Number.isInteger(seatsAvailable) || (seatsAvailable as number) < 0 || (seatsAvailable as number) > 999)) return null;
   if (row.bookingClass !== undefined && (!bookingClass || !/^[A-Z0-9]{1,2}$/.test(bookingClass)) ||
     row.operatingCarrier !== undefined && (!operatingCarrier || !/^[A-Z0-9]{2,3}$/.test(operatingCarrier))) return null;
   return { origin, destination, departureAt, arrivalAt, marketingCarrier, flightNumber, durationMinutes,
+    ...(connection ? {connectionAfter:{baggageTransfer:connection.baggageTransfer as NonNullable<FlightSegment['connectionAfter']>['baggageTransfer'],
+      ...(typeof connection.selfTransfer==='boolean'?{selfTransfer:connection.selfTransfer}:{})}} : {}),
     ...(seatsAvailable !== undefined ? { seatsAvailable: seatsAvailable as number } : {}),
     ...(bookingClass ? { bookingClass } : {}), ...(aircraftTypeCode && /^[A-Z0-9]{2,4}$/.test(aircraftTypeCode) ? { aircraftTypeCode } : {}),
     ...(operatingCarrier ? { operatingCarrier } : {}) };

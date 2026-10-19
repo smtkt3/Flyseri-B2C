@@ -42,6 +42,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (resolving) return <PageLoading label="Checking your session…" />;
   if (error) return <div role="alert" className="account-center">{error}</div>;
-  if (!session) return <Navigate to="/sign-in" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  if (!session) {
+    const returnTo = `${location.pathname}${location.search}`;
+    return <Navigate to={'/sign-in?returnTo=' + encodeURIComponent(returnTo)} replace state={{ from: returnTo }} />;
+  }
   return <>{children}</>;
 }

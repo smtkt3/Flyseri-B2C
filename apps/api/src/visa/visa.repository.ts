@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, isNotNull, lte, or, gte } from 'drizzle-orm';
 import { auditEvents, customerTravellers, customers, documentVersions, documents, orders, orderItems, payments, travellers, tripDestinations, tripTravellers, trips, visaApplicationNotes, visaApplicationRequirements, visaApplicationTravellers, visaApplications, visaAssistanceRequestDocuments, visaAssistanceRequestTravellers, visaAssistanceRequests, visaRequirementDocuments, visaRequirements, visaReviewRequests, visaServiceVersions, visaStatusHistory, visaTypes, type DatabaseConnection } from '@flyseri/database';
 import type { VisaApplicationDetail, VisaApplicationRequirement, VisaApplicationStatus, VisaApplicationSummary, VisaAssistanceRequestDetail, VisaAssistanceApplicantInput, VisaAssistanceRequestInput, VisaAssistanceRequestSummary, VisaFormDefinition, VisaReviewRequest, VisaTimelineItem, VisaRequirementDocument, VisaType } from '@flyseri/types';
+import { isSupportedVisaDestination } from '@flyseri/types';
 import { VisaConflictError, VisaValidationError } from './visa.errors.js';
 import { conditionMatches, parseVisaFormDefinition, validateVisaAnswers } from './visa-form.js';
 export interface VisaStore {
@@ -24,6 +25,11 @@ export interface VisaStore {
 
 type ApplicationRow = typeof visaApplications.$inferSelect;
 const today = () => new Date().toISOString().slice(0, 10);
+function validateAssistanceScope(input: VisaAssistanceRequestInput) {
+  if (!isSupportedVisaDestination(input.destinationCountryCode)) throw new VisaValidationError('Choose one of the available visa destinations');
+  if (input.applicants.some(person => person.nationalityCountryCode !== 'BD')) throw new VisaValidationError('Visa assistance is currently available for Bangladeshi nationals only');
+  if (input.applicants.some(person => person.documentExpiresOn < input.expectedTravelDate)) throw new VisaValidationError('The travel document must be valid on the planned travel date');
+}
 const ageAt = (birth: string, at: string) => {
   const years = Number(at.slice(0, 4)) - Number(birth.slice(0, 4));
   return years - (at.slice(5) < birth.slice(5) ? 1 : 0);
@@ -44,6 +50,7 @@ function applicable(rule: typeof visaRequirements.$inferSelect, person: typeof t
 export class DrizzleVisaStore implements VisaStore {
   constructor(private readonly connection: DatabaseConnection) {}
   async saveAssistanceForm(customerId: string, id: string, input: VisaAssistanceRequestInput): Promise<VisaAssistanceRequestDetail | null> {
+    validateAssistanceScope(input);
     const travellerIds = input.applicants.map(person => person.travellerId);
     if (!travellerIds.length || travellerIds.length > 30 || new Set(travellerIds).size !== travellerIds.length) throw new VisaValidationError('Choose each applicant once');
     if (input.expectedReturnDate && input.expectedReturnDate < input.expectedTravelDate) throw new VisaValidationError('The expected return date must be after departure');
@@ -58,11 +65,12 @@ export class DrizzleVisaStore implements VisaStore {
       if (request.tripId !== input.tripId || request.destinationCountryCode !== input.destinationCountryCode || request.expectedTravelDate !== input.expectedTravelDate || request.purpose !== input.purpose) throw new VisaValidationError('Keep the saved visa selection for this application');
       const [trip] = await tx.select({id: trips.id}).from(trips).where(and(eq(trips.id, request.tripId), eq(trips.customerId, customerId), isNull(trips.archivedAt))).limit(1);
       if (!trip) throw new VisaValidationError('Choose one of your saved journeys');
-      const people = await tx.select({id: travellers.id}).from(tripTravellers)
+      const people = await tx.select({id: travellers.id, nationality: travellers.nationalityCountryCode}).from(tripTravellers)
         .innerJoin(customerTravellers, and(eq(customerTravellers.travellerId, tripTravellers.travellerId), eq(customerTravellers.customerId, customerId)))
         .innerJoin(travellers, and(eq(travellers.id, tripTravellers.travellerId), isNull(travellers.archivedAt)))
         .where(and(eq(tripTravellers.tripId, request.tripId), inArray(tripTravellers.travellerId, travellerIds)));
       if (people.length !== travellerIds.length) throw new VisaValidationError('Every applicant must be a saved traveller on this journey');
+      if (people.some(person => person.nationality && person.nationality !== 'BD')) throw new VisaValidationError('Select a Bangladeshi applicant profile for this visa service');
       const existing = await tx.select().from(visaAssistanceRequestTravellers).where(eq(visaAssistanceRequestTravellers.requestId, id));
       const removed = existing.filter(person => !travellerIds.includes(person.travellerId));
       const membershipChanged = removed.length > 0 || existing.length !== travellerIds.length;
@@ -91,6 +99,7 @@ export class DrizzleVisaStore implements VisaStore {
     return found ? this.assistanceDetail(customerId, id) : null;
   }
   async createAssistanceRequest(customerId: string, input: VisaAssistanceRequestInput): Promise<VisaAssistanceRequestSummary> {
+    validateAssistanceScope(input);
     const travellerIds = input.applicants.map(({ travellerId }) => travellerId);
     if (!travellerIds.length || new Set(travellerIds).size !== travellerIds.length) throw new VisaValidationError('Choose each applicant once');
     const parsedDate = new Date(`${input.expectedTravelDate}T00:00:00.000Z`);
@@ -109,11 +118,12 @@ export class DrizzleVisaStore implements VisaStore {
       const [destination] = await tx.select({ id: tripDestinations.id }).from(tripDestinations)
         .where(and(eq(tripDestinations.tripId, trip.id), eq(tripDestinations.countryCode, input.destinationCountryCode))).limit(1);
       if (!destination) throw new VisaValidationError('The destination must match this journey');
-      const people = await tx.select({ id: travellers.id }).from(tripTravellers)
+      const people = await tx.select({ id: travellers.id, nationality: travellers.nationalityCountryCode }).from(tripTravellers)
         .innerJoin(customerTravellers, and(eq(customerTravellers.travellerId, tripTravellers.travellerId), eq(customerTravellers.customerId, customerId)))
         .innerJoin(travellers, and(eq(travellers.id, tripTravellers.travellerId), isNull(travellers.archivedAt)))
         .where(and(eq(tripTravellers.tripId, trip.id), inArray(tripTravellers.travellerId, travellerIds)));
       if (people.length !== travellerIds.length) throw new VisaValidationError('Every applicant must be a saved traveller on this journey');
+      if (people.some(person => person.nationality && person.nationality !== 'BD')) throw new VisaValidationError('Select a Bangladeshi applicant profile for this visa service');
       const [request] = await tx.insert(visaAssistanceRequests).values({
         customerId, tripId: trip.id, destinationCountryCode: input.destinationCountryCode,
         expectedTravelDate: input.expectedTravelDate, expectedReturnDate: input.expectedReturnDate || null,
@@ -302,6 +312,7 @@ export class DrizzleVisaStore implements VisaStore {
       if (!trip) return null;
       const [type] = await tx.select().from(visaTypes).where(and(eq(visaTypes.id, visaTypeId), eq(visaTypes.active, true))).limit(1);
       if (!type) throw new VisaValidationError('This visa service is unavailable');
+      if (!isSupportedVisaDestination(type.destinationCountryCode)) throw new VisaValidationError('Choose one of the available visa destinations');
       const [serviceVersion] = await tx.select().from(visaServiceVersions).where(and(eq(visaServiceVersions.visaTypeId, visaTypeId), eq(visaServiceVersions.active, true),
         or(isNull(visaServiceVersions.effectiveFrom), lte(visaServiceVersions.effectiveFrom, today())),
         or(isNull(visaServiceVersions.effectiveUntil), gte(visaServiceVersions.effectiveUntil, today()))))
@@ -330,6 +341,7 @@ export class DrizzleVisaStore implements VisaStore {
         .innerJoin(travellers, eq(travellers.id, tripTravellers.travellerId))
         .where(and(eq(tripTravellers.tripId, tripId), inArray(tripTravellers.travellerId, travellerIds), isNull(travellers.archivedAt)));
       if (people.length !== travellerIds.length) throw new VisaValidationError('Every applicant must be a saved traveller on this trip');
+      if (people.some(({ traveller }) => traveller.nationalityCountryCode !== 'BD')) throw new VisaValidationError('Visa assistance is currently available for Bangladeshi nationals only');
       if (serviceVersion.nationalityEligibility.length && people.some(({ traveller }) => !traveller.nationalityCountryCode ||
         !serviceVersion.nationalityEligibility.includes(traveller.nationalityCountryCode))) {
         throw new VisaValidationError('One or more selected travellers do not meet this service nationality eligibility');

@@ -1,0 +1,24 @@
+html body :is(#root,.flyseri-services-overlay) .travel-service-rail .premium-service-sidebar-toggle{background:transparent}
+/* One rail and one drawer presentation for every customer service. */
+@media(min-width:1101px){
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail{padding:24px 14px 16px;border:0;border-right:1px solid #dfeaf4;border-radius:0;background:linear-gradient(180deg,#fbfdff,#f5faff);box-shadow:none;overflow-y:auto;overscroll-behavior:contain}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail nav{margin-top:22px;gap:24px}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail .premium-service-sidebar-label{font-size:13px;white-space:nowrap}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-expanded .premium-service-sidebar-label{display:inline}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-expanded .premium-service-sidebar-item{justify-content:flex-start;gap:11px;padding:7px 10px;min-height:48px}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-expanded .premium-service-sidebar-toggle{justify-content:flex-start;padding:10px;gap:10px}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-expanded .premium-service-group-label{display:block}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-expanded :is(.premium-service-sidebar-toggle-text,.premium-service-sidebar-toggle-chevron){display:block}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-collapsed :is(.premium-service-sidebar-label,.premium-service-group-label,.premium-service-sidebar-toggle-text,.premium-service-sidebar-toggle-chevron,.premium-service-sidebar-item small,.service-more-full){display:none}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-collapsed .service-more-short{display:block;text-align:center}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-collapsed :is(.premium-service-sidebar-item,.premium-service-sidebar-toggle){justify-content:center;padding-inline:0}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-collapsed .is-upcoming summary{padding-inline:0}
+}
+@media(max-width:1100px){
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail{position:fixed;inset:0 auto 0 0;z-index:1101;width:min(288px,85vw);height:100dvh;max-height:100dvh;padding:22px 16px 18px;border:0;border-radius:0 22px 22px 0;background:#fbfdff;box-shadow:12px 0 50px #163d6640;overflow-y:auto}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-collapsed{visibility:hidden;pointer-events:none;transform:translateX(-105%)}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail.is-expanded{visibility:visible;pointer-events:auto;transform:none}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail .premium-service-sidebar-label{display:inline;font-size:14px}
+  html body :is(#root,.flyseri-services-overlay) .travel-service-rail .premium-service-sidebar-toggle{justify-content:flex-start}
+}
+html body :is(#root,.flyseri-services-overlay)>.travel-service-rail{position:absolute;inset:0 auto 0 0;width:min(288px,85vw);height:100dvh;max-height:100dvh;padding:22px 16px 18px;border:0;border-radius:0 22px 22px 0;background:#fbfdff;box-shadow:12px 0 50px #163d6640;visibility:visible;pointer-events:auto;transform:none}

@@ -1,0 +1,23 @@
+.flight-transfer-notice{margin:8px 0;border:0;border-top:1px solid #e8edf3;background:transparent;color:#52657b;font-size:12px;line-height:1.6}
+.flight-transfer-notice>summary{display:flex;align-items:center;gap:10px;min-height:48px;padding:9px 0;list-style:none;cursor:pointer}
+.flight-transfer-notice>summary::-webkit-details-marker{display:none}
+.flight-transfer-notice>summary:focus-visible{outline:3px solid #89b7ed;outline-offset:3px;border-radius:6px}
+.flight-transfer-icon{width:19px;height:19px;flex:none;color:#6f849b}
+.flight-transfer-label{display:flex;flex:1;align-items:baseline;flex-wrap:wrap;gap:3px 12px;min-width:0}
+.flight-transfer-notice strong{font-size:12px;font-weight:600;color:#354b64}
+.flight-transfer-caption{font-size:12px;color:#6e7e90}
+.flight-transfer-disclosure{display:flex;align-items:center;gap:5px;flex:none;color:#1767cc;font-size:12px;font-weight:600}
+.flight-transfer-disclosure svg{width:14px;height:14px;transition:transform .15s}
+.flight-transfer-notice[open] .flight-transfer-disclosure svg{transform:rotate(180deg)}
+.flight-transfer-notice.needs-recheck>summary .flight-transfer-icon,.flight-transfer-notice.needs-recheck>summary strong{color:#95621c}
+.flight-transfer-expanded{padding:0 0 12px 29px;max-width:88ch}
+.flight-transfer-expanded>div+div{margin-top:10px}
+.flight-transfer-expanded p{font-size:12px!important;line-height:1.7!important;margin:3px 0 0!important;color:#64758a!important}
+.flight-transfer-expanded .flight-transfer-entry-note{margin-top:10px!important}
+.flight-transfer-policy-source{display:flex;align-items:center;flex-wrap:wrap;gap:3px 10px;font-size:11px;color:#6b7d8f;margin-top:5px}
+.flight-transfer-policy-source a{color:#1767cc;text-decoration:underline;text-underline-offset:3px}
+.flight-result-row>.flight-transfer-notice{margin:0 20px}
+.flight-transfer-visa{padding:16px;margin:16px 0;border:1px solid #e8d7b8;border-radius:12px;background:#fffbf3;color:#52677c;font-size:13px;line-height:1.65}
+.flight-transfer-visa h3{font-size:14px;margin:0 0 10px;color:#29415b}.flight-transfer-visa>div+div{margin-top:14px;padding-top:14px;border-top:1px solid #e9dfcd}.flight-transfer-visa strong{display:block;color:#29415b}.flight-transfer-visa b{display:block;color:#805824;font-weight:650}.flight-transfer-visa p{font-size:13px!important;line-height:1.65!important;margin:6px 0!important;color:#52677c!important}.flight-transfer-visa a{display:inline-flex;min-height:36px;align-items:center;color:#1767cc;font-weight:600}.flight-transfer-visa small{display:block;font-size:11px;color:#6b7d8f}
+@media(max-width:760px){.flight-result-row>.flight-transfer-notice{margin:0 16px}.flight-transfer-label{display:grid;gap:1px}.flight-transfer-caption{font-size:11px}.flight-transfer-notice>summary{min-height:56px}.flight-transfer-visa{padding:14px}.flight-transfer-visa a{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.flight-transfer-disclosure svg{transition:none}}

@@ -1,0 +1,65 @@
+html body:has(.visa-start-page) .customer-site-shell{min-height:100dvh;background:linear-gradient(180deg,#fbfdff,#f3f6fc 360px)}
+html body #root .account-page.visa-start-page{max-width:var(--ui-page-width,1280px);padding:32px 24px 80px;color:#1b2b43}
+.visa-start-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 0 26px;margin-bottom:24px;border-bottom:1px solid #dfe7f2}
+html body #root .visa-start-hero h1{display:flex;align-items:center;gap:12px;margin:0 0 14px;font-size:32px;color:#172d49}
+.visa-start-hero h1>span{display:grid;place-items:center;background:#e9f1ff;color:#1767cc;width:36px;height:40px;border-radius:6px}
+.visa-start-hero p{margin:0 0 4px;color:#627694}
+.visa-start-hero small{color:#627694;font-size:12px}
+.visa-start-tabs{display:flex;flex:none;gap:4px;padding:5px;border-radius:14px;background:#e9eef8}
+.visa-start-tabs>button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 17px;border:1px solid transparent;border-radius:10px;color:#60728e;background:transparent;cursor:pointer;font:inherit;font-size:13px;white-space:nowrap}
+.visa-start-tabs svg{width:17px;height:17px}
+.visa-start-tabs>button[aria-selected=true]{color:#1767cc;background:#fff;border-color:#e0e7f2;box-shadow:0 2px 4px #1d41650a;font-weight:650}
+.visa-start-tabs>button:focus-visible,.visa-type-options>button:focus-visible{outline:3px solid #a2c6f5;outline-offset:2px}
+.visa-start-content{display:grid;gap:20px}
+.visa-start-card{min-width:0;background:#fff;border:1px solid #dfe7f2;border-radius:18px;box-shadow:0 8px 24px #243f6009;padding:24px}
+html body #root .visa-choose-card>h2{margin:4px 0 16px;font-size:20px;color:#172d49}
+.visa-choose-card>p{color:#627694;margin:0 0 22px}
+.visa-choose-grid{display:grid;grid-template-columns:1fr 1.05fr 1fr;gap:16px;align-items:start}
+.visa-start-page label{display:grid;gap:8px;color:#60728e;font-size:13px;min-width:0}
+html body #root .visa-start-page :is(input,select){box-sizing:border-box;min-width:0;width:100%;height:46px;padding:10px 13px;border:1px solid #dce5f1;border-radius:10px;background:#fff;color:#243e65;font:inherit;font-size:14px;box-shadow:none}
+.visa-start-page :is(input,select):focus-visible{outline:3px solid #a2c6f5;outline-offset:1px}
+.visa-start-page select:disabled{color:#657991;background:#f8fafd;opacity:1}
+.visa-type-options{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.visa-type-options>legend{float:left;flex-basis:100%;width:100%;margin:0 0 8px;padding:0;font-size:13px;color:#60728e}
+.visa-type-options>button{border:1px solid #e0e7f2;background:#fff;border-radius:999px;color:#314967;font:inherit;font-size:12px;min-height:40px;padding:8px 13px;cursor:pointer}
+.visa-type-options>button[aria-pressed=true]{background:#1767cc;border-color:#1767cc;color:white;font-weight:650}
+.visa-price-panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0 24px}
+.visa-price-panels>div{padding:18px 16px;border:1px solid #dfe7f2;background:#fafcff;border-radius:14px;min-width:0}
+html body #root .visa-price-panels h3{font-size:14px;font-weight:500;color:#627694;margin:0 0 10px}
+.visa-price-panels strong{display:block;font-size:26px;line-height:1.3;letter-spacing:-.02em;color:#1b2b43;font-weight:750;margin:0 0 6px}
+.visa-price-panels small{display:block;color:#60728e;font-size:12px}
+.visa-price-panels .visa-online-price{border-color:#bdd4f7;background:#eef4ff}
+.visa-price-panels dl{margin:0;display:grid;gap:8px}
+.visa-price-panels dl>div{display:flex;justify-content:space-between;gap:18px;font-size:13px;color:#546b87}
+.visa-price-panels dd{margin:0;font-weight:650;color:#263f60;white-space:nowrap}
+.visa-start-notice{padding:14px 16px;border:1px solid #d9e7f4;border-radius:10px;background:#f7faff;color:#526b85;margin-top:18px;font-size:13px;line-height:1.7}
+.visa-start-notice button{border:0;background:none;color:#1767cc;text-decoration:underline;cursor:pointer}
+.visa-start-processing{display:flex;align-items:center;gap:8px;color:#60728e}
+.visa-start-processing svg{width:18px;height:18px;flex:none}
+html body #root .visa-start-how h3{font-size:16px;color:#1b2b43;margin:0 0 20px}
+.visa-start-how ol{list-style:none;counter-reset:visa-step;padding:0;margin:0;display:grid;gap:8px}
+.visa-start-how li{counter-increment:visa-step;display:flex;align-items:flex-start;gap:10px;color:#506580;font-size:14px;line-height:1.6}
+.visa-start-how li:before{content:counter(visa-step);display:grid;place-items:center;background:#edf3ff;color:#1767cc;border-radius:999px;width:26px;height:26px;flex:none;font-size:12px;font-weight:650}
+.visa-choose-footer{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:24px}
+html body #root .visa-choose-footer p{font-size:12px;color:#6b7d95;margin:0;max-width:630px}
+.visa-start-page .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:46px;padding:11px 20px;border:0;background:#1767cc;color:white;text-decoration:none;cursor:pointer;white-space:nowrap}
+.visa-start-page .btn-primary:disabled{cursor:wait;opacity:.6}
+.visa-application-filters{display:grid;grid-template-columns:160px 160px auto minmax(200px,1fr);gap:12px;align-items:end;padding:16px}
+.visa-application-filters>.account-error{grid-column:1/-1;margin:0}
+.visa-applications-empty{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;min-height:270px;padding:24px;gap:16px}
+.visa-applications-empty>svg{width:42px;height:42px;color:#2678d6}
+html body #root .visa-applications-empty h2{font-size:20px;margin:0;color:#1b2b43}
+.visa-applications-empty p{color:#627694;margin:0}
+.visa-applications-empty>.btn-primary{margin-top:4px}
+.visa-list-error{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.visa-list-error p{margin:0;color:#8c571c}
+.visa-results-count{margin:0 0 16px;color:#627694}
+.visa-application-rows{display:grid;gap:10px}
+.visa-application-rows>a{display:flex;align-items:center;gap:16px;padding:18px;border:1px solid #e0e7f2;border-radius:12px;text-decoration:none;color:#243e65}
+.visa-application-rows>a:hover{border-color:#85b5ee;background:#f8fbff}
+.visa-application-rows>a>div{flex:1;min-width:0}
+.visa-application-rows strong{display:block;font-size:14px;margin-bottom:6px}
+.visa-application-rows small{display:block;overflow-wrap:anywhere}
+.visa-row-status{font-size:12px;border-radius:999px;padding:6px 10px;background:#eef4ff;color:#1767cc}
+@media(max-width:1100px){.visa-choose-grid{grid-template-columns:1fr 1fr}.visa-type-options{grid-column:2;grid-row:1/3}.visa-application-filters{grid-template-columns:1fr 1fr auto}.visa-application-filters>label:last-of-type{grid-column:1/-1}.visa-start-hero{align-items:flex-start}.visa-start-tabs>button{padding-inline:12px}}
+@media(max-width:760px){html body #root .account-page.visa-start-page{padding:20px 16px 100px}.visa-start-hero{display:grid;gap:18px;padding-bottom:20px;margin-bottom:18px}html body #root .visa-start-hero h1{font-size:27px;margin-bottom:10px}.visa-start-tabs{width:100%;box-sizing:border-box}.visa-start-tabs>button{flex:1;padding-inline:10px;min-width:0;font-size:12px}.visa-start-card{padding:20px 16px;border-radius:16px}.visa-choose-grid{grid-template-columns:1fr;gap:20px}.visa-type-options{grid-column:auto;grid-row:auto}.visa-price-panels{grid-template-columns:1fr;margin-block:22px;gap:10px}.visa-price-panels strong{font-size:24px}.visa-choose-footer{flex-direction:column;align-items:stretch;gap:16px}.visa-choose-footer>.btn-primary{width:100%;box-sizing:border-box}.visa-application-filters{grid-template-columns:1fr 1fr;gap:14px}.visa-application-filters>button{grid-column:1/-1;grid-row:3}.visa-application-filters>label:last-of-type{grid-row:2}.visa-application-rows>a{flex-wrap:wrap;gap:10px;padding:14px}.visa-application-rows>a>div{flex-basis:calc(100% - 70px)}.visa-row-status{margin-left:52px}.visa-list-error{display:grid}.visa-applications-empty{padding:22px 0;min-height:260px}.visa-start-how li{font-size:13px}}

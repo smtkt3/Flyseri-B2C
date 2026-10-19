@@ -19,19 +19,22 @@
 .journey-photo{display:block;position:relative;width:100%;height:190px;overflow:hidden;background:linear-gradient(135deg,#1f6ba4,#4ca9b5)}
 .journey-photo>img{width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
 .journey-card:hover .journey-photo>img{transform:scale(1.035)}
-.journey-photo:after{position:absolute;inset:0;content:'';background:linear-gradient(180deg,#0c294020,transparent 20%,#0a2032bb 100%);pointer-events:none}
+.journey-photo:after{position:absolute;inset:0;content:'';background:linear-gradient(180deg,#071b2c08 0%,#071b2c00 38%,#071b2c47 66%,#071b2cd9 100%);pointer-events:none}
 .journey-country{position:absolute;top:14px;left:16px;z-index:1;max-width:calc(100% - 32px);padding:6px 10px;border:1px solid #ffffff70;border-radius:999px;background:#ffffffed;color:#284864;font-size:11px;font-weight:650}
 .journey-destination{position:absolute;z-index:1;right:18px;bottom:18px;left:18px;display:grid;gap:5px;color:#fff;text-shadow:0 1px 6px #0b243b40}
 .journey-destination>strong{font-size:26px;line-height:1.2;font-weight:750;letter-spacing:-.03em}
 .journey-destination>span{font-size:13px;line-height:1.4;color:#f0f6fc}
-.journey-card-content{display:flex;flex:1;flex-direction:column;gap:15px;padding:18px;background:linear-gradient(180deg,#fff,#fbfdff)}
+.journey-card-content{display:flex;flex:1;flex-direction:column;gap:8px;padding:18px;background:linear-gradient(180deg,#fff,#fbfdff)}
 .journey-route{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .journey-route small{color:#60788f;font-size:12px}
 .journey-route strong{font-size:18px;line-height:1.4;letter-spacing:-.02em}
 .journey-route strong>span{color:#a2b7ca;font-size:15px;margin-inline:3px}
-.journey-airline{display:flex;align-items:center;gap:12px;min-width:0;min-height:54px}
-.journey-airline-logo{display:grid;place-items:center;box-sizing:border-box;width:82px;height:54px;flex:none;padding:7px;border:1px solid #e3ebf4;border-radius:12px;background:#fff}
-.journey-airline-logo>img{display:block;width:100%;height:100%;object-fit:contain}
+.journey-airline{display:flex;align-items:center;gap:8px;min-width:0;min-height:40px}
+.journey-airline-logo{display:grid;place-items:center;box-sizing:border-box;width:40px;height:40px;flex:none;padding:5px;border:1px solid #e3ebf4;border-radius:8px;background:#fff}
+.journey-airline-mark{display:block;position:relative;flex:none;width:28px;height:28px;overflow:hidden}
+.journey-airline-mark>img{display:block;width:28px;height:28px;object-fit:contain}
+/* Display Biman's red emblem from the existing wordmark beside its full name. */
+.journey-airline-logo[data-airline=BG] .journey-airline-mark>img{position:absolute;left:0;top:1px;width:102.632px;max-width:none;height:26px;object-fit:fill}
 .journey-airline>span:last-child{font-size:15px;line-height:1.35;font-weight:700;color:#233f5c;overflow-wrap:anywhere}
 .journey-card-action{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid #e7eef5;color:#226cc0;font-size:14px;font-weight:700}
 .journey-card-action svg{width:20px;height:20px}
@@ -54,15 +57,15 @@
  .journey-card{width:86cqw;min-width:0;max-width:none;border-radius:18px}
  .journey-photo{height:174px}
  .journey-destination>strong{font-size:25px}
- .journey-card-content{padding:16px;gap:13px}
- .journey-airline{gap:10px;min-height:48px}
- .journey-airline-logo{width:76px;height:48px;padding:6px;border-radius:10px}
+ .journey-card-content{padding:16px;gap:8px}
+ .journey-airline{gap:8px;min-height:40px}
+ .journey-airline-logo{width:40px;height:40px;padding:5px;border-radius:8px}
  .journey-airline>span:last-child{font-size:14px}
  .journey-route strong{font-size:17px}
  .journey-section-note{padding:0 18px;font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.journey-card,.journey-photo>img,.journey-navigation button{transition:none}.journey-card:hover .journey-photo>img{transform:none}}
-.journey-fare{display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:1px solid #e7eef5}
+.journey-fare{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #e7eef5}
 .journey-fare>span{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .journey-fare small{font-size:11px;line-height:1.5;color:#60778f}
 .journey-fare strong{color:#1f65b2;font-size:22px;font-weight:750;letter-spacing:-.025em;text-align:right}

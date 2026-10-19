@@ -1,5 +1,6 @@
 import type { FlightBaggageAllowance, FlightOffer } from '@flyseri/types';
 import { FlightMealDetails } from './FlightMealDetails';
+import { FlightTransferNotice } from './FlightTransferNotice';
 import { airlineBaggageLimit, baggagePolicySources, hasBaggageWeight } from './airlineBaggagePolicy';
 
 const segmentsOf = (offer: FlightOffer) => (offer.multiCityLegs ?? [offer.outbound, ...(offer.inbound ? [offer.inbound] : [])]).flatMap((leg) => leg.segments);
@@ -38,7 +39,7 @@ export function FlightBaggageDetails({ offer, knownOnly = false, legIndex }: { o
   const legs = offer.multiCityLegs ?? [offer.outbound, ...(offer.inbound ? [offer.inbound] : [])];
   const start = legIndex === undefined ? 0 : legs.slice(0, legIndex).reduce((sum, leg) => sum + leg.segments.length, 0);
   const end = legIndex === undefined ? Infinity : start + (legs[legIndex]?.segments.length ?? 0);
-  return <>{segmentsOf(offer).map((segment, index) => {
+  return <><FlightTransferNotice offer={offer} legIndex={legIndex}/>{segmentsOf(offer).map((segment, index) => {
     if (index < start || index >= end) return null;
     if (knownOnly && !(offer.baggageAllowances ?? []).some(item => item.availability !== 'UNKNOWN' && applies(item.segmentIndexes, index))) return null;
     return <div className={`flight-fare-baggage-leg${knownOnly ? '' : ' flight-baggage-allowance-leg'}`} key={index}>

@@ -16,5 +16,5 @@ export function SavedVisaJourneyProgress({requestId,current,complete=false,disab
   const base='/app/visa/assistance/'+requestId;
   const destinations={choose:base+'/documents?step=choose',form:base+'/documents?step=form',documents:base+'/documents',review:base+'/documents?step=review',payment:base+'/payment'};
   const links=disabled?{}:Object.fromEntries(steps.filter((_,index)=>complete||index<=furthest).map(step=>[step,destinations[step]]));
-  return <VisaJourneyProgress current={current} reached={steps[furthest]} complete={complete} links={links}/>;
+  return <VisaJourneyProgress current={current} complete={complete} links={links}/>;
 }

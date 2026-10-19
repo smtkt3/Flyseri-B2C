@@ -8,6 +8,18 @@ import { VisaService } from './visa.service.js';
 
 const validated = (type: new () => object) => new ValidationPipe({ expectedType: type, transform: true, whitelist: true, forbidNonWhitelisted: true, exceptionFactory: () => new BadRequestException('The request is invalid.') });
 const response = <T>(request: ContextRequest, data: T): ApiSuccess<T> => ({ success: true, data, requestId: request.requestId });
+/** Published service information only. Customer records remain in the guarded controller. */
+@Controller('public/visa-services')
+export class PublicVisaCatalogueController {
+  constructor(@Inject(VisaService) private readonly service: VisaService) {}
+  @Get()
+  @Header('Cache-Control', 'no-store')
+  async catalogue(@Query('countryCode') countryCode: string, @Req() request: ContextRequest): Promise<ApiSuccess<VisaType[]>> {
+    if (!/^[A-Za-z]{2}$/.test(countryCode ?? '')) throw new BadRequestException('Choose a valid country.');
+    return response(request, await this.service.catalogue(countryCode.toUpperCase()));
+  }
+}
+
 @Controller()
 @UseGuards(CustomerAuthGuard)
 export class VisaController {

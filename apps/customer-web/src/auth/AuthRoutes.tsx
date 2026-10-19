@@ -15,6 +15,7 @@ const App = lazy(() => import('../App'));
 const AuthPage = lazy(() => import('./AuthPage').then((module) => ({ default: module.AuthPage })));
 const AuthCallbackPage = lazy(() => import('./AuthCallbackPage').then(module=>({default:module.AuthCallbackPage})));
 const CustomerShell = lazy(() => import('../account/CustomerShell').then((module) => ({ default: module.CustomerShell })));
+const PublicVisaPage = lazy(() => import('../visa/PublicVisaPage').then(module => ({ default: module.PublicVisaPage })));
 const PublicFlightPage = lazy(() => import('../flight/PublicFlightPage').then((module) => ({ default: module.PublicFlightPage })));
 const GuestFlightCheckoutPage = lazy(() => import('../flight/GuestFlightCheckoutPage').then((module) => ({ default: module.GuestFlightCheckoutPage })));
 const HolidayCataloguePage = lazy(() => import('../holiday/HolidayPages').then(module => ({ default: module.HolidayCataloguePage })));
@@ -28,7 +29,8 @@ function homeLocation(location: Location): Location {
 }
 
 function publicLocation(location: Location): boolean {
-  return !overlayPaths.has(location.pathname) && !location.pathname.startsWith('/app') && location.pathname !== '/reset-password' && location.pathname !== '/auth/callback';
+  const visaDiscovery = /^\/app\/visa\/?$/.test(location.pathname) || /^\/app\/visa\/guide\/[^/]+\/?$/.test(location.pathname);
+  return !overlayPaths.has(location.pathname) && (!location.pathname.startsWith('/app') || visaDiscovery) && location.pathname !== '/reset-password' && location.pathname !== '/auth/callback';
 }
 
 export function AuthRoutes() {
@@ -58,6 +60,8 @@ export function AuthRoutes() {
           <Route path="/holidays" element={<HolidayCataloguePage />} />
           <Route path="/holidays/bookings" element={<ProtectedRoute><HolidayBookingsPage /></ProtectedRoute>} />
           <Route path="/holidays/:id" element={<HolidayDetailPage />} />
+          <Route path="/app/visa" element={<PublicVisaPage />} />
+          <Route path="/app/visa/guide/:countryCode" element={<PublicVisaPage guide />} />
           <Route path="/app/*" element={<ProtectedRoute><CustomerShell /></ProtectedRoute>} />
           <Route path="*" element={<div className="customer-site-shell"><PremiumNavbar/><PageRecovery /></div>} />
         </Routes>

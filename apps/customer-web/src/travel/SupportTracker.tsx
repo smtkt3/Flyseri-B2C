@@ -14,9 +14,9 @@ export function SupportTracker({ revision = 0 }: { revision?: number }) {
   const sending = useRef(false);
   async function load() { setBusy(true); setError(''); try { setItems(await travelService.requests()); } catch { setError('Could not load your requests.'); } finally { setBusy(false); } }
   useEffect(() => { void load(); }, [revision]);
-  return <section className="travel-tool"><div className="travel-tool-heading"><h2>{t('Track your requests')}</h2><button disabled={busy} onClick={() => void load()}>{t('Refresh')}</button></div>
-    {busy && <p role="status">Loading requests…</p>}{error && <p role="alert" className="travel-error">{error}</p>}
-    {!busy && !error && !items.length && <p>Your confirmed support requests and updates will appear here.</p>}
+  return <section className="travel-tool support-tracker"><div className="travel-tool-heading"><h2>{t('Track your requests')}</h2><button type="button" disabled={busy} onClick={() => void load()}>{t('Refresh')}</button></div>
+    {busy && <p role="status">Loading requests…</p>}{error && <div className="support-tracker-error" role="alert"><p className="travel-error">{error}</p><button type="button" disabled={busy} onClick={()=>void load()}>Try again</button></div>}
+    {!busy && !error && !items.length && <div className="support-tracker-empty"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M5 4h14v16H5zM9 8h6M9 12h6M9 16h3"/></svg></span><div><strong>No support requests yet</strong><p>Once you confirm and send a request, you can follow its progress and messages here.</p></div></div>}
     {items.map(item => <article key={item.id} className="travel-row"><div style={{ width: '100%' }}><span className="travel-badge">{t(stageLabels[item.stage])}</span><strong>{item.reason}</strong><small>Reference: {item.id}</small>
       <details><summary>Progress & messages</summary><ol className="travel-support-history">{item.updates.map((update, index) => <li key={index}><strong>{t(stageLabels[update.stage])} · {update.author === 'TEAM' ? 'Flyseri team' : 'You'}</strong><time dateTime={update.at}>{new Date(update.at).toLocaleString()}</time><p>{update.message}</p></li>)}</ol></details>
       {item.stage === 'QUOTE_READY' && item.quote && <div><h3>{money(String(item.quote.amount), item.quote.currency)}</h3><p>{item.quote.description}</p><p>Valid until {new Date(item.quote.expiresAt).toLocaleString()}. Approval authorizes the team to proceed; payment and airline confirmation are separate.</p>

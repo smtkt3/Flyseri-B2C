@@ -24,7 +24,7 @@ export class CommerceService {
     try { return await this.repository.createAssistanceOrder(customerId, id, requestId); }
     catch (error) {
       if (error instanceof OrderUnavailableError) throw new ApiException('NOT_FOUND', 'We could not find that visa request.', 404);
-      if (error instanceof OrderConflictError) throw new ApiException('CONFLICT', 'Complete applicant details and confirm the configured service fee before payment.', 409);
+      if (error instanceof OrderConflictError) throw new ApiException('CONFLICT', error.message || 'Complete applicant details and confirm the configured service fee before payment.', 409);
       throw error;
     }
   }

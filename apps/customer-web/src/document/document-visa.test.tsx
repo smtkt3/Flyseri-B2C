@@ -18,15 +18,15 @@ vi.mock('../services/visaService', () => ({ visaService: visaApi }));
 vi.mock('../services/tripService', () => ({ tripService: tripApi }));
 vi.mock('../services/travellerService', () => ({ travellerService: travellerApi }));
 
-const person = { id: 'person-1', legalFirstName: 'Ain', legalLastName: 'Rahman', relationshipType: 'SELF' };
-const second = { id: 'person-2', legalFirstName: 'Fatimah', legalLastName: 'Rahman', relationshipType: 'SPOUSE' };
+const person = { id: 'person-1', legalFirstName: 'Ain', legalLastName: 'Rahman', relationshipType: 'SELF', nationalityCountryCode: 'BD' };
+const second = { id: 'person-2', legalFirstName: 'Fatimah', legalLastName: 'Rahman', relationshipType: 'SPOUSE', nationalityCountryCode: 'BD' };
 const version = { id: 'version-1', versionNumber: 1, originalFilename: 'passport.jpg', mimeType: 'image/jpeg', fileSize: 7, securityScanStatus: 'UNAVAILABLE', uploadedAt: '2026-09-23T00:00:00.000Z' };
 const document = { id: 'document-1', travellerId: person.id, travellerName: 'Ain Rahman', documentType: 'PASSPORT', displayName: null, status: 'UPLOADED', issuedOn: null, expiresOn: '2031-05-14', issuingCountryCode: null, currentVersion: version, versions: [version], createdAt: '', updatedAt: '' };
 const trip = { id: 'trip-1', title: 'Japan', status: 'PLANNING', startDate: null, endDate: null, primaryDestination: { countryCode: 'JP', cityName: 'Tokyo' }, travellerCount: 2, createdAt: '', updatedAt: '', destinations: [], travellers: [person, second] };
 const requirements = [person, second].map((item, index) => ({ id: `req-${index + 1}`, travellerId: item.id, requirementCode: 'PASSPORT', name: 'Passport copy', description: null, required: true, documentType: 'PASSPORT', status: 'MISSING', displayOrder: 0, documents: [] }));
 const application = { id: 'visa-1', tripId: 'trip-1', visaTypeId: 'type-1', visaTypeName: 'Tourist visa', destinationCountryCode: 'JP', status: 'DRAFT', travellerIds: [person.id, second.id], requiredCompleted: 0, requiredTotal: 2, requirements, createdAt: '', updatedAt: '' };
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
-beforeEach(() => { documentApi.policy.mockResolvedValue({ maxUploadMb: 10, acceptedTypes: [] }); visaApi.assistanceList.mockResolvedValue([]); });
+beforeEach(() => { documentApi.policy.mockResolvedValue({ maxUploadMb: 10, acceptedTypes: [] }); visaApi.assistanceList.mockResolvedValue([]); travellerApi.list.mockResolvedValue([person,second]); });
 
 describe('document vault and visa planning', () => {
   it('shows a loading state and an honest empty vault', async () => {
@@ -92,23 +92,22 @@ describe('document vault and visa planning', () => {
     tripApi.detail.mockResolvedValue(trip); visaApi.catalogue.mockResolvedValue([]); visaApi.list.mockResolvedValue([]);
     render(<MemoryRouter initialEntries={['/app/trips/trip-1/visa']}><Routes><Route path="/app/trips/:tripId/visa" element={<TripVisaPage />} /></Routes></MemoryRouter>);
     expect(await screen.findByText(/Flyseri can review an assisted visa request for Japan/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: /Continue to request form/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: /Continue to applicant details/ }) as HTMLButtonElement).disabled).toBe(true);
   });
   it('opens the visa search using the first saved journey', async () => {
     tripApi.list.mockResolvedValue([trip, { ...trip, id: 'trip-2', title: 'New journey', primaryDestination: null }]);
     tripApi.detail.mockResolvedValue(trip); visaApi.list.mockResolvedValue([]); visaApi.catalogue.mockResolvedValue([]);
     render(<MemoryRouter initialEntries={['/app/visa']}><Routes><Route path="/app/visa" element={<VisaHubPage />} /></Routes></MemoryRouter>);
-    await screen.findByRole('heading', { name: 'Where are you going?' });
-    expect((screen.getByLabelText('Destination country') as HTMLSelectElement).value).toBe('JP');
-    expect(screen.getByRole('checkbox', { name: 'Ain Rahman' })).toBeTruthy();
-    expect(tripApi.list).toHaveBeenCalledTimes(1);
+    await screen.findByRole('heading', { name: 'Where would you like to go?' });
+    expect(screen.getByRole('link', { name: 'My applications ↗' }).getAttribute('href')).toBe('/app/visa/new?tab=applications');
+    expect(tripApi.list).not.toHaveBeenCalled();
   });
   it('shows a useful visa entry point before a customer has a trip', async () => {
     tripApi.list.mockResolvedValue([]);
     travellerApi.list.mockResolvedValue([]);
     render(<MemoryRouter><VisaHubPage /></MemoryRouter>);
-    expect(await screen.findByRole('heading', { name: 'Where are you going?' })).toBeTruthy();
-    expect((screen.getByLabelText('New applicants') as HTMLInputElement).value).toBe('1');
+    expect(await screen.findByRole('heading', { name: 'Where would you like to go?' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Start my application/ }).getAttribute('href')).toBe('/app/visa/new');
   });
   it('starts a visa application for selected trip travellers', async () => {
     tripApi.detail.mockResolvedValue(trip); tripApi.create.mockResolvedValue({ ...trip, id: 'visa-trip-1' }); visaApi.catalogue.mockResolvedValue([{ id: 'type-1', destinationCountryCode: 'JP', code: 'TEST', name: 'Tourist visa' }]); visaApi.list.mockResolvedValue([]); visaApi.create.mockResolvedValue(application);

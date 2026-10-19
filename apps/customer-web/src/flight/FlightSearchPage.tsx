@@ -1,3 +1,7 @@
+import { FlightTransferNotice } from './FlightTransferNotice';
+import { FlightSearchHeading, FlightSearchStart } from './FlightSearchStart';
+import { FlightAlternateSearch, FlightSearchModeTabs, type FlightSearchMode } from './FlightSearchModes';
+import { updateHomeSearch, useHomeSearchDraft } from '../components/home/homeSearchDraft';
 import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 import { Chevron } from '../components/Chevron';
 import { createPortal } from 'react-dom';
@@ -69,6 +73,9 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
       (new URLSearchParams(location.search).size === 0 ? recallLatestFlightBrowse(location.pathname, owner, publicSearch) : undefined);
   });
   const [params] = useSearchParams();
+  const searchModeId = useId();
+  const sharedSearchDraft = useHomeSearchDraft();
+  const [searchMode, setSearchMode] = useState<FlightSearchMode>('flights');
   const [sharedFilters] = useState(()=>readSharedFlightFilters(params));
   const sharedFirstSearch = useRef(params.get('shared') === '1' && !restored);
   const initialCurrency = currencyCodes.includes(params.get('currency') ?? '') ? params.get('currency')! : preferredCurrency();
@@ -257,6 +264,13 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
     event.preventDefault();
     if (submitting.current) return;
     setError('');
+    if (tripType !== 'MULTI_CITY' && (!departureDate || (tripType === 'ROUND_TRIP' && !returnDate))) {
+      const missingDeparture = !departureDate;
+      setError(missingDeparture ? 'Choose your departure date to search flights.' : 'Choose your return date, or select One-way.');
+      const dateFields = searchForm.current?.querySelectorAll<HTMLButtonElement>('.flight-query-date-field .calendar-date-trigger');
+      dateFields?.[missingDeparture ? 0 : 1]?.focus();
+      return;
+    }
     if ((tripType !== 'MULTI_CITY' && (!/^[A-Z]{3}$/.test(code(origin)) || !/^[A-Z]{3}$/.test(code(destination)) || code(origin) === code(destination) || !departureDate)) ||
       (tripType === 'ROUND_TRIP' && (!returnDate || returnDate < departureDate)) || (tripType === 'MULTI_CITY' && (multiLegs.length < 2 || multiLegs.some((leg,index) => !/^[A-Z]{3}$/.test(code(leg.origin)) || !/^[A-Z]{3}$/.test(code(leg.destination)) || code(leg.origin) === code(leg.destination) || !leg.departureDate || (index > 0 && (code(multiLegs[index - 1]!.destination) !== code(leg.origin) || multiLegs[index - 1]!.departureDate > leg.departureDate))))) || infants > adults || adults + children + infants > 9) {
       setError('Check your airports, dates and traveller counts, then try again.'); return;
@@ -599,11 +613,47 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
       window.removeEventListener('focus', check); window.removeEventListener('online', check);
     };
   }, [result, criteriaIdentity, loading, editingSearch, openDetails, comparisonOpen, comparedIds.length, selectedOffer, selectionLoading, selectionSaving, filtersOpen, passengerPickerOpen, owner, tripId]);
-  return <div className={`account-page flight-page flight-search-organized${compactHeader?' is-compact-results':''}`}>
+  const showStart = !result && !loading && !tripId;
+  function changeSearchMode(next: FlightSearchMode) {
+    if (next === searchMode) return;
+    if (searchMode === 'flights') {
+      updateHomeSearch({
+        origin: /^[A-Z]{3}$/.test(code(tripType === 'MULTI_CITY' ? multiLegs[0]?.origin ?? '' : origin)) ? code(tripType === 'MULTI_CITY' ? multiLegs[0]?.origin ?? '' : origin) : 'DAC',
+        destination: /^[A-Z]{3}$/.test(code(tripType === 'MULTI_CITY' ? multiLegs[0]?.destination ?? '' : destination)) ? code(tripType === 'MULTI_CITY' ? multiLegs[0]?.destination ?? '' : destination) : '',
+        departure: tripType === 'MULTI_CITY' ? multiLegs[0]?.departureDate ?? '' : departureDate, returnDate, mode: tripType, adults, children, infants, cabin,
+        multiLegs: multiLegs.map(leg => ({ ...leg, origin: code(leg.origin), destination: code(leg.destination) })),
+      });
+    } else if (next === 'flights') {
+      const changed = sharedSearchDraft.origin !== code(origin) || sharedSearchDraft.destination !== code(destination) || sharedSearchDraft.departure !== departureDate || sharedSearchDraft.returnDate !== returnDate || sharedSearchDraft.adults !== adults || sharedSearchDraft.children !== children || sharedSearchDraft.infants !== infants || sharedSearchDraft.cabin !== cabin;
+      if (changed) { controller.current?.abort(); controller.current = null; submitting.current = false; setLoading(false); setResult(null); setEditingSearch(false); setError(''); }
+      if (sharedSearchDraft.origin !== code(origin)) setOrigin(sharedSearchDraft.origin);
+      if (sharedSearchDraft.destination !== code(destination)) setDestination(sharedSearchDraft.destination);
+      setDepartureDate(sharedSearchDraft.departure);
+      setReturnDate(sharedSearchDraft.returnDate >= sharedSearchDraft.departure ? sharedSearchDraft.returnDate : '');
+      if (tripType === 'MULTI_CITY') setMultiLegs(legs => legs.map((leg, index) => index === 0 ? { ...leg, origin: sharedSearchDraft.origin, destination: sharedSearchDraft.destination, departureDate: sharedSearchDraft.departure } : index === 1 ? { ...leg, origin: sharedSearchDraft.destination } : leg));
+      setAdults(sharedSearchDraft.adults); setChildren(sharedSearchDraft.children); setInfants(sharedSearchDraft.infants);
+      setCabin(sharedSearchDraft.cabin as FlightCabin);
+    }
+    setPassengerPickerOpen(false); setFiltersOpen(false); setOpenDetails(null); setComparisonOpen(false);
+    setSearchMode(next);
+  }
+  function chooseRoute(city: string, airportCode: string) {
+    setOrigin('Dhaka (DAC)'); setDestination(`${city} (${airportCode})`); setError('');
+    if (tripType === 'MULTI_CITY') setMultiLegs(legs => legs.map((leg, index) => index === 0 ? { ...leg, origin: 'DAC', destination: airportCode } : index === 1 ? { ...leg, origin: airportCode } : leg));
+    requestAnimationFrame(() => {
+      searchForm.current?.scrollIntoView({ block: 'nearest' });
+      searchForm.current?.querySelector<HTMLButtonElement>('.flight-query-date-field .calendar-date-trigger, .flight-leg-date .calendar-date-trigger')?.focus({ preventScroll: true });
+    });
+  }
+  return <div className={`account-page flight-page flight-search-organized${compactHeader?' is-compact-results':''}${showStart?' is-flight-start':''}`}>
+    {(showStart || searchMode !== 'flights') && <FlightSearchHeading />}
+    {!tripId && <FlightSearchModeTabs mode={searchMode} onChange={changeSearchMode} idPrefix={searchModeId} />}
+    <div className="flight-method-panel" id={`${searchModeId}-panel-flights`} role={!tripId ? 'tabpanel' : undefined} aria-labelledby={!tripId ? `${searchModeId}-tab-flights` : undefined} hidden={searchMode !== 'flights'}>
     {!compactHeader && !compactMobile && formOffscreen && <div className="flight-search-summary"><div><strong>{summaryFrom || 'From'} <span aria-hidden="true">→</span> {summaryTo || 'To'}</strong><span>{tripType === 'MULTI_CITY' ? `${multiLegs.length} flights` : travelDate(departureDate)}{tripType === 'ROUND_TRIP' ? ` – ${travelDate(returnDate)}` : ''}<span className="flight-summary-passengers"> · {passengerLabel} · {cabinLabel(cabin)}</span></span></div><button type="button" onClick={editSearch}>Edit search</button></div>}
     {tripId && <div className="flight-trip-context">{tripLoading ? 'Loading your trip…' : tripError || <><span>Searching for {trip?.title || 'your trip'} · Choose the people taking this flight{trip?.travellerCount ? ` from your ${trip.travellerCount} trip travellers` : ''}.</span><Link to={`/app/trips/${tripId}`}>Back to trip →</Link></>}</div>}
     {compactHeader&&<section className="flight-mobile-route-summary" aria-label="Your flight search"><div><h2>{cityLabel(summaryFrom)} <span aria-hidden="true">→</span> {cityLabel(summaryTo)}</h2><p>{cabinLabel(cabin)} <span aria-hidden="true">·</span> {passengerLabel} <span aria-hidden="true">·</span> {tripType==='ROUND_TRIP'?'Return':tripType==='MULTI_CITY'?multiLegs.length+' flights':'One-way'}</p>{tripType==='ROUND_TRIP'&&<p className="flight-mobile-return-date">Return {travelDate(returnDate)}</p>}</div><button type="button" aria-label="Edit search" onClick={editSearch}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z"/></svg></button></section>}
     <form ref={searchForm} className={`account-panel flight-search-form${compactHeader?' is-collapsed':''}`} id="flight-search-editor" onSubmit={(event) => { void submit(event); }}>
+      {showStart && <div className="flight-start-form-heading"><h2>Where are you flying?</h2><span>Prices in {currency}</span></div>}
       {editingSearch&&result&&<div className="flight-mobile-editor-heading"><strong>Edit search</strong><button type="button" aria-label="Close search editor" onClick={()=>{setPassengerPickerOpen(false);setEditingSearch(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.flight-mobile-route-summary button')?.focus({preventScroll:true}));}}>×</button></div>}
       <fieldset className="flight-type-toggle" aria-label="Trip type"><legend className="sr-only">Trip type</legend>{([['ONE_WAY','One-way'],['ROUND_TRIP','Return'],['MULTI_CITY','Multi-city']] as const).map(([value,label]) => <label key={value}><input type="radio" name="flight-trip-type" checked={tripType === value} onChange={() => setTripType(value)} /><span>{label}</span></label>)}</fieldset>
       <div className={`flight-query-fields${tripType === 'MULTI_CITY' ? ' is-multi-city' : tripType === 'ONE_WAY' ? ' is-one-way' : ''}`}>
@@ -613,12 +663,12 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
         </>}
         <div className="flight-passenger-control" ref={passengerPicker}>
           <button ref={passengerTrigger} type="button" className="flight-passenger-trigger" aria-haspopup="dialog" aria-expanded={passengerPickerOpen} onClick={() => setPassengerPickerOpen((open) => !open)}><span className="flight-passenger-icon" aria-hidden="true">♙</span><span>{passengerLabel}<small>{cabinOptions.find((option) => option.value === cabin)?.label ?? 'Economy'}</small></span><span className="flight-passenger-chevron" aria-hidden="true"><Chevron/></span></button>
-          {passengerPickerOpen && createPortal(<section ref={passengerPopover} style={passengerPopoverStyle} className="flight-passenger-popover flight-passenger-portal" role="dialog" aria-label="Passengers and cabin"><div className="flight-passenger-popover-head"><strong>{passengerLabel}</strong><span>{cabinOptions.find((option) => option.value === cabin)?.label}</span></div><p>Please select the exact number of passengers.</p>
+          {passengerPickerOpen && createPortal(<section ref={passengerPopover} style={passengerPopoverStyle} className="flight-passenger-popover flight-passenger-portal" role="dialog" aria-label="Passengers and cabin"><div className="flight-passenger-popover-head"><strong>{passengerLabel}</strong><span>{cabinOptions.find((option) => option.value === cabin)?.label}</span></div><p>Please select the exact number of passengers.</p><p className="flight-passenger-availability">Online search currently supports adults only. <Link to="/help">Get help with child or infant fares</Link>.</p>
             {[{ key: 'adults' as const, label: 'Adults', age: '12+ years old', count: adults, min: 1, max: 9 - children - infants },{ key: 'children' as const, label: 'Children', age: '2–11 years old', count: children, min: 0, max: Math.min(8, 9 - adults - infants) },{ key: 'infants' as const, label: 'Infants on lap', age: 'Under 2 years old', count: infants, min: 0, max: Math.min(adults, 9 - adults - children) }].map((item) => <div className="flight-passenger-row" key={item.key}><span><strong>{item.label}</strong><small>{item.age}</small></span><div><button type="button" aria-label={`Remove ${item.label.toLowerCase()}`} disabled={item.count <= item.min} onClick={() => updatePassenger(item.key, -1)}>−</button><output aria-label={item.label}>{item.count}</output><button type="button" aria-label={`Add ${item.label.toLowerCase()}`} disabled={item.count >= item.max} onClick={() => updatePassenger(item.key, 1)}>＋</button></div></div>)}
             <label className="flight-passenger-cabin"><Translated text="Cabin" /><select value={cabin} onChange={(event) => setCabin(event.target.value as FlightCabin)}>{cabinOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><button type="button" className="flight-passenger-done" onClick={() => { setPassengerPickerOpen(false); passengerTrigger.current?.focus(); }}>Done</button>
           </section>, document.body)}
         </div>
-        <button className="btn-primary account-submit flight-query-submit" type="submit" disabled={loading || tripLoading || !!tripError}>{loading ? 'Searching…' : '⌕ Search'}</button>
+        <button className="btn-primary account-submit flight-query-submit" type="submit" disabled={loading || tripLoading || !!tripError}>{loading ? 'Searching…' : 'Search flights'}</button>
       </div>
       <input type="hidden" name="currency" value={currency} />
       <details className="flight-search-preferences"><summary>Saved search preferences</summary><p>Cabin and passenger counts are remembered on this device. Change them above; currency is managed in the top menu.</p><button type="button" onClick={()=>{clearFlightPreferences();setAdults(1);setChildren(0);setInfants(0);setCabin('ECONOMY');saveCurrencyPreference('BDT');}}>Reset cabin, passengers &amp; currency</button></details>
@@ -626,6 +676,7 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
     {result && !editingSearch && <div className="flight-results-context"><p>All times are local to each airport.</p><ShareFlightSearch request={watchRequest} filters={{sort,stopFilter,baggageOnly,refundableOnly,selectedAirlines,selectedStopovers,selectedAirports,selectedCabins,selectedAircrafts,departureWindow,arrivalWindow,maxDuration,maxPrice}}/></div>}
     {departureDate && tripType !== 'MULTI_CITY' && <FlightDateStrip compact={compactHeader} onEditDates={compactHeader?()=>openSearchEditor(true):undefined} searchRequest={watchRequest} departureDate={departureDate} returnDate={tripType==='ROUND_TRIP'?returnDate:undefined} criteriaKey={JSON.stringify([code(origin),code(destination),tripType,adults,children,infants,cabin,currency])} result={result} busy={loading} onChoose={(depart,returning)=>{dateSearchRequested.current=true;setDepartureDate(depart);if(returning)setReturnDate(returning);}}/>}
     {error && <div role="alert" className="account-error flight-error">{error} {!loading && <button type="button" className="account-outline-button" onClick={() => searchForm.current?.requestSubmit()}>Retry search</button>}</div>}
+    {showStart && <FlightSearchStart onChooseRoute={chooseRoute} selectedOrigin={code(tripType === 'MULTI_CITY' ? multiLegs[0]?.origin ?? '' : origin)} selectedDestination={code(tripType === 'MULTI_CITY' ? multiLegs[0]?.destination ?? '' : destination)} />}
     {loading && (!result || !result.offers.length) && <><HomeLoadingScreen overlay label="Finding your flights…"/><FlightSearchSkeleton/></>}
     {loading && result && result.offers.length>0 && <div className="flight-search-progress" role="status"><span className="flight-search-progress-spinner" aria-hidden="true" />{uniqueFlightCount(result.offers,currentLegIndex)} flights available. More fares are arriving—you can select a flight now.</div>}
     {result?.incomplete && !error && <p className="flight-search-notice" role="status">Some fare and cabin options could not be loaded. You can choose an available fare or search again.</p>}
@@ -733,6 +784,8 @@ export function FlightSearchPage({ publicSearch = false }: { publicSearch?: bool
     {result && result.offers.length > 0 && <FareWatchControl key={criteriaIdentity} search={watchRequest} initialAmount={Math.min(...result.offers.map(offer => Number(offer.totalAmount)))} />}
     {comparedOffers.length > 0 && <div className="flight-compare-tray" aria-label="Selected fares for comparison"><div><strong>{comparedOffers.length} of 3 fares selected</strong><div>{comparedOffers.map(fare => <button type="button" key={fare.offerId} onClick={() => toggleComparison(fare.offerId)} aria-label={`Remove ${fare.airlineCodes.join('/')} ${money(fare.totalAmount, fare.currency)} from comparison`}>{fare.airlineCodes.join('/')} · {money(fare.totalAmount, fare.currency)} <span aria-hidden="true">×</span></button>)}</div></div><div><button type="button" className="account-outline-button" onClick={() => setComparedIds([])}><Translated text="Clear" /></button><button type="button" className="btn-primary" disabled={comparedOffers.length < 2} onClick={() => { setOpenDetails(null); setFiltersOpen(false); setComparisonOpen(true); }}><Translated text="Compare fares" /></button></div></div>}
     {comparisonOpen && <Suspense fallback={<FlightComparisonLoading onClose={() => setComparisonOpen(false)}/>}><FlightComparison offers={comparedOffers} passengerLabel={passengerLabel} finalLeg={currentLegIndex === totalLegs - 1} onClose={() => setComparisonOpen(false)} onChoose={currentLegIndex === totalLegs - 1 ? selectFare : selectLeg} onRemove={toggleComparison}/></Suspense>}
+    </div>
+    {!tripId && <FlightAlternateSearch mode={searchMode} idPrefix={searchModeId} context={`${tripType === 'ROUND_TRIP' ? 'Return' : tripType === 'MULTI_CITY' ? 'Multi-city' : 'One-way'} · ${passengerLabel} · ${cabinLabel(cabin)} · ${currency}`} onEditDetails={() => { changeSearchMode('flights'); if (compactHeader) setEditingSearch(true); requestAnimationFrame(() => searchForm.current?.querySelector<HTMLInputElement>('input[role="combobox"]')?.focus()); }} />}
   </div>;
 }
 
@@ -774,7 +827,7 @@ const FlightOfferCard = memo(function FlightOfferCard({ groupKey, lowestPrice, s
         <CompactFlightTimeline leg={leg} airports={airports}/>
         <div className="flight-row-purchase"><small>Total for {passengerLabel}</small><strong><CompactPrice value={money(price.totalAmount,price.currency)}/></strong>{taxesIncluded&&<small className="flight-tax-caption">Includes taxes &amp; fees</small>}<button type="button" className="btn-primary" aria-expanded={detailsOpen} onClick={() => onDetails(groupKey)}>{finalLeg?'Select fare':'Select flight'} <span aria-hidden="true">›</span></button></div>
       </div>
-      <div className="flight-row-footer"><button type="button" onClick={() => onDetails(groupKey)} aria-expanded={detailsOpen}>Details &amp; {fares.length} {fares.length === 1 ? 'fare' : 'fares'} <span aria-hidden="true"><Chevron/></span></button><label className="flight-compare-check" title="Compare the lowest fare for this flight"><input type="checkbox" checked={compared} disabled={!compared && compareFull} onChange={() => onCompare(fares[0]!.offerId)}/><span><span className="flight-compare-desktop-label">Compare from fare</span><span className="flight-compare-mobile-label" aria-hidden="true">Compare</span><span className="sr-only"> {money(fares[0]!.totalAmount, fares[0]!.currency)} for {routeStart} to {routeEnd}</span></span></label></div>
+      <FlightTransferNotice offer={active} legIndex={legIndex}/><div className="flight-row-footer"><button type="button" onClick={() => onDetails(groupKey)} aria-expanded={detailsOpen}>Details &amp; {fares.length} {fares.length === 1 ? 'fare' : 'fares'} <span aria-hidden="true"><Chevron/></span></button><label className="flight-compare-check" title="Compare the lowest fare for this flight"><input type="checkbox" checked={compared} disabled={!compared && compareFull} onChange={() => onCompare(fares[0]!.offerId)}/><span><span className="flight-compare-desktop-label">Compare from fare</span><span className="flight-compare-mobile-label" aria-hidden="true">Compare</span><span className="sr-only"> {money(fares[0]!.totalAmount, fares[0]!.currency)} for {routeStart} to {routeEnd}</span></span></label></div>
     </article>
     {detailsOpen && <FareDetailsDrawer fares={fares} active={active} route={`${routeStart} → ${routeEnd}`} legIndex={legIndex} finalLeg={finalLeg} tripType={tripType} passengerLabel={passengerLabel} airports={airports} onFare={offer => onFare(groupKey, offer)} onChooseLeg={onChooseLeg} onChoose={onChoose} onClose={onCloseDetails} comparedIds={comparedIds} compareFull={compareFull} onCompare={onCompare}/>}
   </>;

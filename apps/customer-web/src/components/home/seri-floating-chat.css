@@ -134,3 +134,31 @@ html body .seri-floating-launcher[data-dragging="true"] .seri-launcher-aircraft 
    for the lifetime of a page loader, then restore their existing position. */
 body:has(.home-loading) .seri-floating-launcher,
 body:has(.home-loading) .seri-label-dismiss{display:none!important}
+
+/* Compact floating assistant; the inline search panels keep their own layout. */
+html body #seri-floating-chat{width:min(440px,calc(100vw - 32px));height:min(580px,calc(100dvh - 144px - env(safe-area-inset-bottom,0px)));border-radius:22px}
+html body #seri-floating-chat .premium-seri-entry-heading{padding:14px 16px;gap:10px}
+html body #seri-floating-chat .premium-seri-entry-icon{width:40px;height:40px;border-radius:13px;font-size:25px}
+html body #seri-floating-chat .premium-seri-entry-heading h2{font-size:18px}
+html body #seri-floating-chat .premium-seri-entry-heading p{font-size:11px}
+html body #seri-floating-chat .seri-floating-close{width:40px;height:40px;border-radius:11px}
+html body #seri-floating-chat .seri-chat-team{padding:7px 16px}
+html body #seri-floating-chat .seri-chat-team .travel-handover{margin:0}
+html body #seri-floating-chat .seri-chat-team .account-outline-button{font-size:12px;padding:8px 10px}
+html body #seri-floating-chat .home-seri-transcript,html body #seri-floating-chat .home-seri-transcript.is-empty{padding:12px 14px}
+html body #seri-floating-chat .home-seri-welcome.seri-welcome-design{padding:12px 2px}
+html body #seri-floating-chat .seri-welcome-orbit{width:56px;height:56px;margin-bottom:10px}
+html body #seri-floating-chat .seri-welcome-orbit>div{width:42px;height:42px;border-radius:14px}
+html body #seri-floating-chat .seri-welcome-orbit svg{width:24px;height:24px}
+html body #seri-floating-chat .home-seri-welcome.seri-welcome-design>strong{font-size:21px;margin-bottom:7px}
+html body #seri-floating-chat .home-seri-welcome.seri-welcome-design>p{margin-bottom:14px;font-size:12px}
+html body #seri-floating-chat .seri-welcome-prompts{gap:8px}
+html body #seri-floating-chat .seri-welcome-design .seri-welcome-prompts>button{min-height:44px;padding:10px 12px;font-size:12px}
+html body #seri-floating-chat .premium-seri-chat>form{margin:0 12px 12px;padding:5px;min-height:56px;border-radius:14px}
+html body #seri-floating-chat form input{padding:10px 7px}
+html body #seri-floating-chat form button{min-height:44px;padding:9px 12px;border-radius:10px}
+@media(max-width:767px){
+ html body #seri-floating-chat{right:12px;width:min(440px,calc(100vw - 24px));height:min(560px,calc(100dvh - 120px - env(safe-area-inset-bottom,0px)))}
+ html body #seri-floating-chat .premium-seri-entry-heading{padding:12px 14px}
+ html body #seri-floating-chat .seri-chat-team{padding:6px 14px}
+}

@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { seriService } from '../services/seriService';
 import { useLanguage } from './language';
 
-export function SupportHandover({ conversationId, messages }: { conversationId?: string | null; messages: SeriMessage[] }) {
+export function SupportHandover({ conversationId, messages, label }: { conversationId?: string | null; messages: SeriMessage[]; label?: string }) {
   const { session } = useAuth();
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -22,7 +22,7 @@ export function SupportHandover({ conversationId, messages }: { conversationId?:
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not prepare support request.'); }
     finally { sending.current = false; setBusy(false); }
   }
-  return <div className="travel-handover"><button type="button" className="account-outline-button" aria-expanded={open} onClick={() => setOpen(value => !value)}>{t('Talk to our team')} ↗</button>{open && <div className="travel-tool">
+  return <div className="travel-handover"><button type="button" className="account-outline-button" aria-expanded={open} onClick={() => setOpen(value => !value)}>{t(label ?? 'Talk to our team')} ↗</button>{open && <div className="travel-tool">
     <strong>{t('Review handover')}</strong><p>{conversationId ? 'Share this conversation and its flight search context with the Flyseri support team.' : 'Share your latest question and flight search details with our team.'} You will receive updates under Support. This is a support request, not a live agent connection.</p>
     {!session ? <Link to="/sign-in">{t('Sign in')} →</Link> : sent ? <p role="status">Request queued. <Link to="/app/support">{t('Track your requests')} →</Link></p> : prepared ? <><p>{prepared.summary}</p><div className="travel-actions"><button className="travel-primary" disabled={busy} onClick={() => { if (sending.current) return; sending.current = true; setBusy(true); void seriService.confirm(prepared.conversationId, prepared.actionId).then(() => setSent(true), cause => setError(cause instanceof Error ? cause.message : 'Could not confirm your request.')).finally(() => { sending.current = false; setBusy(false); }); }}>{busy ? 'Sending…' : t('Share and request support')}</button><button disabled={busy} onClick={() => { if (sending.current) return; sending.current = true; setBusy(true); void seriService.cancel(prepared.conversationId, prepared.actionId).then(() => { setPrepared(null); setOpen(false); }, () => setError('Could not cancel the request.')).finally(() => { sending.current = false; setBusy(false); }); }}>{t('Not now')}</button></div></> : <button disabled={busy} onClick={() => void prepare()}>{busy ? 'Preparing…' : t('Review request')}</button>}
     {error && <p role="alert" className="travel-error">{error}</p>}

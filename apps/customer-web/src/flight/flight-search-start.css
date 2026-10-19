@@ -1,0 +1,103 @@
+/* Flight landing workspace. Result cards and checkout keep their existing layout. */
+html body #root .flight-start-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 18px}
+html body #root .flight-start-heading h1{margin:0;font-size:28px;line-height:1.2;letter-spacing:-.035em;color:#1d3553}
+html body #root .flight-start-heading p{margin:6px 0 0;font-size:14px;color:#60738c}
+html body #root .flight-start-bookings{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid #d8e5f0;border-radius:10px;background:#ffffffc9;font-size:13px;font-weight:600;color:#315979;text-decoration:none}
+.flight-start-bookings svg{width:18px;height:18px}
+html body #root .flight-search-organized.is-flight-start .flight-search-form{margin:0 0 20px;padding:18px;border-radius:16px;box-shadow:0 4px 18px #244d7807}
+html body #root .flight-start-form-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+html body #root .flight-start-form-heading h2{margin:0;font-size:18px;line-height:1.4;letter-spacing:-.02em;color:#1d3553}
+html body #root .flight-start-form-heading span{font-size:12px;color:#60738c}
+html body #root .is-flight-start .flight-type-toggle{gap:4px;margin:0 0 12px;padding:0;min-height:44px}
+html body #root .is-flight-start .flight-type-toggle label{padding:8px 12px;min-height:44px;font-size:13px;font-weight:600;border-radius:9px}
+html body #root .is-flight-start .flight-query-fields{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px;padding:0;border:0;background:none}
+html body #root .is-flight-start .flight-query-route{border:1px solid #dce7f1;border-radius:11px;background:#fff;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr)}
+html body #root .is-flight-start .flight-query-route .airport-picker{min-height:72px;padding:10px 12px}
+html body #root .is-flight-start .flight-query-route .airport-picker label{font-size:12px;font-weight:500}
+html body #root .is-flight-start .flight-query-route .airport-picker input{font-size:16px;height:28px}
+html body #root .is-flight-start .flight-query-swap{width:36px;height:36px;margin:0;min-width:0}
+html body #root .is-flight-start .flight-query-dates{grid-column:auto;border:1px solid #dce7f1;border-radius:11px;background:#fff;overflow:hidden}
+html body #root .is-flight-start .flight-query-date-field .calendar-date-trigger{min-height:72px;padding:10px 12px}
+html body #root .is-flight-start .calendar-date-label{font-size:12px;font-weight:500}
+html body #root .is-flight-start .calendar-date-value{font-size:14px;font-weight:600}
+html body #root .is-flight-start .flight-query-date-field+.flight-query-date-field{border-left:1px solid #dce7f1}
+html body #root .is-flight-start .flight-passenger-control{grid-column:1;border:1px solid #dce7f1;border-radius:11px;background:#fff}
+html body #root .is-flight-start .flight-passenger-trigger{min-height:58px;padding:8px 12px}
+html body #root .is-flight-start .flight-passenger-trigger>span:nth-child(2){font-size:14px;font-weight:600}
+html body #root .is-flight-start .flight-passenger-trigger small{font-size:12px;font-weight:400}
+html body #root .is-flight-start .flight-query-submit{grid-column:2;min-height:52px;min-width:0;width:100%;margin:0!important;font-size:14px;border-radius:11px}
+html body #root .is-flight-start .flight-query-fields.is-multi-city .flight-multi-legs{grid-column:1/-1}
+html body #root .is-flight-start .flight-search-preferences{margin-top:12px;padding-top:4px;border-top:1px solid #edf1f6}
+html body #root .is-flight-start .flight-search-preferences summary{min-height:36px;font-size:12px;color:#60738c;gap:6px}
+html body #root .is-flight-start .flight-search-preferences summary::before{content:'+';font-size:16px}
+html body #root .is-flight-start .flight-search-preferences[open] summary::before{content:'−'}
+html body .flight-passenger-availability{margin:10px 0;padding:10px 12px;background:#f1f6fc;border-radius:8px;font-size:12px;line-height:1.5;color:#4b6380}
+html body #root .flight-start-content{display:grid;gap:16px}
+html body #root .flight-start-routes,html body #root .flight-start-guide{padding:18px;background:#ffffffeb;border:1px solid #dce7f1;border-radius:16px}
+html body #root .flight-start-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+html body #root .flight-start-content h2{margin:0;font-size:17px;line-height:1.4;color:#1d3553;letter-spacing:-.02em}
+html body #root .flight-start-section-head p{margin:5px 0 0;color:#60738c;font-size:12px;line-height:1.5}
+html body #root .flight-start-regions{display:flex;gap:3px;padding:3px;border:1px solid #e3ebf3;border-radius:10px;background:#f5f8fc}
+html body #root .flight-start-regions button{min-height:38px;padding:6px 10px;border:0;border-radius:7px;background:none;color:#586d87;font-size:12px;font-weight:600;cursor:pointer}
+html body #root .flight-start-regions button[aria-pressed=true]{background:#fff;color:#1766c8;box-shadow:0 1px 4px #233d5a14}
+html body #root .flight-start-route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+html body #root .flight-start-route{display:flex;align-items:center;gap:10px;min-width:0;min-height:78px;padding:12px;border:1px solid #dfe8f2;border-radius:11px;background:#fff;text-align:left;cursor:pointer;color:#254464;transition:border-color .15s,background .15s}
+html body #root .flight-start-route:hover,html body #root .flight-start-route[aria-pressed=true]{border-color:#90b9ef;background:#f4f8ff}
+html body #root .flight-start-route-icon{display:grid;place-items:center;flex-shrink:0;width:34px;height:34px;border-radius:9px;background:#edf5ff;color:#2872c9}
+.flight-start-route-icon svg{width:18px;height:18px}
+html body #root .flight-start-route-copy{display:grid;gap:3px;min-width:0;flex:1}
+html body #root .flight-start-route-copy strong{font-size:14px;line-height:1.4;font-weight:600}
+html body #root .flight-start-route-copy small{font-size:11px;color:#60738c}
+html body #root .flight-start-route-code{white-space:nowrap;font-size:11px;font-weight:600;color:#60738c}
+html body #root .flight-start-route-code span{padding:0 3px;color:#8a9db4}
+html body #root .flight-start-guide-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+html body #root .flight-start-guide a{font-size:12px;color:#1766c8;min-height:32px;display:inline-flex;align-items:center;gap:4px}
+html body #root .flight-start-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+html body #root .flight-start-guide details{border-top:1px solid #e8eef5}
+html body #root .flight-start-guide summary{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:44px;list-style:none;cursor:pointer;font-size:13px;font-weight:600;color:#415a77}
+.flight-start-guide summary::-webkit-details-marker{display:none}
+.flight-start-guide summary span{font-size:18px;color:#7c91a9;font-weight:400}
+.flight-start-guide details[open] summary span{transform:rotate(45deg)}
+html body #root .flight-start-guide details p{margin:0 0 8px;font-size:12px;line-height:1.65;color:#60738c}
+html body #root .flight-start-content :is(button,a,summary):focus-visible,html body #root .flight-start-bookings:focus-visible{outline:2px solid #2478dc;outline-offset:3px}
+@media(min-width:1200px){
+ html body #root .is-flight-start .flight-query-fields:not(.is-multi-city){grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) 150px}
+ html body #root .is-flight-start .flight-query-fields:not(.is-multi-city) .flight-passenger-control{position:absolute;top:48px;right:18px;width:190px}
+ html body #root .is-flight-start .flight-query-fields:not(.is-multi-city) .flight-passenger-trigger{min-height:44px;padding:6px 10px}
+ html body #root .is-flight-start .flight-query-fields:not(.is-multi-city) .flight-query-submit{grid-column:3;align-self:stretch;height:100%}
+}
+@media(max-width:1250px){html body #root .flight-start-route-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){
+ html body #root .flight-start-heading{gap:10px;margin-bottom:14px}
+ html body #root .flight-start-heading h1{font-size:24px}
+ html body #root .flight-start-heading p{font-size:12px;max-width:190px;line-height:1.5}
+ html body #root .flight-start-bookings{font-size:12px;padding:6px 8px;gap:5px}
+ .flight-start-bookings>span{display:none}
+ html body #root .flight-search-organized.is-flight-start .flight-search-form{padding:12px;margin-bottom:14px}
+ html body #root .flight-start-form-heading{margin-bottom:10px}
+ html body #root .flight-start-form-heading h2{font-size:16px}
+ html body #root .flight-start-form-heading>span{font-size:11px}
+ html body #root .is-flight-start .flight-type-toggle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:3px;background:#f1f6fb;border-radius:10px;margin-bottom:10px}
+ html body #root .is-flight-start .flight-type-toggle label{font-size:12px;padding:6px 2px;justify-content:center;gap:4px}
+ html body #root .is-flight-start .flight-query-fields{gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ html body #root .is-flight-start .flight-query-route{grid-column:1/-1;border-bottom:1px solid #dce7f1}
+ html body #root .is-flight-start .flight-query-route .airport-picker{padding:8px;min-height:64px}
+ html body #root .is-flight-start .flight-query-route .airport-picker input{font-size:16px}
+ html body #root .is-flight-start .flight-query-dates,html body #root .is-flight-start .flight-query-fields.is-one-way .flight-query-dates{grid-column:1/-1}
+ html body #root .is-flight-start .flight-query-date-field .calendar-date-trigger{min-height:64px;padding:8px}
+ html body #root .is-flight-start .flight-passenger-control{grid-column:1;border:1px solid #dce7f1}
+ html body #root .is-flight-start .flight-passenger-trigger{min-height:54px;padding:8px}
+ html body #root .is-flight-start .flight-passenger-trigger>span:nth-child(2){font-size:13px}
+ html body #root .is-flight-start .flight-query-fields .flight-query-submit{grid-column:2;min-height:54px;font-size:13px;padding:8px}
+ html body #root .flight-start-routes,html body #root .flight-start-guide{padding:14px}
+ html body #root .flight-start-section-head{gap:10px}
+ html body #root .flight-start-regions{width:100%}
+ html body #root .flight-start-regions button{flex:1;min-height:40px}
+ html body #root .flight-start-route-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ html body #root .flight-start-route{flex-wrap:wrap;gap:7px;padding:10px;min-height:86px}
+ html body #root .flight-start-route-icon{display:none}
+ html body #root .flight-start-route-copy{flex-basis:100%}
+ html body #root .flight-start-route-copy strong{font-size:13px}
+ html body #root .flight-start-guide-grid{grid-template-columns:1fr;gap:0}
+}
+@media(prefers-reduced-motion:reduce){.flight-start-route{transition:none!important}}

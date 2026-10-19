@@ -1,0 +1,98 @@
+import { destinationPurposeDocuments, destinationPurposeSource } from './destination-guidance';
+export interface GuideDocument { title:string; paragraphs:string[]; condition?:string }
+export const malaysiaDocumentSources = {
+  tourist:'https://malaysiavisa.imi.gov.my/faq/',
+  student:'https://visa.educationmalaysia.gov.my/catalog/category/view/id/125',
+};
+export interface VisaContact { title:string; url:string; address?:string; phone?:string; email?:string; hours?:string; description?:string }
+export const professionOptions = ['Service holder','Business person','Professional','Others'];
+export const professionDescriptions: Record<string,string> = {
+  'Service holder':'Salaried employees', 'Business person':'Business owners and company directors',
+  Professional:'Self-employed professionals and independent practitioners', Others:'Students, homemakers, retirees and sponsored applicants',
+};
+const occupationProof: Record<string,string[]> = {
+  'Service holder':['Employment or no-objection letter stating your position and leave arrangements, if requested.','Office ID and recent salary evidence, where applicable.'],
+  'Business person':['Trade licence, business registration or company ownership documents, if requested.','Relevant company financial records and business details, where applicable.'],
+  Professional:['Professional registration, practising certificate or evidence of self-employment, if applicable.','Recent income or client-contract evidence, where requested.'],
+  Others:['For students: enrolment or student-ID evidence, where requested.','For sponsored applicants: sponsor details, relationship and financial evidence. Retirees may be asked for pension or retirement evidence.'],
+};
+export function guideDocuments(code:string,purpose:string,profession:string):GuideDocument[] {
+  const malaysia = code === 'MY';
+  const destinationDocuments=destinationPurposeDocuments(code,purpose);
+  if(!malaysia && purpose==='Study')return destinationDocuments;
+  if (malaysia && purpose === 'Study') return [
+    {title:'Passport — initial EMGS application',condition:'Required for a new student pass',paragraphs:['Passport validity must be at least 18 months for the initial EMGS student-pass application. Provide the biodata page, pages containing visa information, and the observation page showing any extensions, name clarifications or previous passport numbers.','For a one-off student pass, EMGS recommends passport validity extending 12 months beyond the course duration. Include a Special Pass or exit stamp if applicable.']},
+    {title:'Photo — initial EMGS application',condition:'Required for a new student pass',paragraphs:['One passport photograph with a white background, measuring 35 mm × 45 mm, following the EMGS photo guidelines. This specification is for the student-pass application; use the requirements of the relevant portal at the later e-Visa stage.']},
+    {title:'Institution offer letter',condition:'Required for a new student pass',paragraphs:['Provide the acceptance or offer letter from your Malaysian university or college. The offer must be received before submitting the new student-pass application.']},
+    {title:'Health declaration form',condition:'Required for a new student pass',paragraphs:['Complete the EMGS health declaration form and provide a scanned copy. Your institution will confirm any medical-screening requirements for your route.']},
+    {title:'Academic certificates & transcripts',condition:'Required for a new student pass',paragraphs:['Provide academic certificates and transcripts from your previous studies. Additional academic entry requirements depend on the course and institution.']},
+    {title:'English-language evidence',condition:'For the Visa Approval Letter application',paragraphs:['Provide the English-language proficiency certificate accepted by EMGS for your application. Confirm the applicable test, score and programme requirements with your institution. Missing evidence can delay processing or affect the duration of the student pass.']},
+    {title:'Personal bond & institution documents',condition:'Institution-managed; requirements depend on the route',paragraphs:['The institution signs the personal bond and advises you on the amount to lodge. EMGS permits the personal-bond form to be submitted after arrival, before student-pass endorsement.','Sarawak applications have additional institution, covering-letter and medical-document requirements. Follow the institution’s route-specific instructions.']},
+    {title:'Approved eVAL & passport — later e-Visa stage',condition:'After approval; separate from the initial EMGS application',paragraphs:['After receiving the valid eVAL or VDR approval, follow the MYVISA Visa With Reference route. Its published document list includes the passport biodata scan with more than six months’ validity from travel and the valid approval letter.','The later e-Visa requirement does not replace the initial EMGS passport-validity rule. MYVISA also specifies three blank passport pages before entry; follow the conditions on your issued documents.']},
+    {title:'Additional sponsor evidence',condition:'Only if requested by the institution or authority',paragraphs:['Prepare sponsor details, relationship evidence and financial documents only as requested for your student application. Confirm the exact evidence with your institution before uploading.']},
+  ];
+  return [
+    ...destinationDocuments,
+    {title:'Passport',paragraphs:[malaysia ? 'Clear scan of the passport biodata page, with more than six months of validity from your intended travel date to Malaysia. MYVISA specifies at least three blank passport pages before entry.' : 'Clear scan of your Bangladeshi passport biodata page. Check the destination’s passport-validity and blank-page requirements before applying.']},
+    {title:'Photo',paragraphs:[malaysia && purpose !== 'Study' ? 'Recent studio photograph, taken within the last six months, on a plain white background. For the Malaysia social-visit application the photo should be 35 mm × 50 mm. Selfies and scanned photographs are not accepted.' : 'Recent passport photograph that meets the destination’s current size, background and digital-file specifications.']},
+    {title:'Financial & sponsor documents',condition:malaysia && purpose==='Tourism' ? 'Required financial evidence for social visitors; sponsorship if applicable' : 'Where requested',paragraphs:[malaysia && purpose==='Tourism' ? 'The current MYVISA FAQ asks social visitors to demonstrate sufficient funds, supported by bank statements for the last three months. Prepare these statements and evidence of how your visit will be funded.' : 'Prepare recent bank statements or other evidence showing how your trip will be funded.','If someone is sponsoring the visit, prepare their supporting financial documents and evidence of your relationship. Confirm the sponsor evidence for your circumstances; this guide does not impose a fixed minimum bank balance.']},
+    {title:'Additional occupation evidence',condition:'Only if requested; not a universal requirement',paragraphs:['These are preparation examples for your profession. Supply the documents requested by the visa authority or by Flyseri for the review of your application.',...(occupationProof[profession] || occupationProof.Others)]},
+    {title:purpose === 'Study' ? 'Admission & study documents' : 'Covering letter',condition:purpose === 'Study' ? 'For student applications' : 'Where requested',paragraphs:purpose === 'Study' ? [malaysia ? 'Prepare your institution’s offer and the required student approval / eVAL or VDR documents before the visa stage. Your institution and the official student-visa authority will confirm the route.' : 'Prepare your admission or offer letter and the study, sponsor and approval documents requested by the institution and visa authority.'] : ['Explain the purpose of your visit, planned travel dates, accommodation and who will cover the costs.','Include any invitation or host information relevant to the application.']},
+    {title:'Travel itinerary & accommodation',condition:malaysia?'Follow the applicable visa checklist':'Only if required for your category',paragraphs:[malaysia && purpose !== 'Study' ? 'Confirmed return ticket where applicable, plus proof of paid accommodation. If staying with a friend or relative, follow the official portal’s host-information and covering-letter instructions.' : 'Prepare your proposed itinerary and accommodation or host details. Confirm whether reservations or paid bookings are required before making non-refundable arrangements.']},
+    {title:'Family & additional documents',condition:'If applicable',paragraphs:[malaysia ? 'A birth certificate is required for applicants under 18. Marriage, family, sponsor or other supporting evidence may also be requested for your circumstances.' : 'Birth certificates, parental consent, marriage certificates or sponsor documents may be relevant to children, dependants and family visits.']},
+    {title:'Previous visas & residence documents',condition:'If applicable',paragraphs:['Prepare copies of previous visas and any current residence permit or long-term pass relevant to your application. Additional documents or an interview may be requested by the authority.']},
+  ];
+}
+
+export const officialVisaSources:Record<string,{label:string;url:string}> = {
+  MY:{label:'Malaysia Immigration · MYVISA',url:'https://malaysiavisa.imi.gov.my/'},
+  TH:{label:'Thailand Ministry of Foreign Affairs · Thai e-Visa',url:'https://www.thaievisa.go.th/'},
+  SG:{label:'Singapore Immigration & Checkpoints Authority',url:'https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa_requirements/visa-detail-page/bangladesh'},
+  AE:{label:'UAE Government · Tourist visa guidance',url:'https://u.ae/en/information-and-services/visa-and-emirates-id/tourist-visa'},
+  IN:{label:'Government of India · Visa information',url:'https://indianvisaonline.gov.in/'},
+  SA:{label:'Saudi Arabia · KSA Visa',url:'https://ksavisa.sa/'},
+  TR:{label:'Republic of Türkiye · Visa information',url:'https://www.evisa.gov.tr/en/'},
+  CN:{label:'Embassy of China in Bangladesh',url:'https://bd.china-embassy.gov.cn/eng/'},
+  JP:{label:'Embassy of Japan in Bangladesh',url:'https://www.bd.emb-japan.go.jp/'},
+  GB:{label:'UK Government · Standard Visitor guidance',url:'https://www.gov.uk/standard-visitor'},
+  ID:{label:'Indonesia Directorate General of Immigration',url:'https://evisa.imigrasi.go.id/'},
+  PK:{label:'Government of Pakistan · Online visa',url:'https://visa.nadra.gov.pk/'},
+  LK:{label:'Sri Lanka · Electronic Travel Authorization',url:'https://www.eta.gov.lk/'},
+  LA:{label:'Lao Government · Visa information',url:'https://www.laoevisa.gov.la/'},
+  KH:{label:'Kingdom of Cambodia · Visa information',url:'https://www.evisa.gov.kh/'},
+};
+const missionDirectory='https://washington.mofa.gov.bd/pages/static-pages/695266b835ce18e1c05aaf6e';
+export function guideContacts(code:string,name:string,purpose='Tourism'):VisaContact[] {
+  if(code === 'MY') return [
+    {title:'High Commission of Malaysia · Dhaka',url:'https://www.kln.gov.my/web/bgd_dhaka/home',address:'House No. 19, Road No. 6, Baridhara Diplomatic Enclave, Dhaka',phone:'+880 2 4108 1918',email:'dhaka@imi.gov.my',hours:'Sunday–Thursday, 8:30 am–4:30 pm; lunch 12:30–1:30 pm.'},
+    {title:'Bangladesh High Commission · Kuala Lumpur',url:'https://kualalumpur.mofa.gov.bd/pages/static-pages/6952669a35ce18e1c05aa49d',address:'No. 8, Lorong Yap Kwan Seng, 50450 Kuala Lumpur, Malaysia',phone:'+603 2604 0949',email:'mission.kualalumpur@mofa.gov.bd'},
+  ];
+  return [
+    {title:`${name} visa & consular information`,url:destinationPurposeSource(code,purpose)?.url || officialVisaSources[code].url,description:'Check the official visa authority for the correct application route, consular enquiries and current requirements for Bangladeshi applicants.'},
+    {title:'Bangladesh missions & consular support',url:missionDirectory,description:'Find the Bangladesh mission responsible for your destination, including its official website and consular contact details.'},
+  ];
+}
+export interface CountryGuide {description:string;language:string;callingCode:string;timeZone:string;cities:string[];weather:string;capital?:string}
+export const countryGuides:Record<string,CountryGuide> = {
+  MY:{description:'Malaysia spans the Malay Peninsula and part of the island of Borneo. Kuala Lumpur combines modern landmarks with lively neighbourhoods, while Penang, Langkawi and the highlands offer very different travel experiences.',language:'Malay',callingCode:'+60',timeZone:'UTC+8',cities:['Kuala Lumpur','George Town','Johor Bahru','Malacca City','Kota Kinabalu','Kuching'],weather:'Tropical weather brings warmth, humidity and rain throughout the year. Conditions vary between the peninsula and Borneo; the highlands are cooler.'},
+  TH:{description:'Thailand offers Bangkok’s markets and temples, northern mountain cities and southern beaches. Plan transport and accommodation around the regions you want to visit.',language:'Thai',callingCode:'+66',timeZone:'UTC+7',cities:['Bangkok','Chiang Mai','Phuket','Pattaya','Krabi'],weather:'Thailand has a tropical climate, with hot periods and seasonal rains. Weather patterns differ between the Andaman and Gulf coasts.'},
+  SG:{description:'Singapore is a compact island city-state with neighbourhood markets, waterfront attractions and extensive public transport. Its airport is also a major regional travel hub.',language:'English, Malay, Mandarin and Tamil',callingCode:'+65',timeZone:'UTC+8',cities:['Singapore'],weather:'Warm and humid throughout the year, with frequent showers. Carry light clothing and allow for sudden rain.'},
+  AE:{description:'The United Arab Emirates brings together seven emirates, from Abu Dhabi’s cultural landmarks to Dubai’s skyline and desert landscapes. Travel plans can include cities, beaches and mountain areas.',language:'Arabic',callingCode:'+971',timeZone:'UTC+4',cities:['Abu Dhabi','Dubai','Sharjah','Ras Al Khaimah'],weather:'Summers are very hot. The cooler months are more comfortable for outdoor activities; desert evenings can feel cooler.'},
+  IN:{description:'India offers a wide range of regions, languages and travel experiences. Distances between cities can be substantial, so allow enough time for domestic connections.',language:'Hindi, English and regional languages',callingCode:'+91',timeZone:'UTC+5:30',cities:['New Delhi','Kolkata','Mumbai','Chennai','Bengaluru'],weather:'Climate varies greatly by region and altitude. Check the local season, monsoon conditions and temperatures for each stop on your itinerary.'},
+  SA:{description:'Saudi Arabia combines major cities, Red Sea destinations and historic landscapes. Choose the visa category that matches your visit, including any separate religious-travel arrangements.',language:'Arabic',callingCode:'+966',timeZone:'UTC+3',cities:['Riyadh','Jeddah','Dammam','Madinah'],weather:'Much of the country has a dry desert climate, with very hot summers. Western highlands and coastal areas can have different conditions.'},
+  TR:{description:'Turkey connects Europe and Asia, with Istanbul’s historic districts, the landscapes of Cappadocia and Mediterranean coastal towns. Plan for regional differences in travel time and weather.',language:'Turkish',callingCode:'+90',timeZone:'UTC+3',cities:['Istanbul','Ankara','Antalya','Izmir','Göreme'],weather:'Coastal summers are generally warm, while inland winters can be cold and snowy. Conditions vary considerably across the country.'},
+  CN:{description:'China’s destinations range from large modern cities to historic sites and mountain landscapes. Account for the distances between regions when choosing flights or rail connections.',language:'Mandarin Chinese',callingCode:'+86',timeZone:'UTC+8',cities:['Beijing','Shanghai','Guangzhou','Shenzhen','Chengdu'],weather:'Climate varies from region to region. Northern winters can be cold; southern areas are generally warmer and more humid.'},
+  JP:{description:'Japan combines major cities with historic towns, mountain areas and island destinations. Rail and domestic air connections make multi-city itineraries possible with advance planning.',language:'Japanese',callingCode:'+81',timeZone:'UTC+9',cities:['Tokyo','Osaka','Kyoto','Sapporo','Fukuoka'],weather:'Most regions have distinct seasons. Northern winters can be snowy, while summers are often hot and humid; southern islands have a warmer climate.'},
+  GB:{description:'The United Kingdom includes England, Scotland, Wales and Northern Ireland. Plan your route around city stays, countryside visits and connections between regions.',language:'English and regional languages',callingCode:'+44',timeZone:'UTC+0 / UTC+1 seasonally',cities:['London','Edinburgh','Manchester','Cardiff','Belfast'],weather:'Weather is changeable throughout the year. Bring layers and rain protection, and check local forecasts for outdoor plans.'},
+  ID:{description:'Indonesia is an archipelago with many distinct island destinations. Flights and ferries can be an important part of your route, so leave time for connections.',language:'Indonesian',callingCode:'+62',timeZone:'UTC+7 to UTC+9',cities:['Jakarta','Denpasar','Yogyakarta','Surabaya','Bandung'],weather:'Many destinations have tropical wet and dry seasons. Rain patterns and sea conditions vary by island and month.'},
+  PK:{description:'Pakistan offers large cities, historic sites and northern mountain regions. Plan regional transport and allow for differences in altitude, climate and road conditions.',language:'Urdu and English',callingCode:'+92',timeZone:'UTC+5',cities:['Islamabad','Lahore','Karachi','Peshawar'],weather:'Climate varies sharply between the coast, plains and mountain areas. Check conditions for your route, especially for northern travel.'},
+  LK:{description:'Sri Lanka brings together coastal towns, tea-growing highlands and historic sites. A compact route can still involve substantial road travel between destinations.',language:'Sinhala and Tamil',callingCode:'+94',timeZone:'UTC+5:30',cities:['Colombo','Kandy','Galle','Jaffna','Nuwara Eliya'],weather:'Tropical conditions vary with the monsoon and coast. The central highlands are cooler than the coastal areas.'},
+  LA:{description:'Laos is a landlocked Southeast Asian destination known for river landscapes and historic towns. Consider rail, road and air connections when planning a multi-stop visit.',language:'Lao',callingCode:'+856',timeZone:'UTC+7',cities:['Vientiane','Luang Prabang','Vang Vieng','Pakse'],weather:'Laos has wet and dry seasons. Mountain areas are often cooler, and rain can affect rural travel conditions.'},
+  KH:{description:'Cambodia offers Phnom Penh, the temples around Siem Reap and southern coastal destinations. Allow time for transfers between regions.',language:'Khmer',callingCode:'+855',timeZone:'UTC+7',cities:['Phnom Penh','Siem Reap','Battambang','Kampot'],weather:'Cambodia has a tropical climate with wet and dry seasons. Expect warm conditions and check seasonal rain when planning outdoor visits.'},
+};
+export const guideSamples = [
+  {id:'passport',title:'Passport scan',caption:'Full biodata page · layout example',src:'/visa/samples/passport.svg'},
+  {id:'photo',title:'Passport photo',caption:'Studio photo framing · illustration',src:'/visa/samples/photo.svg'},
+  {id:'letter',title:'Covering letter',caption:'Purpose, itinerary and funding · example',src:'/visa/samples/letter.svg'},
+  {id:'itinerary',title:'Travel itinerary',caption:'Clear dates and accommodation · example',src:'/visa/samples/itinerary.svg'},
+];

@@ -1,0 +1,12 @@
+/* Photography is an absolute background, preserving the guide's content geometry. */
+.visa-reference-hero.has-photo-slideshow{position:relative;isolation:isolate}
+.visa-hero-photo-credit{position:absolute;right:0;top:-10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#58718d;text-decoration:underline}
+.visa-hero-photo-stage{position:absolute;inset:-14px -20px 7px;z-index:-1;overflow:hidden;border-radius:20px;background:linear-gradient(120deg,#f8fbff,#e7f1f7);pointer-events:none}
+.visa-hero-photo-stage>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1200ms ease;user-select:none}
+.visa-hero-photo-stage>img.is-active{opacity:1}
+.visa-hero-photo-stage:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(249,252,255,.97) 0%,rgba(249,252,255,.89) 37%,rgba(249,252,255,.68) 73%,rgba(249,252,255,.60)),linear-gradient(0deg,rgba(249,252,255,.96),rgba(249,252,255,.12) 75%)}
+@media(max-width:760px){
+ .visa-hero-photo-stage{inset:-8px -8px 5px;border-radius:16px}
+ .visa-hero-photo-stage:after{background:linear-gradient(90deg,rgba(249,252,255,.94),rgba(249,252,255,.79)),linear-gradient(0deg,rgba(249,252,255,.98),transparent)}
+}
+@media(prefers-reduced-motion:reduce){.visa-hero-photo-stage>img{transition:none}}

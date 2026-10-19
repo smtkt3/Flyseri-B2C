@@ -1,7 +1,9 @@
 import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { VisaFlowHeader, VisaFlowActions } from './VisaFlowLayout';
+import { CheckoutActionBar } from '../components/CheckoutActionBar';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Link, useLocation, useNavigate, useParams, useBeforeUnload } from 'react-router-dom';
 import type { DocumentSummary, OrderDetail, TripDetail, VisaApplicationDetail, VisaFieldCondition, VisaFormField, VisaFormSection } from '@flyseri/types';
 import { ApiClientError } from '../lib/api/client';
 import { commerceService } from '../services/commerceService';
@@ -9,7 +11,7 @@ import { documentService } from '../services/documentService';
 import { tripService } from '../services/tripService';
 import { visaService } from '../services/visaService';
 import { formatMoney, formatTimestamp, paymentStatus, visaStatus } from '../account/presentation';
-import { countryName } from '../trip/tripPresentation';
+import { countries, countryName } from '../trip/tripPresentation';
 import { documentLabels, friendlyDate } from '../document/documentPresentation';
 import './visa-application.css';
 
@@ -59,14 +61,20 @@ export function VisaApplicationPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [notFound, setNotFound] = useState(false);
+  const loadVersion=useRef(0);
+  const paymentOperation=useRef(false);
+  const paymentAttempt=useRef<{orderId:string;failedPaymentId:string;key:string}|null>(null);
+  useBeforeUnload(event=>{if(dirtyScopes.length){event.preventDefault();event.returnValue='';}});
 
   async function load(id: string) {
+    const version=++loadVersion.current;
     setLoading(true); setError(''); setNotFound(false);
     try {
       const app = await visaService.detail(id);
       const [journeyResult, documentsResult, orderResult] = await Promise.allSettled([
         tripService.detail(app.tripId), documentService.list(), app.orderId ? commerceService.order(app.orderId) : Promise.resolve(null),
       ]);
+      if(version!==loadVersion.current)return;
       if (journeyResult.status === 'rejected') throw journeyResult.reason;
       setApplication(app); setTrip(journeyResult.value); setAnswers(app.answers ?? {});
       if (!stages.some((item) => item.id === requestedStage)) {
@@ -76,11 +84,12 @@ export function VisaApplicationPage() {
       setOrder(orderResult.status === 'fulfilled' ? orderResult.value : null);
       if (documentsResult.status === 'rejected') setNotice('Your saved files are temporarily unavailable. The rest of your application is safe.');
     } catch (cause) {
+      if(version!==loadVersion.current)return;
       if (cause instanceof ApiClientError && cause.status === 404) setNotFound(true);
       else setError("We couldn't load this application. Please try again.");
-    } finally { setLoading(false); }
+    } finally { if(version===loadVersion.current)setLoading(false); }
   }
-  useEffect(() => { if (applicationId) void load(applicationId); }, [applicationId]);
+  useEffect(() => { setApplication(null);setTrip(null);setDirtyScopes([]);if (applicationId) void load(applicationId);return()=>{loadVersion.current++;}; }, [applicationId]);
   useEffect(() => { if (stages.some((item) => item.id === requestedStage)) setStage(requestedStage as VisaStage); }, [requestedStage]);
   useEffect(() => { void commerceService.paymentCapabilities().then((value) => setCheckoutAvailable(value.checkoutAvailable), () => setCheckoutAvailable(false)); }, []);
 
@@ -114,7 +123,7 @@ export function VisaApplicationPage() {
     setSaving(true); setError('');
     try {
       const saved = await visaService.saveAnswers(application.id, scope, answers[scope] ?? {});
-      setApplication(saved); setAnswers(saved.answers ?? answers);
+      setApplication(saved); setAnswers(current=>({...current,[scope]:saved.answers?.[scope]??answers[scope]??{}}));
       setDirtyScopes((current) => current.filter((item) => item !== scope));
       setNotice('Your progress is saved securely.');
       return true;
@@ -171,15 +180,17 @@ export function VisaApplicationPage() {
     finally { setBusy(false); }
   }
   async function beginPayment() {
-    if (!application || !order || !checkoutAvailable || busy) return;
-    setBusy(true); setError('');
+    if (!application || !order || !checkoutAvailable || busy || paymentOperation.current || !['PENDING_PAYMENT','PAYMENT_FAILED'].includes(order.status) || (order.payment&&order.payment.status!=='FAILED')) return;
+    paymentOperation.current=true;setBusy(true); setError('');
     try {
-      const result = await commerceService.startPayment(order.id, crypto.randomUUID());
+      const failedPaymentId=order.payment?.status==='FAILED'?order.payment.id:'';
+      if(paymentAttempt.current?.orderId!==order.id||paymentAttempt.current.failedPaymentId!==failedPaymentId)paymentAttempt.current={orderId:order.id,failedPaymentId,key:crypto.randomUUID()};
+      const result = await commerceService.startPayment(order.id, paymentAttempt.current.key);
       if (result.redirectUrl) { window.location.assign(result.redirectUrl); return; }
       await load(application.id);
       setNotice('Payment is being checked. Please wait for confirmation before paying again.');
     } catch (cause) { setError(cause instanceof ApiClientError ? cause.message : "We couldn't open checkout. No payment has been confirmed."); }
-    finally { setBusy(false); }
+    finally { paymentOperation.current=false;setBusy(false); }
   }
   async function refreshPayment() {
     if (!application || !order) return;
@@ -220,9 +231,9 @@ export function VisaApplicationPage() {
     const input = field.type === 'TEXTAREA' || field.type === 'ADDRESS'
       ? <textarea {...shared} value={typeof val === 'string' ? val : ''} placeholder={field.placeholder ?? ''} rows={field.type === 'ADDRESS' ? 3 : 4}
           onChange={(event) => updateAnswer(scope, field.key, event.target.value)} />
-      : field.type === 'SELECT' || field.type === 'COUNTRY' && field.options?.length
+      : field.type === 'SELECT' || field.type === 'COUNTRY'
         ? <select {...shared} value={typeof val === 'string' ? val : ''} onChange={(event) => updateAnswer(scope, field.key, event.target.value)}>
-          <option value="">Select an option</option>{(field.options ?? []).map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+          <option value="">Select an option</option>{(field.options?.length ? field.options : field.type==='COUNTRY' ? countries.map(country=>({value:country.code,label:country.name})) : []).map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
         </select>
         : field.type === 'MULTI_SELECT'
           ? <select {...shared} multiple value={Array.isArray(val) ? val as string[] : []} onChange={(event) => updateAnswer(scope, field.key, [...event.target.selectedOptions].map((option) => option.value))}>
@@ -238,13 +249,12 @@ export function VisaApplicationPage() {
                 checked={val === (value === 'true')} onChange={() => updateAnswer(scope, field.key, value === 'true')} />{label}</label>)}</div>
               : field.type === 'CHECKBOX'
                 ? <label className="visa-checkbox"><input type="checkbox" disabled={disabled} checked={val === true} onChange={(event) => updateAnswer(scope, field.key, event.target.checked)} />{field.label}</label>
-                : <input {...shared} type={field.type === 'DATE' ? 'date' : field.type === 'NUMBER' || field.type === 'YEAR' ? 'number' : 'text'}
+                : <input {...shared} type={field.type === 'DATE' ? 'date' : field.type === 'EMAIL' ? 'email' : field.type==='PHONE' ? 'tel' : field.type === 'NUMBER' || field.type === 'YEAR' ? 'number' : 'text'}
                     inputMode={field.type === 'PHONE' || field.type === 'NUMBER' || field.type === 'YEAR' ? 'numeric' : undefined}
-                    autoComplete={field.type === 'PASSPORT' ? 'off' : undefined} maxLength={field.type === 'COUNTRY' && !field.options?.length ? 2 : field.validation?.maxLength}
-                    autoCapitalize={field.type === 'COUNTRY' ? 'characters' : undefined}
+                    autoComplete={field.type === 'PASSPORT' ? 'off' : undefined} maxLength={field.validation?.maxLength}
                     value={typeof val === 'string' || typeof val === 'number' ? String(val) : ''}
-                    placeholder={field.placeholder ?? (field.type === 'COUNTRY' && !field.options?.length ? '2-letter country code' : '')}
-                    onChange={(event) => updateAnswer(scope, field.key, field.type === 'COUNTRY' ? event.target.value.toUpperCase().slice(0, 2) : event.target.value)} />;
+                    placeholder={field.placeholder ?? ''}
+                    onChange={(event) => updateAnswer(scope, field.key, event.target.value)} />;
     return <div className={`visa-dynamic-field ${field.type === 'RADIO' || field.type === 'CHECKBOX' ? 'visa-field-choice' : ''}`} key={`${scope}-${field.key}`}>
       {field.type !== 'RADIO' && field.type !== 'CHECKBOX' && <label htmlFor={id}>{field.label}{field.required && <span className="visa-required"> *</span>}</label>}
       {input}{field.helpText && <small id={helpId}>{field.helpText}</small>}
@@ -272,10 +282,7 @@ export function VisaApplicationPage() {
   }).filter((section) => section.rows.length > 0);
 
   return <div className="account-page visa-page visa-application-page">
-    <Link className="trip-back" to={`/app/trips/${trip.id}/visa`}>← Visa services</Link>
-    <header className="visa-app-header"><div><p className="account-eyebrow">SERI MECHAN VISA SERVICE</p><h1>{countryName(application.destinationCountryCode)} · {application.visaTypeName}</h1>
-      <p className="account-muted">Application {application.applicationReference ?? application.id.slice(0, 8).toUpperCase()} · {applicants.length} {applicants.length === 1 ? 'applicant' : 'applicants'}</p></div>
-      <span className={`visa-status-pill status-${application.status.toLowerCase()}`}>{visaStatus(application.status)}</span></header>
+    <VisaFlowHeader title={`${countryName(application.destinationCountryCode)} · ${application.visaTypeName}`} description={`Application ${application.applicationReference ?? application.id.slice(0,8).toUpperCase()} · ${applicants.length} ${applicants.length===1?'applicant':'applicants'} · ${visaStatus(application.status)}`} back={<Link to={`/app/trips/${trip.id}/visa`}>← Visa services</Link>}/>
     {error && <p role="alert" className="account-error">{error}</p>}{notice && <p role="status" className="visa-notice">{notice}</p>}
 
     <VisaJourneyProgress current={stage === 'details' ? 'form' : stage} onSelect={step => { if (step !== 'choose') { setStage(step === 'form' ? 'details' : step); setError(''); } }} />
@@ -297,7 +304,7 @@ export function VisaApplicationPage() {
           return <div className="visa-form-group" key={`${section.key}-${person.id}`}><h4>{person.legalFirstName} {person.legalLastName}</h4><div className="visa-form-grid">{fields.map((field) => renderField(section, field, person.id))}</div></div>;
         })}
       </section>)}
-      <div className="visa-stage-actions"><span>{completedFormFields} / {totalFormFields} required answers</span><button type="button" className="btn-primary visa-submit" disabled={busy || saving || !canEdit} onClick={() => void advanceFromDetails()}>{saving ? 'Saving…' : 'Save & continue to documents →'}</button></div>
+      <VisaFlowActions caption={`${completedFormFields} / ${totalFormFields} required answers`}><button type="button" className="btn-primary" disabled={busy || saving || !canEdit} onClick={() => void advanceFromDetails()}>{saving ? 'Saving…' : 'Save & continue to documents →'}</button></VisaFlowActions>
     </div> : <section className="account-panel visa-unconfigured"><h2>Application temporarily unavailable</h2><p>Please contact Flyseri for help with this application. Your saved travelers and files remain available.</p></section>)}
 
     {stage === 'documents' && <section className="visa-documents-section"><div className="visa-section-title"><div><p className="account-eyebrow">STEP 03 / 05 · SECURE DOCUMENT VAULT</p><h2>Upload your documents</h2><p className="account-muted">Add each applicant's required files, then wait for the security check to finish.</p></div><span>{completeDocuments}/{requiredDocuments.length} ready</span></div>
@@ -328,7 +335,7 @@ export function VisaApplicationPage() {
             </div>}
           </article>;
         })}</div></section>)}
-      {canEdit && <div className="visa-stage-actions"><button type="button" className="account-outline-button" onClick={() => setStage('details')}>← Application details</button><button type="button" className="btn-primary visa-submit" onClick={advanceFromDocuments}>Continue to review →</button></div>}
+      {canEdit && <VisaFlowActions back={<button type="button" disabled={busy||saving} onClick={() => setStage('details')}>← Application details</button>}><button type="button" disabled={busy||saving} className="btn-primary" onClick={advanceFromDocuments}>Continue to review →</button></VisaFlowActions>}
     </section>}
 
     {stage === 'review' && <section className="visa-review-panel account-panel"><div><p className="account-eyebrow">STEP 04 / 05 · FINAL CHECK</p><h2>Review your application</h2><p>Check the information and document checklist before sending your application to Seri Mechan for review.</p></div>
@@ -337,7 +344,7 @@ export function VisaApplicationPage() {
       {isDraft(application.status) && <label className="visa-declaration"><input type="checkbox" checked={acceptedDeclaration} onChange={(event) => setAcceptedDeclaration(event.target.checked)} />
         <span>I confirm that my answers are accurate, my documents are genuine, and I authorize Seri Mechan to assist with processing this visa application. I understand that the embassy or relevant authority makes the decision and fees/refund terms apply.</span>
       </label>}
-      {isDraft(application.status) ? <button type="button" className="btn-primary visa-submit" disabled={busy || saving || !acceptedDeclaration || !form.length || completedFormFields !== totalFormFields || completeDocuments !== requiredDocuments.length} onClick={() => void submitApplication()}>{busy ? 'Submitting securely…' : 'Submit application →'}</button>
+      {isDraft(application.status) ? <VisaFlowActions caption="Save application · payment next" back={<button type="button" disabled={busy||saving} onClick={()=>setStage('documents')}>← Back to documents</button>}><button type="button" className="btn-primary" disabled={busy || saving || !acceptedDeclaration || !form.length || completedFormFields !== totalFormFields || completeDocuments !== requiredDocuments.length} onClick={() => void submitApplication()}>{busy ? 'Submitting securely…' : 'Submit application →'}</button></VisaFlowActions>
         : correctionMode ? <p className="visa-review-wait">Your requested corrections will be reviewed by Seri Mechan before processing continues.</p>
         : <button type="button" className="btn-primary visa-submit" onClick={() => setStage('payment')}>View payment status →</button>}
       <p className="account-muted">Submitting sends your application for review. It does not take a payment or guarantee visa approval.</p>
@@ -351,7 +358,7 @@ export function VisaApplicationPage() {
         {isDraft(application.status) && <p className="visa-review-wait">Complete the application and document steps, then submit it to unlock payment.</p>}
         {!order && application.status === 'SUBMITTED' && <button type="button" className="btn-primary visa-submit" disabled={busy} onClick={() => void submitApplication()}>Prepare payment order</button>}
         {order && checkoutAvailable && ['PENDING_PAYMENT','PAYMENT_FAILED'].includes(order.status) && (!order.payment || order.payment.status === 'FAILED') &&
-          <button type="button" className="btn-primary visa-submit" disabled={busy} onClick={() => void beginPayment()}>{busy ? 'Opening secure checkout…' : 'Continue to secure test checkout'}</button>}
+          <CheckoutActionBar label="Visa service payment" caption="Service total" total={formatMoney(order.totalAmount,order.currency)}><button type="button" className="btn-primary" disabled={busy} onClick={() => void beginPayment()}>{busy ? 'Opening secure checkout…' : 'Continue to secure test checkout'}</button></CheckoutActionBar>}
         {order && !checkoutAvailable && <p className="visa-review-wait">Online checkout is currently unavailable. No payment has been taken.</p>}
         {order && <button type="button" className="account-outline-button" disabled={busy} onClick={() => void refreshPayment()}>Refresh payment status</button>}
         {application.status === 'PAID' && <p className="visa-payment-confirmed">Payment is confirmed. Your application is ready for Seri Mechan’s document review.</p>}

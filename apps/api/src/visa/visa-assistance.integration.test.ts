@@ -29,6 +29,7 @@ describe('visa assistance persistence and document isolation', () => {
    const address = { addressLine1:'1 Test Street',city:'Dhaka',countryCode:'BD' };
    const input: VisaAssistanceRequestInput = { tripId,destinationCountryCode:'MY',expectedTravelDate:'2099-12-01',purpose:'Tourism',contactName:'Test Person',contactEmail:'test@example.com',applicants:[{ travellerId,firstName:'Test',middleName:'Middle',lastName:'Person',dateOfBirth:'1990-01-01',gender:'MALE',nationalityCountryCode:'BD',birthCountryCode:'BD',documentType:'PASSPORT',documentNumber:'TEST123',documentIssuingCountryCode:'BD',documentExpiresOn:'2100-01-01',currentAddress:address,permanentAddress:address,notes:'Synthetic applicant' }] };
    const store = new DrizzleVisaStore({ db: drizzle(database, { schema }) } as unknown as DatabaseConnection);
+   await expect(store.createAssistanceRequest(owner,{...input,applicants:[{...input.applicants[0]!,documentExpiresOn:'2020-01-01'}]})).rejects.toThrow('travel document must be valid');
    await expect(store.createAssistanceRequest(stranger,input)).rejects.toThrow();
    const request = await store.createAssistanceRequest(owner,input);
    expect((await store.assistanceDetail(owner,request.id))?.applicants[0]?.details).toEqual(input.applicants[0]);
@@ -67,6 +68,9 @@ describe('visa assistance persistence and document isolation', () => {
    await expect(admin.saveAssistanceFee({amount:'0',currency:'MYR',basis:'APPLICANT',active:true},{staffUserId:randomUUID(),role:'owner'},'test')).rejects.toThrow();
    await admin.saveAssistanceFee({amount:'50.00',currency:'MYR',basis:'APPLICANT',active:true},{staffUserId:randomUUID(),role:'owner'},'test');
    const commerce = new CommerceRepository(connection);
+   await database.query('update visa_assistance_requests set expected_travel_date=$1 where id=$2',['2000-01-01',request.id]);
+   await expect(commerce.createAssistanceOrder(owner,request.id,'test')).rejects.toThrow('planned travel date has passed');
+   await database.query('update visa_assistance_requests set expected_travel_date=$1 where id=$2',[input.expectedTravelDate,request.id]);
    await expect(commerce.createAssistanceOrder(stranger,request.id,'test')).rejects.toThrow();
    const order = await commerce.createAssistanceOrder(owner,request.id,'test');
    expect(order.totalAmount).toBe('50.00');

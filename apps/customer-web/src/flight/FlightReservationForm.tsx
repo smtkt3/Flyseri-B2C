@@ -1,10 +1,11 @@
+import { FlightTransferVisaAdvice } from './FlightTransferNotice';
 import { BookingLoading } from './BookingLoading';
 import { FlightBillingFields } from './FlightBillingFields';
 import { CheckoutHelpPanel } from '../components/CheckoutHelpPanel';
 import { Translated } from '../travel/language';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { FlightReservationInput, TravellerProfile, FlightIdentityDocumentType } from '@flyseri/types';
+import type { FlightOffer, FlightReservationInput, TravellerProfile, FlightIdentityDocumentType } from '@flyseri/types';
 import { useAuth } from '../auth/AuthProvider';
 import { flightService } from '../services/flightService';
 import { countries } from '../trip/tripPresentation';
@@ -16,7 +17,7 @@ import { CheckoutActionBar } from '../components/CheckoutActionBar';
 import { checkoutPassportError } from './checkoutContinuation';
 import { CalendarDateField } from '../components/CalendarDateField';
 
-export function FlightReservationForm({intentId, namesConfirmed, initialContact, people = [], documentValidThrough,passportsCaptured=false,total='Checked fare',totalCaption='Checked airfare',priceAvailable=true,onBusyChange}: {intentId: string; namesConfirmed: boolean; initialContact?: {contactEmail: string; contactPhone: string}; people?: TravellerProfile[]; documentValidThrough?: string;passportsCaptured?:boolean;total?:string;totalCaption?:string;priceAvailable?:boolean;onBusyChange?:(busy:boolean)=>void}) {
+export function FlightReservationForm({offer,intentId, namesConfirmed, initialContact, people = [], documentValidThrough,passportsCaptured=false,total='Checked fare',totalCaption='Checked airfare',priceAvailable=true,onBusyChange}: {offer?:FlightOffer;intentId: string; namesConfirmed: boolean; initialContact?: {contactEmail: string; contactPhone: string}; people?: TravellerProfile[]; documentValidThrough?: string;passportsCaptured?:boolean;total?:string;totalCaption?:string;priceAvailable?:boolean;onBusyChange?:(busy:boolean)=>void}) {
   const formId = useId();
   const navigate = useNavigate();
   const {session} = useAuth();
@@ -119,6 +120,7 @@ export function FlightReservationForm({intentId, namesConfirmed, initialContact,
       </section>)}
       {hasPassports && <label className="reservation-passport-toggle"><input type="checkbox" required checked={passportConsent} onChange={event => setPassportConsent(event.target.checked)} /><span>I checked these travel document details and authorize submitting them for this reservation.</span></label>}
     </details>}
+    {offer && people.map(person=><FlightTransferVisaAdvice key={person.id} offer={offer} nationality={person.nationalityCountryCode??''} issuingCountry={passports[person.id]?.issuingCountryCode??''} documentType={passports[person.id]?.documentType??'PASSPORT'}/>)}
     <CheckoutHelpPanel title="Next: payment"><p>{!namesConfirmed ? 'Confirm the traveler names above before continuing.' : !documentsComplete || !passportConsent ? 'Complete and confirm the travel documents above before continuing.' : !priceAvailable ? 'Please wait while we check your fare, or review the price update above.' : 'Choose your payment method and apply a promo code on the next step.'}</p></CheckoutHelpPanel></fieldset>
 
     </form>}

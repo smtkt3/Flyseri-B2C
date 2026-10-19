@@ -62,11 +62,15 @@ button.premium-profile { border:0; cursor:pointer; font:inherit; text-align:left
 
 /* Shared glass surface across public and account pages. */
 html body .premium-header.flyseri-site-navbar {
-  background:linear-gradient(115deg,rgba(255,255,255,.72),rgba(247,252,255,.43) 55%,rgba(235,247,255,.60))!important;
-  border:1px solid rgba(255,255,255,.82)!important;
-  box-shadow:0 8px 30px rgba(36,79,119,.12),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.25)!important;
-  -webkit-backdrop-filter:blur(22px) saturate(1.35)!important;
-  backdrop-filter:blur(22px) saturate(1.35)!important;
+  --flyseri-navbar-surface:linear-gradient(115deg,rgba(255,255,255,.72),rgba(247,252,255,.43) 55%,rgba(235,247,255,.60));
+  --flyseri-navbar-border:1px solid rgba(255,255,255,.82);
+  --flyseri-navbar-shadow:0 8px 30px rgba(36,79,119,.12),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.25);
+  --flyseri-navbar-blur:blur(22px) saturate(1.35);
+  background:var(--flyseri-navbar-surface)!important;
+  border:var(--flyseri-navbar-border)!important;
+  box-shadow:var(--flyseri-navbar-shadow)!important;
+  -webkit-backdrop-filter:var(--flyseri-navbar-blur)!important;
+  backdrop-filter:var(--flyseri-navbar-blur)!important;
 }
 html body .flyseri-site-navbar .premium-mobile-services-toggle {
   background:rgba(255,255,255,.42);

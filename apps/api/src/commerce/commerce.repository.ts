@@ -92,6 +92,7 @@ export class CommerceRepository {
       if (!request) throw new OrderUnavailableError();
       const [prior] = await tx.select({id: orders.id}).from(orders).innerJoin(orderItems, eq(orderItems.orderId, orders.id)).where(and(eq(orderItems.referenceId, assistanceId), eq(orderItems.itemType, 'VISA_SERVICE'), eq(orders.customerId, customerId), isNull(orders.visaApplicationId), isNull(orders.bookingIntentId))).limit(1);
       if (prior) return prior.id;
+      if(request.expectedTravelDate<new Date().toISOString().slice(0,10))throw new OrderConflictError('The planned travel date has passed. Start a new visa application with your current travel plans.');
       const people = await tx.select().from(visaAssistanceRequestTravellers).where(eq(visaAssistanceRequestTravellers.requestId, assistanceId));
       const [fee] = await tx.select().from(visaAssistanceFeeSettings).where(and(eq(visaAssistanceFeeSettings.id, 'default'), eq(visaAssistanceFeeSettings.active, true))).limit(1);
       if (request.status !== 'NEW' || !people.length || people.some(p => !p.applicantDetails) || !fee || !positiveMoney(fee.amount)) throw new OrderConflictError();

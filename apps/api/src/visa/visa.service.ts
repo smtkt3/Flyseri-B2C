@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { VisaApplicationDetail, VisaApplicationSummary, VisaAssistanceRequestInput, VisaAssistanceRequestSummary, VisaType } from '@flyseri/types';
+import { isSupportedVisaDestination } from '@flyseri/types';
 import { ApiException } from '../api-exception.js';
 import { VISA_STORE } from '../tokens.js';
 import type { VisaStore } from './visa.repository.js';
@@ -15,8 +16,15 @@ function map(error: unknown): never {
 export class VisaService {
   constructor(@Inject(VISA_STORE) private readonly store: VisaStore | undefined) {}
   private required(): VisaStore { if (!this.store) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Visa applications are temporarily unavailable.', 503); return this.store; }
-  catalogue(countryCode: string): Promise<VisaType[]> { return this.required().catalogue(countryCode); }
-  async types(customerId: string, tripId: string): Promise<VisaType[]> { return await this.required().types(customerId, tripId) ?? Promise.reject(missing()); }
+  async catalogue(countryCode: string): Promise<VisaType[]> {
+    if (!isSupportedVisaDestination(countryCode)) throw new ApiException('VALIDATION_ERROR', 'Choose one of the available visa destinations.', 400);
+    return (await this.required().catalogue(countryCode)).filter(item => !item.nationalityEligibility?.length || item.nationalityEligibility.includes('BD'));
+  }
+  async types(customerId: string, tripId: string): Promise<VisaType[]> {
+    const items = await this.required().types(customerId, tripId);
+    if (!items) throw missing();
+    return items.filter(item => isSupportedVisaDestination(item.destinationCountryCode) && (!item.nationalityEligibility?.length || item.nationalityEligibility.includes('BD')));
+  }
   list(customerId: string, tripId?: string): Promise<VisaApplicationSummary[]> { return this.required().list(customerId, tripId); }
   async detail(customerId: string, id: string): Promise<VisaApplicationDetail> { return await this.required().detail(customerId, id) ?? Promise.reject(missing()); }
   async create(customerId: string, tripId: string, visaTypeId: string, travellerIds: string[]): Promise<VisaApplicationDetail> {

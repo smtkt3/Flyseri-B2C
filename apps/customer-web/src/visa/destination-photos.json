@@ -1,0 +1,278 @@
+{
+  "TH": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/2/2a/%E0%B9%80%E0%B8%88%E0%B8%94%E0%B8%B5%E0%B8%A2%E0%B9%8C%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%98%E0%B8%B2%E0%B8%99%E0%B8%97%E0%B8%A3%E0%B8%87%E0%B8%9B%E0%B8%A3%E0%B8%B2%E0%B8%87%E0%B8%84%E0%B9%8C%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B8%AD%E0%B8%A3%E0%B8%B8%E0%B8%932.jpg",
+      "label": "Wat Arun",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:%E0%B9%80%E0%B8%88%E0%B8%94%E0%B8%B5%E0%B8%A2%E0%B9%8C%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%98%E0%B8%B2%E0%B8%99%E0%B8%97%E0%B8%A3%E0%B8%87%E0%B8%9B%E0%B8%A3%E0%B8%B2%E0%B8%87%E0%B8%84%E0%B9%8C%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B8%AD%E0%B8%A3%E0%B8%B8%E0%B8%932.jpg",
+      "author": "Mastertongapollo",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/1/18/Wat_Phra_That_Doi_Suthep_-_Chiang_Mai.jpg",
+      "label": "Wat Phra That Doi Suthep",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Wat_Phra_That_Doi_Suthep_-_Chiang_Mai.jpg",
+      "author": "JJ Harrison (https://www.jjharrison.com.au/)",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
+    }
+  ],
+  "SG": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Marina_Bay_Sands_%28I%29.jpg",
+      "label": "Marina Bay Sands",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Marina_Bay_Sands_%28I%29.jpg",
+      "author": "This Photo was taken by Supanut Arunoprayote. Feel free to use any of my images, but please mention me as the author and may send me a message. (สามารถใช้ภาพได้อิสระ แต่กรุณาใส่เครดิตผู้ถ่ายและอาจส่งข้อความบอกกล่าวด้วย) Please do not upload an updated image here without consultation with the Author. The author would like to make corrections only at his own source. This ensures that the changes are preserved.Please if you think that any changes should be required, please inform the author.Otherwise you can upload a new image with a new name. Please use one of the templates derivative or extract.",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Supertree_Grove%2C_Gardens_by_the_Bay%2C_Singapore_-_20120712-02.jpg",
+      "label": "Gardens by the Bay",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Supertree_Grove%2C_Gardens_by_the_Bay%2C_Singapore_-_20120712-02.jpg",
+      "author": "Shiny Things.",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0"
+    }
+  ],
+  "AE": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/9/90/Burj_Khalifa_%28worlds_tallest_building%29_and_the_Dubai_skyline_%2825781049892%29.jpg",
+      "label": "Burj Khalifa",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Burj_Khalifa_%28worlds_tallest_building%29_and_the_Dubai_skyline_%2825781049892%29.jpg",
+      "author": "imran shahabuddin",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c",
+      "label": "Dubai skyline",
+      "position": "center 40%"
+    }
+  ],
+  "IN": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Taj_Mahal_%28Edited%29.jpeg",
+      "label": "Taj Mahal",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Taj_Mahal_%28Edited%29.jpeg",
+      "author": "Yann; edited by Jim Carter",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/4/41/East_facade_Hawa_Mahal_Jaipur_from_ground_level_%28July_2022%29_-_img_01.jpg",
+      "label": "Hawa Mahal",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:East_facade_Hawa_Mahal_Jaipur_from_ground_level_%28July_2022%29_-_img_01.jpg",
+      "author": "Chainwit.",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  ],
+  "SA": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Jeddah_Waterfront%2C_Western_Saudi_Arabia_%282026%29.jpg",
+      "label": "Jeddah",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Jeddah_Waterfront%2C_Western_Saudi_Arabia_%282026%29.jpg",
+      "author": "Unknown author",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/1/13/Al_Ula_%286748577917%29.jpg",
+      "label": "Al-Ula",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Al_Ula_%286748577917%29.jpg",
+      "author": "Sammy Six",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0"
+    }
+  ],
+  "TR": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Hagia_Sophia_%28228968325%29.jpeg",
+      "label": "Hagia Sophia",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Hagia_Sophia_%28228968325%29.jpeg",
+      "author": "Adli Wahid",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/5/59/Cappadocia_balloon_trip%2C_Ortahisar_Castle_%2811893715185%29.jpg",
+      "label": "Cappadocia",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Cappadocia_balloon_trip%2C_Ortahisar_Castle_%2811893715185%29.jpg",
+      "author": "Arian Zwegers from Brussels, Belgium",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0"
+    }
+  ],
+  "CN": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/2/23/The_Great_Wall_of_China_at_Jinshanling-edit.jpg",
+      "label": "Great Wall of China",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:The_Great_Wall_of_China_at_Jinshanling-edit.jpg",
+      "author": "Severin.stalder",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/e/ef/The_Forbidden_City_-_View_from_Coal_Hill.jpg",
+      "label": "Forbidden City",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:The_Forbidden_City_-_View_from_Coal_Hill.jpg",
+      "author": "Pixelflake",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
+    }
+  ],
+  "JP": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/5/58/Tokyo_Tower_2023.jpg",
+      "label": "Tokyo Tower",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Tokyo_Tower_2023.jpg",
+      "author": "Akonnchiroll",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Golden_Pavilion_Kinkaku-ji_water_mirror_2024.jpg",
+      "label": "Kinkaku-ji",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Golden_Pavilion_Kinkaku-ji_water_mirror_2024.jpg",
+      "author": "Nacaru",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  ],
+  "GB": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/d/db/Palace_of_Westminster_as_seen_from_Westminster_Bridge.jpg",
+      "label": "Palace of Westminster",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Palace_of_Westminster_as_seen_from_Westminster_Bridge.jpg",
+      "author": "ThatsTheBoss",
+      "license": "CC0",
+      "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/5/59/Tower_Bridge_at_Dawn.jpg",
+      "label": "Tower Bridge",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Tower_Bridge_at_Dawn.jpg",
+      "author": "Fuzzypiggy",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
+    }
+  ],
+  "ID": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/2/25/Pradaksina.jpg",
+      "label": "Borobudur",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Pradaksina.jpg",
+      "author": "Heri nugroho",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/8/8d/TanahLot_2014.JPG",
+      "label": "Tanah Lot",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:TanahLot_2014.JPG",
+      "author": "Grayswoodsurrey",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  ],
+  "PK": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Ali_Mujtaba_WLM2017_FAISAL_MOSQUE_019.jpg",
+      "label": "Faisal Mosque",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Ali_Mujtaba_WLM2017_FAISAL_MOSQUE_019.jpg",
+      "author": "Ali Mujtaba",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Badshahi_Mosque_front_picture.jpg",
+      "label": "Badshahi Mosque",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Badshahi_Mosque_front_picture.jpg",
+      "author": "Romero Maia",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  ],
+  "LK": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Sigiriya_%28141688197%29.jpeg",
+      "label": "Sigiriya",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Sigiriya_%28141688197%29.jpeg",
+      "author": "Wrobell",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/e/eb/SL_Kandy_asv2020-01_img33_Sacred_Tooth_Temple.jpg",
+      "label": "Temple of the Tooth",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:SL_Kandy_asv2020-01_img33_Sacred_Tooth_Temple.jpg",
+      "author": "A.Savin",
+      "license": "FAL",
+      "licenseUrl": "http://artlibre.org/licence/lal/en"
+    }
+  ],
+  "LA": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/4/49/Pha_That_Luang%2C_July_2023.jpg",
+      "label": "Pha That Luang",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Pha_That_Luang%2C_July_2023.jpg",
+      "author": "Coalfruit1012",
+      "license": "CC0",
+      "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Temple_Wat_Xieng_Thong_-_Luang_Prabang_-_Laos.jpg",
+      "label": "Wat Xieng Thong",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Temple_Wat_Xieng_Thong_-_Luang_Prabang_-_Laos.jpg",
+      "author": "Basile Morin",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  ],
+  "KH": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg",
+      "label": "Angkor Wat",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Angkor_Wat.jpg",
+      "author": "Bjørn Christian Tørrissen",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Le_Palais_Royal_%28Phnom_Penh%29_%286997773481%29.jpg",
+      "label": "Royal Palace, Phnom Penh",
+      "position": "center 50%",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Le_Palais_Royal_%28Phnom_Penh%29_%286997773481%29.jpg",
+      "author": "Jean-Pierre Dalbéra from Paris, France",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+.customer-service-layout{--customer-rail-width:76px}
+.customer-service-layout.services-open{--customer-rail-width:var(--ui-service-rail-width,232px)}
+.customer-service-main{min-width:0}
+@media(min-width:1101px){
+ .customer-site-shell.customer-service-layout{display:grid;grid-template-columns:var(--customer-rail-width) minmax(0,1fr)}
+ .customer-service-layout>.travel-service-rail{position:fixed;inset:0 auto 0 0;z-index:25;width:var(--customer-rail-width);height:100dvh;max-height:100dvh;visibility:visible;pointer-events:auto;transform:none;transition:none}
+ .customer-service-layout>.customer-service-main{grid-column:2;width:100%;isolation:isolate}
+ html body #root .customer-service-layout>.premium-service-backdrop{display:none}
+ html body #root .customer-service-main>.flyseri-site-navbar .premium-mobile-services-toggle{display:none}
+ body:has(.customer-service-layout:not(.services-open)) .checkout-mobile-bar{left:76px;padding-inline:var(--ui-page-inset)}
+}
+@media(max-width:1100px){.customer-service-layout>.premium-service-backdrop{z-index:1100}}

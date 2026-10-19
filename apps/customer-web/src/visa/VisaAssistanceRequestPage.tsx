@@ -1,9 +1,12 @@
 import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
 import { SavedVisaJourneyProgress } from './SavedVisaJourneyProgress';
+import { VisaFlowHeader, VisaFlowActions } from './VisaFlowLayout';
+import { visaPurposeForService } from './visaPricing';
 import { cloneElement, createContext, useContext, useEffect, useId, useRef, useState, type ReactElement, type FormEvent } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useBeforeUnload } from 'react-router-dom';
 import type { TravellerProfile, VisaAssistanceAddress, VisaAssistanceApplicantInput, VisaAssistanceRequestDetail } from '@flyseri/types';
+import { isSupportedVisaDestination } from '@flyseri/types';
 import { useAuth } from '../auth/AuthProvider';
 import { ApiClientError } from '../lib/api/client';
 import { tripService } from '../services/tripService';
@@ -28,7 +31,7 @@ const emptyAddress = (): VisaAssistanceAddress => ({ addressLine1: '', addressLi
 function fromTraveller(person: TravellerProfile): VisaAssistanceApplicantInput {
   return { travellerId: person.id, firstName: person.legalFirstName, middleName: person.legalMiddleName ?? '',
     lastName: person.legalLastName, dateOfBirth: person.dateOfBirth ?? '', gender: person.gender ?? 'UNDISCLOSED',
-    nationalityCountryCode: person.nationalityCountryCode ?? '', birthCity: '', birthCountryCode: '',
+    nationalityCountryCode: person.nationalityCountryCode ?? 'BD', birthCity: '', birthCountryCode: '',
     documentType: 'PASSPORT', documentNumber: '', documentIssuingCountryCode: '', documentIssuedOn: '', documentExpiresOn: '',
     currentAddress: emptyAddress(), permanentAddress: emptyAddress(), occupation: '', employerOrSchool: '', notes: '' };
 }
@@ -55,10 +58,10 @@ export function validateAssistanceForm(form: HTMLElement): Record<string, string
   return errors;
 }
 
-function CountrySelect({ value, onChange, label }: { value: string; onChange: (code: string) => void; label: string }) {
+function CountrySelect({ value, onChange, label, nationalityOnly = false }: { value: string; onChange: (code: string) => void; label: string; nationalityOnly?:boolean }) {
   return <AssistanceField label={label}><select required value={value} onChange={(event) => onChange(event.target.value)}>
     <option value="">Choose a country</option>
-    {countries.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
+    {countries.filter(item => !nationalityOnly || item.code === 'BD').map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
   </select></AssistanceField>;
 }
 
@@ -90,7 +93,7 @@ function ApplicantForm({ index, person, samePermanentAddress, onChange, onAddres
       <AssistanceField label="Gender as shown on document"><select required value={person.gender} onChange={(event) => onChange({ gender: event.target.value as VisaAssistanceApplicantInput['gender'] })}>
         <option value="UNDISCLOSED">Not specified / ask Flyseri</option><option value="FEMALE">Female</option><option value="MALE">Male</option><option value="X">X</option>
       </select></AssistanceField>
-      <CountrySelect label="Nationality / citizenship" value={person.nationalityCountryCode} onChange={(value) => onChange({ nationalityCountryCode: value })} />
+      <CountrySelect label="Nationality / citizenship (Bangladeshi only)" nationalityOnly value={person.nationalityCountryCode} onChange={(value) => onChange({ nationalityCountryCode: value })} />
       <AssistanceField label="City of birth" optional><input maxLength={100} value={person.birthCity ?? ''} onChange={(event) => onChange({ birthCity: event.target.value })} /></AssistanceField>
       <CountrySelect label="Country of birth" value={person.birthCountryCode} onChange={(value) => onChange({ birthCountryCode: value })} />
     </div></div>
@@ -101,7 +104,7 @@ function ApplicantForm({ index, person, samePermanentAddress, onChange, onAddres
       <AssistanceField label="Document number"><input required maxLength={40} value={person.documentNumber} onChange={(event) => onChange({ documentNumber: event.target.value })} autoComplete="off" /></AssistanceField>
       <CountrySelect label="Issuing country" value={person.documentIssuingCountryCode} onChange={(value) => onChange({ documentIssuingCountryCode: value })} />
       <AssistanceField label="Issue date" optional><input type="date" max={today()} value={person.documentIssuedOn ?? ''} onChange={(event) => onChange({ documentIssuedOn: event.target.value })} /></AssistanceField>
-      <AssistanceField label="Expiry date"><input required type="date" min={person.documentIssuedOn || undefined} value={person.documentExpiresOn} onChange={(event) => onChange({ documentExpiresOn: event.target.value })} /></AssistanceField>
+      <AssistanceField label="Expiry date"><input required type="date" min={[travelDate,person.documentIssuedOn || ''].sort().at(-1)} value={person.documentExpiresOn} onChange={(event) => onChange({ documentExpiresOn: event.target.value })} /></AssistanceField>
     </div>{person.documentExpiresOn && person.documentExpiresOn < travelDate && <p className="visa-assistance-warning">This document expires before your planned travel. Flyseri will review whether you need a new document.</p>}</div>
     <div className="visa-assistance-subsection"><AddressFields title="Current address" address={person.currentAddress} onChange={(field, value) => onAddressChange('currentAddress', field, value)} />
       <label className="visa-assistance-same-address"><input type="checkbox" checked={samePermanentAddress} onChange={(event) => onSameAddressChange(event.target.checked)} /> My permanent address is the same as my current address</label>
@@ -120,12 +123,14 @@ function ApplicantForm({ index, person, samePermanentAddress, onChange, onAddres
 function readDraft(value: unknown): VisaAssistanceDraft | null {
   if (!value || typeof value !== 'object') return null;
   const draft = value as Partial<VisaAssistanceDraft>;
-  if (typeof draft.tripId !== 'string' || !/^[A-Z]{2}$/.test(draft.destinationCountryCode ?? '') ||
+  if (typeof draft.tripId !== 'string' || !isSupportedVisaDestination(draft.destinationCountryCode) ||
       typeof draft.expectedTravelDate !== 'string' || typeof draft.purpose !== 'string' ||
       !Array.isArray(draft.travellerIds) || !draft.travellerIds.every((id) => typeof id === 'string')) return null;
   const count = draft.newApplicantCount ?? (draft.travellerIds.length ? 0 : 1);
   if (!Number.isInteger(count) || count < 0 || count + draft.travellerIds.length < 1 || count + draft.travellerIds.length > 30) return null;
-  return { ...draft, newApplicantCount: count } as VisaAssistanceDraft;
+  const purpose=['Tourism','Business','Family visit','Study','Work','Transit','Medical','Other'].includes(draft.purpose) ? draft.purpose : visaPurposeForService({name:draft.purpose},'');
+  if(!purpose)return null;
+  return {tripId:draft.tripId,destinationCountryCode:draft.destinationCountryCode,expectedTravelDate:draft.expectedTravelDate,purpose,travellerIds:draft.travellerIds,newApplicantCount:count};
 }
 
 export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequest?: VisaAssistanceRequestDetail; onSaved?: (request: VisaAssistanceRequestDetail) => void } = {}) {
@@ -147,7 +152,7 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
   const [applicantAttempts, setApplicantAttempts] = useState<string[]>([]);
   const addApplicantRef = useRef<HTMLButtonElement>(null);
   const submitting = useRef(false);
-  const [sameAddress, setSameAddress] = useState<Record<string, boolean>>({});
+  const [sameAddress, setSameAddress] = useState<Record<string, boolean>>(()=>Object.fromEntries(applicantIds.map(id=>[id,!savedRequest || JSON.stringify(applicantDetails[id]?.currentAddress)===JSON.stringify(applicantDetails[id]?.permanentAddress)])));
   const [applicantLoading, setApplicantLoading] = useState(!savedRequest);
   const [applicantError, setApplicantError] = useState('');
   const [expectedReturnDate, setExpectedReturnDate] = useState(savedRequest?.expectedReturnDate ?? '');
@@ -162,6 +167,12 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [attempted, setAttempted] = useState(false);
+  const leaving=useRef(false);
+  useBeforeUnload(event=>{if(formChanged&&!leaving.current){event.preventDefault();event.returnValue='';}});
+  function leaveForm(event:{preventDefault:()=>void}) {
+    if(busy || (formChanged&&!window.confirm('Your changes have not been saved to the application. Leave this page?')))event.preventDefault();
+  }
+  const selectionUrl='/app/visa/new/applicants?'+new URLSearchParams({country:draft?.destinationCountryCode || 'MY',purpose:draft?.purpose || 'Tourism'}).toString();
 
   useEffect(() => {
     if (navigationDraft && !savedRequest) {
@@ -235,6 +246,7 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
     setFormChanged(true);
     const id = 'new:' + crypto.randomUUID();
     setApplicantDetails(previous => ({...previous,[id]:fromTraveller({id,legalFirstName:'',legalLastName:''} as TravellerProfile)}));
+    setSameAddress(previous=>({...previous,[id]:true}));
     setApplicantIds(previous => [...previous,id]);
     setFocusApplicant(id);
   }
@@ -267,11 +279,13 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
       return;
     }
     const applicants = applicantIds.map((id) => applicantDetails[id]).filter((person): person is VisaAssistanceApplicantInput => Boolean(person));
+    if (!isSupportedVisaDestination(draft.destinationCountryCode) || applicants.some(person => person.nationalityCountryCode !== 'BD')) { setError('Visa assistance is currently available for Bangladeshi nationals travelling to our listed destinations only.'); return; }
     if (applicants.length !== applicantIds.length) { setError('Reload the applicants before sending this request.'); return; }
     if (expectedReturnDate && expectedReturnDate < draft.expectedTravelDate) { setError('Your expected return date must be after departure.'); return; }
     for (const person of applicants) {
       if (person.dateOfBirth >= today()) { setError(`Check ${person.firstName}'s date of birth.`); return; }
       if (person.documentIssuedOn && person.documentIssuedOn > person.documentExpiresOn) { setError(`Check ${person.firstName}'s document dates.`); return; }
+      if (person.documentExpiresOn < draft.expectedTravelDate) { setError(`${person.firstName}'s travel document expires before the planned travel date. Update it before continuing.`); return; }
     }
     submitting.current = true; setBusy(true); setError('');
     try {
@@ -301,6 +315,7 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
         onSaved?.(saved);
         request = saved;
       } else request = await visaService.createAssistanceRequest(input);
+      leaving.current=true; setFormChanged(false);
       navigate('/app/visa/assistance/' + request.id + '/documents');
       try { sessionStorage.removeItem(storageKey); } catch { /* the saved server request remains authoritative */ }
     } catch (cause) {
@@ -311,10 +326,8 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
   if (!draft) return <main className="account-page visa-page visa-assistance-page"><div className="account-panel visa-assistance-empty"><h1>Start with your visa search</h1><p>Your destination and applicant selection are missing. Return to visa planning and continue from the search form.</p><Link className="btn-primary" to="/app/visa">Back to visa planning</Link></div></main>;
 
   return <main className="account-page visa-page visa-assistance-page">
-    <Link className="trip-back" to="/app/visa">← Visa planning</Link>
-    <header className="visa-assistance-intro"><p className="account-eyebrow">FLYSERI ASSISTED SERVICE · STEP 02</p><h1>{savedRequest ? 'Your saved applicant details' : 'Tell us about your visa request'}</h1>
-      <p>Enter each applicant’s details as shown on their travel document. Flyseri will review them and confirm any destination specific questions or documents before proceeding.</p></header>
-    {savedRequest ? <SavedVisaJourneyProgress requestId={savedRequest.id} current="form" disabled={busy || formChanged}/> : <VisaJourneyProgress current="form" onSelect={busy ? undefined : step => { if(step === "choose") navigate("/app/visa"); }} />}
+    <VisaFlowHeader title={savedRequest ? 'Your saved applicant details' : 'Applicant details'} description={`${countryName(draft.destinationCountryCode)} · ${draft.purpose} · Enter details exactly as shown on the travel document.`} back={<Link onClick={leaveForm} to={savedRequest ? '/app/visa/assistance/'+savedRequest.id+'/documents' : selectionUrl}>← {savedRequest ? 'Back to documents' : 'Change applicants'}</Link>}/>
+    {savedRequest ? <SavedVisaJourneyProgress requestId={savedRequest.id} current="form" disabled={busy || formChanged}/> : <VisaJourneyProgress current="form" onSelect={busy ? undefined : step => { if(step === "choose" && (!formChanged || window.confirm('Your applicant details have not been saved. Return to visa selection?'))) navigate(selectionUrl); }} />}
     <p className="visa-required-note"><span className="visa-required" aria-hidden="true">*</span> Required fields · Optional fields are clearly marked.</p>
     {(error || applicantError) && <p role="alert" className="account-error">{error || applicantError}</p>}
     <FieldErrors.Provider value={fieldErrors}><div className="visa-assistance-layout">
@@ -328,7 +341,7 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
       }} className="account-panel visa-assistance-form" onSubmit={(event) => void submit(event)}><fieldset className="visa-intake-controls" disabled={busy}>
         <section className="visa-assistance-section"><div className="visa-start-heading"><span className="visa-start-number">01</span><div><p className="account-eyebrow">ONE FORM PER APPLICANT</p><h2>Applicant information</h2></div></div>
           <p className="visa-assistance-help">Use the name and document number exactly as printed on each travel document. Optional details help us review your request; extra questions vary by destination.</p>
-          <p className="visa-assistance-help">Save each applicant to collapse their details into a summary bar. Applicants stay in this form until you save the complete request and continue to documents.</p>
+          <p className="visa-assistance-help">Save each applicant to collapse their details. Continue to documents to securely save the complete application.</p>
           {applicantLoading && <p role="status" className="visa-assistance-help">Loading your saved travellers…</p>}
           {!applicantLoading && !applicantError && applicantIds.map((id, index) => {
             const person = applicantDetails[id];
@@ -369,7 +382,7 @@ export function VisaAssistanceRequestPage({ savedRequest, onSaved }: { savedRequ
         <section className="visa-assistance-section"><AssistanceField label="Anything else we should know?" optional className="visa-assistance-message"><textarea rows={4} maxLength={2000} value={customerMessage} onChange={(event) => setCustomerMessage(event.target.value)} placeholder="Share any details that would help our visa team review your request." /></AssistanceField></section>
         <label className="visa-assistance-confirm"><input id="visa-assistance-declaration" aria-invalid={Boolean(fieldErrors['visa-assistance-declaration'])} aria-describedby={fieldErrors['visa-assistance-declaration'] ? 'visa-assistance-declaration-error' : undefined} type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} required /><span><span className="visa-required" aria-hidden="true">* </span>I confirm the details are accurate to the best of my knowledge. I understand this is a request for Flyseri’s assisted visa service. Flyseri will confirm requirements and fees before any payment, and this does not submit an application to an embassy or government authority.</span></label>
         {fieldErrors['visa-assistance-declaration'] && <p className="visa-field-error" id="visa-assistance-declaration-error">Please confirm before continuing.</p>}
-        <div className="visa-stage-actions"><span>No payment is due at this step.</span><button className="btn-primary visa-submit" type="submit" disabled={busy || applicantLoading || Boolean(applicantError)}>{busy ? 'Saving applicant details…' : 'Save & continue to documents →'}</button></div>
+        <VisaFlowActions caption="Save details · documents next"><button className="btn-primary" type="submit" disabled={busy || applicantLoading || Boolean(applicantError)}>{busy ? 'Saving applicant details…' : 'Save & continue to documents →'}</button></VisaFlowActions>
       </fieldset></form>
       <aside className="account-panel visa-assistance-aside"><div className="visa-intake-trip-card"><p className="account-eyebrow">YOUR VISA REQUEST</p><h2>{countryName(draft.destinationCountryCode)}</h2><p>{draft.purpose} · {draft.expectedTravelDate}</p><span>{applicantIds.length} applicant{applicantIds.length === 1 ? '' : 's'}</span></div><p className="account-eyebrow">WHAT HAPPENS NEXT</p><h2>We’ll review your details</h2><ol><li>Review applicant details and upload supporting documents.</li><li>Check your service fee and complete payment.</li><li>Submit your paid request to Flyseri for review.</li></ol><p>Visa requirements depend on nationality, destination and purpose. The destination authority makes the final decision.</p></aside>
     </div></FieldErrors.Provider>

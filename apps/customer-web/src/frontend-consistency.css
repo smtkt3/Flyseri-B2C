@@ -1,0 +1,154 @@
+/* Shared content scale. Layout changes at breakpoints; text is never zoomed down. */
+:root {
+  --ui-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ui-ink:#193854;--ui-muted:#526b85;--ui-border:#dce7f2;
+  --ui-title:32px;--ui-section-title:18px;--ui-body:14px;--ui-helper:12px;
+  --ui-page-inset:24px;--ui-card-inset:20px;--ui-gap:20px;--ui-radius:18px;
+  --ui-page-width:100%;
+  --ui-content-width:calc(var(--ui-page-width) - 2 * var(--ui-page-inset));
+  --ui-summary-width:300px;--ui-control-height:44px;--ui-control-radius:10px;
+  --ui-service-rail-width:232px;
+  --app-card-padding:var(--ui-card-inset);--app-section-gap:var(--ui-gap);
+}
+html body #root :is(.customer-site-shell,.public-flight-shell,.guest-checkout-shell,.premium-site){font-family:var(--ui-font)}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main){font-family:var(--ui-font);color:var(--ui-ink);min-width:0}
+html body #root :is(.customer-site-shell.customer-service-layout,.customer-site-shell,.public-flight-shell) .account-page{width:100%;max-width:var(--ui-page-width);box-sizing:border-box;padding-inline:var(--ui-page-inset);padding-top:20px}
+html body #root :is(.customer-site-shell,.public-flight-shell) .account-page .account-page{padding:0;max-width:none}
+html body #root :is(.public-help-page,.holiday-page-main,.guest-checkout-content,.demo-booking-page,.points-demo-page){width:100%;max-width:var(--ui-page-width);box-sizing:border-box;margin:0 auto;padding:20px var(--ui-page-inset) calc(var(--bottom-navigation-height,0px) + 32px)}
+/* Flight search already owns its page inset; the route shell must not add another. */
+html body #root .customer-service-main .public-flight-shell>main{max-width:none;margin:0;padding:0}
+/* A single content edge for navigation, discovery and signed-in workspaces. */
+@media(min-width:761px){
+  html body #root .premium-header.flyseri-site-navbar{box-sizing:border-box;width:min(calc(100% - 2 * var(--ui-page-inset)),var(--ui-content-width));margin-inline:auto}
+  html body #root .premium-home-main .premium-container{width:min(calc(100% - 2 * var(--ui-page-inset)),var(--ui-content-width));margin-inline:auto}
+}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main) h1{font-family:var(--ui-font);font-size:var(--ui-title);font-weight:750;line-height:1.25;letter-spacing:-.035em}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main) h2{font-family:var(--ui-font);font-size:var(--ui-section-title);font-weight:750;line-height:1.35;letter-spacing:-.02em}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main) :is(h3,h4){font-family:var(--ui-font);font-size:16px;font-weight:650;line-height:1.4}
+html body #root :is(.demo-booking-page,.points-demo-page){font-family:var(--ui-font);font-size:var(--ui-body);color:var(--ui-ink)}
+html body #root :is(.demo-booking-page,.points-demo-page) h1{font-size:var(--ui-title);line-height:1.25;letter-spacing:-.035em}
+html body #root :is(.demo-booking-page,.points-demo-page) h2{font-size:var(--ui-section-title);line-height:1.35}
+html body #root .public-help-page li{font-size:var(--ui-body);line-height:1.65}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main) p{font-size:var(--ui-body);line-height:1.65}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main) :is(small,.account-muted,.account-tab-description){font-size:var(--ui-helper);line-height:1.6;color:var(--ui-muted)}
+html body #root .account-page :is(.account-eyebrow,.checkout-status-caption){font-size:11px;line-height:1.5;letter-spacing:.06em}
+html body #root .account-page :is(.support-privacy-note,.support-request-policy,.result-test-note,.result-payment-caption,.flight-review-fx-note,.ticket-issuance-deadline){font-size:var(--ui-helper);line-height:1.6}
+html body #root .account-page :is(.account-panel,.account-empty,.account-feature,.account-traveller-card,.dashboard-card,.result-panel){padding:var(--ui-card-inset);border-radius:var(--ui-radius)!important;min-width:0}
+html body #root .account-page :is(.profile-settings-card,.profile-photo-card,.trip-card,.trip-form-section,.vault-card,.points-start,.points-unavailable,.flight-intent-card,.flight-review-summary,.flight-extras-summary,.reservation-sidebar,.reservation-tools,.reservation-support,.checkout-recovery-card),
+html body #root .guest-checkout-content :is(.guest-checkout-card,.guest-checkout-price-card),
+html body #root .public-help-grid>section,
+html body #root .holiday-page-main :is(.holiday-detail-content,.holiday-booking-panel,.holiday-booking-list article),
+html body #root .demo-booking-page :is(.demo-booking-panel,.demo-booking-list-card){padding:var(--ui-card-inset);border-radius:var(--ui-radius);min-width:0}
+html body #root :is(.public-help-grid,.holiday-detail-grid,.holiday-booking-list,.points-content,.vault-detail-grid,.reservation-workspace){gap:var(--ui-gap)}
+html body #root :is(.account-page,.guest-checkout-content,.public-help-page,.holiday-page-main,.demo-booking-page) :is(.account-workspace-hero,.points-hero){padding:var(--ui-card-inset);gap:var(--ui-gap);border-radius:var(--ui-radius)}
+html body #root :is(.account-page,.guest-checkout-content) :is(.profile-form-grid,.account-form-grid,.guest-checkout-fields){gap:16px}
+html body #root :is(.account-page,.guest-checkout-content) :is(.account-form-grid,.profile-form-grid,.profile-settings-card,.guest-checkout-fields) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select){min-height:var(--ui-control-height);border-radius:var(--ui-control-radius);box-sizing:border-box;max-width:100%}
+html body #root .account-page :is(.visa-discovery-section,.visa-start-card){padding:var(--ui-card-inset);border-radius:var(--ui-radius);min-width:0}
+html body #root .visa-reference-page .visa-reference-title h1,
+html body #root .account-page.visa-start-page .visa-start-hero h1{font-size:var(--ui-title);line-height:1.25;letter-spacing:-.035em}
+html body #root .visa-reference-page .visa-discovery-section h2,
+html body #root .visa-section-heading h2,
+html body #root .visa-choose-card>h2{font-size:var(--ui-section-title);line-height:1.35}
+html body #root .visa-reference-layout,
+html body #root .visa-reference-column{gap:var(--ui-gap)}
+html body #root .visa-discovery-section{margin-bottom:var(--ui-gap)}
+html body #root .visa-reference-column>.visa-discovery-section{margin-bottom:0}
+html body #root .account-page :is(.account-feature,.dashboard-mini){min-height:160px}
+html body #root .account-page .account-feature h2{margin:12px 0 8px}
+html body #root .account-page .account-feature p{margin:0}
+html body #root .account-page .account-feature strong{margin-top:16px}
+html body #root .account-page :is(.account-feature-grid,.account-two-grid,.dashboard-main-grid,.dashboard-status-grid,.dashboard-lower-grid,.trip-card-grid,.profile-settings-grid,.result-layout){gap:var(--ui-gap)}
+html body #root :is(.account-page,.guest-checkout-content) :is(.account-form-grid,.profile-form-grid){gap:16px}
+html body #root :is(.account-page,.guest-checkout-content) :is(.checkout-page-header,.account-workspace-hero){margin-bottom:16px}
+html body #root .account-page .dashboard-hero{padding:24px;gap:20px;border-radius:var(--ui-radius)}
+html body #root .account-page .dashboard-hero h1{font-size:var(--ui-title)}
+html body #root .account-page .dashboard-empty{padding-block:22px;gap:10px}
+html body #root .account-page .dashboard-empty.compact{padding-top:16px}
+html body #root :is(.account-page,.guest-checkout-content) :is(.btn-primary,.account-primary-button,.account-submit,.account-outline-button){min-height:44px;border-radius:10px;font-size:14px;font-weight:650;line-height:1.4}
+html body #root :is(.public-help-page,.holiday-page-main,.demo-booking-page) :is(.btn-primary,.account-outline-button,.holiday-primary){min-height:var(--ui-control-height);border-radius:var(--ui-control-radius);font-size:14px;line-height:1.4}
+html body #root :is(.account-page,.guest-checkout-content) :is(label,.flight-review-leg-title){line-height:1.5}
+html body #root .account-page :is(.checkout-charge-amount strong,.result-total>strong,.flight-review-summary-total>strong){font-size:28px;line-height:1.25;font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+html body #root .flight-search-organized .flight-row-endpoint strong{font-variant-numeric:tabular-nums}
+html body #root .account-page :is(.support-request-card,.support-help-card){padding:var(--ui-card-inset)!important}
+html body #root .account-page :is(.support-workspace,.support-workspace-main,.support-sidebar){gap:var(--ui-gap)}
+html body #root .account-page .support-tracker{padding:var(--ui-card-inset);border-radius:var(--ui-radius)}
+html body #root .account-page .support-request-steps{margin-block:18px;padding-bottom:16px}
+html body #root .account-page .support-card-heading p{font-size:var(--ui-helper)}
+@media(min-width:981px){
+  html body #root .account-page :is(.checkout-layout,.flight-extras-layout,.flight-review-layout,.result-layout,.reservation-workspace){grid-template-columns:minmax(0,1fr) var(--ui-summary-width);gap:var(--ui-gap)}
+  html body #root .account-page .support-workspace{grid-template-columns:minmax(0,1fr) var(--ui-summary-width)}
+  html body #root :is(.guest-checkout-layout,.holiday-detail-grid){grid-template-columns:minmax(0,1fr) var(--ui-summary-width);gap:var(--ui-gap)}
+}
+/* Keep the primary rail and fixed checkout actions in the same desktop grid. */
+@media(min-width:1101px){
+  html body #root .premium-home-layout:not(.is-embedded){display:grid;--premium-rail-width:76px;grid-template-columns:var(--premium-rail-width) minmax(0,1fr)}
+  html body #root .premium-home-layout.services-open:not(.is-embedded){--premium-rail-width:var(--ui-service-rail-width)}
+  html body #root .premium-home-layout:not(.is-embedded)>.premium-service-sidebar{position:fixed;inset:0 auto 0 0;width:var(--premium-rail-width);height:100dvh;max-height:100dvh;transform:none;visibility:visible;pointer-events:auto;border-radius:0;border-right:1px solid var(--ui-border);box-shadow:none;padding:24px 14px 16px}
+  html body #root .premium-home-layout:not(.is-embedded)>.premium-home-main{grid-column:2}
+  html body #root .premium-home-layout>.premium-service-backdrop{display:none}
+  html body #root .premium-home-main .premium-mobile-services-toggle{display:none}
+  html body #root .premium-home-main .navbar-utility-links{display:flex}
+  html body #root .premium-home-layout:not(.services-open) .premium-service-sidebar :is(.premium-service-sidebar-label,.premium-service-group-label,.premium-service-sidebar-toggle-text,.premium-service-sidebar-toggle-chevron,.premium-service-sidebar-item small){display:none}
+  html body #root .premium-home-layout:not(.services-open) .premium-service-sidebar :is(.premium-service-sidebar-item,.premium-service-sidebar-toggle){justify-content:center;padding-inline:0}
+  body:has(.customer-service-layout) .checkout-mobile-bar{left:var(--ui-service-rail-width);padding-inline:max(var(--ui-page-inset),calc((100vw - var(--ui-service-rail-width) - var(--ui-content-width))/2))}
+}
+@media(min-width:768px){
+  body:not(:has(.customer-service-layout)) .checkout-mobile-bar{padding-inline:max(var(--ui-page-inset),calc((100vw - var(--ui-content-width))/2))}
+}
+@media(min-width:761px) and (max-width:1100px){
+  :root{--ui-title:28px;--ui-page-inset:20px;--ui-card-inset:18px;--ui-gap:16px}
+  html body #root .account-page :is(.account-feature-grid,.dashboard-status-grid){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:980px){
+  html body #root .account-page :is(.checkout-layout,.flight-extras-layout,.flight-review-layout,.result-layout,.reservation-workspace){grid-template-columns:minmax(0,1fr)}
+  html body #root .guest-checkout-layout{grid-template-columns:minmax(0,1fr)}
+  html body #root .holiday-detail-grid{grid-template-columns:minmax(0,1fr)}
+  html body #root .holiday-booking-panel{position:static}
+  html body #root .account-page .reservation-sidebar{position:static}
+  html body #root .account-page :is(.checkout-summary,.flight-extras-summary,.flight-review-summary,.result-payment){position:static}
+}
+@media(max-width:760px){
+  :root{--ui-title:26px;--ui-section-title:18px;--ui-page-inset:16px;--ui-card-inset:16px;--ui-gap:14px;--ui-radius:16px;--ui-control-height:48px}
+  html body #root :is(.public-help-page,.holiday-page-main,.guest-checkout-content,.demo-booking-page){padding-top:12px}
+  html body #root .premium-header.flyseri-site-navbar,
+  html body #root .premium-home-main .premium-container{width:calc(100% - 2 * var(--ui-page-inset));margin-inline:auto}
+  html{scroll-padding-top:90px}
+  html body #root :is(.customer-site-shell.customer-service-layout,.customer-site-shell,.public-flight-shell) .account-page{padding-top:12px}
+  html body #root :is(.customer-site-shell,.public-flight-shell) .account-page .account-page{padding:0}
+  html body #root .account-page :is(.account-feature,.dashboard-mini){min-height:0}
+  html body #root .account-page :is(.account-feature-grid,.account-two-grid,.dashboard-main-grid,.dashboard-status-grid,.dashboard-lower-grid){grid-template-columns:minmax(0,1fr);gap:var(--ui-gap)}
+  html body #root .account-page .dashboard-hero{padding:18px}
+  html body #root .account-page .dashboard-main-action{margin-top:16px}
+  html body #root .account-page :is(.account-empty,.dashboard-empty){padding:20px 16px}
+  html body #root .account-page :is(.account-workspace-hero,.visa-assistance-intro,.visa-trip-intro,.points-hero){padding:var(--ui-card-inset);gap:10px}
+  html body #root .account-page .support-request-form textarea{min-height:140px}
+  html body #root .account-page :is(.checkout-charge-amount strong,.result-total>strong,.flight-review-summary-total>strong){font-size:24px}
+  html body #root :is(.account-page,.guest-checkout-content) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea){font-size:16px;scroll-margin-top:96px;scroll-margin-bottom:calc(max(var(--checkout-action-height,0px),var(--bottom-navigation-height,0px)) + 20px)}
+  html body #root :is(.account-page,.guest-checkout-content) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select){min-height:48px}
+  html body #root .account-page .booking-stepper{margin-block:10px 16px}
+  html body .checkout-mobile-bar .account-outline-button{min-height:44px;font-size:13px;padding:8px 10px}
+  html body:has(.checkout-mobile-bar) #root :is(.account-page:not(.account-page .account-page),.guest-checkout-shell){padding-bottom:calc(var(--checkout-action-height,120px) + 24px)}
+  html body:has(.checkout-mobile-bar) #root .guest-checkout-content{padding-bottom:0}
+  html body:has(.checkout-mobile-bar) .account-mobile-bottom{display:none}
+  html body .seri-floating-launcher:not(.is-open),html body .seri-floating-launcher.is-compact:not(.is-open){width:52px;height:52px;min-width:52px;padding:2px;right:12px;bottom:calc(var(--bottom-navigation-height,0px) + 12px);box-shadow:0 4px 16px #244f7520;border-radius:50%}
+  html body:has(.account-mobile-bottom) .seri-floating-launcher:not(.is-open){bottom:calc(var(--bottom-navigation-height,0px) + 12px)}
+  html body .seri-floating-launcher:not(.is-open) :is(.seri-launcher-aircraft,.seri-aircraft-motion){width:48px;height:48px;flex:none}
+  html body .seri-floating-launcher:not(.is-open) .seri-launcher-label,html body .seri-label-dismiss{display:none}
+  html body:has(.checkout-mobile-bar) .seri-floating-launcher:not(.is-open){display:none}
+  html body:has(textarea:focus,input:not([type=checkbox]):not([type=radio]):focus) .seri-floating-launcher:not(.is-open){visibility:hidden}
+}
+@media(max-width:360px){:root{--ui-page-inset:12px;--ui-title:24px;--ui-gap:12px}}
+/* Keep assistance available without competing with account content. */
+html body:has(.account-page) .seri-floating-launcher:not(.is-open){width:64px;height:64px;min-width:64px;padding:2px;gap:0}
+html body:has(.account-page) .seri-floating-launcher:not(.is-open) :is(.seri-launcher-aircraft,.seri-aircraft-motion){width:60px;height:60px;flex:none}
+html body:has(.account-page) :is(.seri-launcher-label,.seri-label-dismiss,.seri-aircraft-hint.is-invitation){display:none}
+@media(min-width:761px) and (max-width:1100px){
+ html body .seri-floating-launcher:not(.is-open){width:60px;height:60px;min-width:60px;padding:2px;gap:0}
+ html body .seri-floating-launcher:not(.is-open) :is(.seri-launcher-aircraft,.seri-aircraft-motion){width:56px;height:56px;flex:none}
+ html body :is(.seri-launcher-label,.seri-label-dismiss,.seri-aircraft-hint.is-invitation){display:none}
+}
+@media(max-width:760px){
+ html body:has(.account-page) .seri-floating-launcher:not(.is-open){width:52px;height:52px;min-width:52px}
+ html body:has(.account-page) .seri-floating-launcher:not(.is-open) :is(.seri-launcher-aircraft,.seri-aircraft-motion){width:48px;height:48px}
+ html body .seri-aircraft-hint.is-invitation{display:none}
+}

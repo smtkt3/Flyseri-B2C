@@ -1,6 +1,7 @@
 import { preferredCurrency, currencyPreferenceEvent } from '../LocaleMenu';
 import type { FlightSearchRequest } from '@flyseri/types';
-import { TravelServiceNavigation } from '../TravelServiceNavigation';
+import { TravelServiceSidebar } from '../TravelServiceSidebar';
+import { useTravelServiceMenu } from '../useTravelServiceMenu';
 import { Chevron } from '../Chevron';
 import { Translated } from '../../travel/language';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
@@ -43,6 +44,9 @@ import './home-refinements.css';
 import './home-ad-banner.css';
 import './homepage-polish.css';
 import './flight-inspiration.css';
+import './seri-inline-layout.css';
+import './home-scale.css';
+import './home-hero-workspace.css';
 
 const ExploreFareMap = lazy(() => import('./ExploreFareMap').then(module => ({ default: module.ExploreFareMap })));
 
@@ -79,40 +83,6 @@ function useOverview(enabled: boolean) {
 function Glass({ children, className = '' }: { children: ReactNode; className?: string }) { return <div className={`premium-glass ${className}`}>{children}</div>; }
 function Heading({ eyebrow, title, action, to }: { eyebrow?: string; title: string; action?: string; to?: string }) {
   return <div className="premium-heading"><div>{eyebrow && <span className="premium-eyebrow">{eyebrow}</span>}<h2>{title}</h2></div>{action && to && <Link to={to}>{action} →</Link>}</div>;
-}
-function MenuIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
-}
-
-function ServiceSidebar({ expanded, compact, onToggle }: { expanded: boolean; compact: boolean; onToggle: () => void }) {
-  const sidebar = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!expanded || !compact) return;
-    const previousFocus = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const focusFrame = window.requestAnimationFrame(() => sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true }));
-    const trapFocus = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return;
-      const controls = sidebar.current?.querySelectorAll<HTMLElement>('button, a[href], summary');
-      if (!controls?.length) return;
-      const first = controls[0]!, last = controls[controls.length - 1]!;
-      if (!sidebar.current?.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); return; }
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    };
-    document.addEventListener('keydown', trapFocus);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener('keydown', trapFocus);
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
-    };
-  }, [expanded, compact]);
-  return <aside ref={sidebar} className="premium-service-sidebar" role={compact && expanded ? 'dialog' : undefined} aria-modal={compact && expanded ? true : undefined} aria-label="Travel services" onTransitionEnd={event => { if (compact && expanded && event.target === event.currentTarget && event.propertyName === 'transform') sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true }); }}>
-    <button type="button" className="premium-service-sidebar-toggle" onClick={onToggle} title={expanded ? 'Collapse travel services' : 'Expand travel services'} aria-label={expanded ? 'Collapse travel services' : 'Expand travel services'} aria-expanded={expanded} aria-controls="premium-services-nav"><span className="premium-service-sidebar-toggle-icon"><MenuIcon /></span><span className="premium-service-sidebar-toggle-text">Travel services</span><svg className="premium-service-sidebar-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 7-5 5 5 5"/></svg></button>
-    <TravelServiceNavigation id="premium-services-nav"/>
-  </aside>;
 }
 
 function SearchPanel({ active = true }: { active?: boolean }) {
@@ -230,11 +200,11 @@ function ExclusiveAirlineOffers() {
   useOfferAutoSlide(offersViewport, selectedOffer !== null);
   const weather = useDestinationWeather();
   const routes = [
-    { city: 'Bangkok', country: 'Thailand', code: 'BKK', airline: 'TG', name: 'Thai Airways', price: '', mood: 'Culture & city lights', image: 'photo-1563492065599-3520f775eeed' },
-    { city: 'Kuala Lumpur', country: 'Malaysia', code: 'KUL', airline: 'MH', name: 'Malaysia Airlines', price: '', mood: 'A vibrant city escape', image: 'photo-1596422846543-75c6fc197f07' },
-    { city: 'Bali', country: 'Indonesia', code: 'DPS', airline: 'SQ', name: 'Singapore Airlines', price: '', mood: 'Slow days, island ways', image: 'photo-1537996194471-e657df975ab4' },
-    { city: 'Dubai', country: 'United Arab Emirates', code: 'DXB', airline: 'EK', name: 'Emirates', price: '', mood: 'Beyond the skyline', image: 'photo-1512453979798-5ea266f8880c' },
-    { city: 'Singapore', country: 'Singapore', code: 'SIN', airline: 'BG', name: 'Biman Bangladesh', price: '', mood: 'Gardens, food & discovery', image: 'photo-1525625293386-3f8f99389edd' },
+    { city: 'Bangkok', country: 'Thailand', code: 'BKK', airline: 'TG', name: 'Thai Airways', price: '', mood: 'Culture & city lights', image: 'photo-1563492065599-3520f775eeed', imagePosition: 'center 65%' },
+    { city: 'Kuala Lumpur', country: 'Malaysia', code: 'KUL', airline: 'MH', name: 'Malaysia Airlines', price: '', mood: 'A vibrant city escape', image: 'photo-1596422846543-75c6fc197f07', imagePosition: 'center 35%' },
+    { city: 'Bali', country: 'Indonesia', code: 'DPS', airline: 'SQ', name: 'Singapore Airlines', price: '', mood: 'Slow days, island ways', image: 'photo-1537996194471-e657df975ab4', imagePosition: 'center 38%' },
+    { city: 'Dubai', country: 'United Arab Emirates', code: 'DXB', airline: 'EK', name: 'Emirates', price: '', mood: 'Beyond the skyline', image: 'photo-1512453979798-5ea266f8880c', imagePosition: 'center 40%' },
+    { city: 'Singapore', country: 'Singapore', code: 'SIN', airline: 'BG', name: 'Biman Bangladesh', price: '', mood: 'Gardens, food & discovery', image: 'photo-1525625293386-3f8f99389edd', imagePosition: 'center 42%' },
   ];
   return <Glass className="premium-exclusive-offers premium-inspiration">
     <div className="journey-section-heading">
@@ -243,8 +213,8 @@ function ExclusiveAirlineOffers() {
     </div>
     <div ref={offersViewport} className="journey-viewport" role="region" aria-label="Special flight offers" tabIndex={0}>
       <div className="journey-track">{routes.map(route => ({ ...route, fare: activeGroupFare(route.code) })).map(offer => <button type="button" className="journey-card" key={offer.code} onClick={() => setSelectedOffer(offer)} aria-label={'View special flight offer for ' + offer.city}>
-        <span className="journey-photo"><img src={'https://images.unsplash.com/' + offer.image + '?w=640&q=75&fit=crop&auto=format'} srcSet={[400, 640, 960].map(width => 'https://images.unsplash.com/' + offer.image + '?w=' + width + '&q=75&fit=crop&auto=format ' + width + 'w').join(', ')} sizes="(max-width: 600px) 86vw, (max-width: 1000px) 46vw, (min-width: 1600px) 24vw, 31vw" width={720} height={420} decoding="async" alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }} /><span className="journey-country">{offer.country}</span><DestinationWeatherBadge weather={weather[offer.code]} city={offer.city} /><span className="journey-destination"><strong>{offer.city}</strong><span>{offer.mood}</span></span></span>
-        <span className="journey-card-content"><span className="journey-airline"><span className="journey-airline-logo"><img src={'/airlines/' + offer.airline + '.png'} alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }}/></span><span>{offer.name}</span></span><span className="journey-route"><small>From Dhaka</small><strong>DAC <span aria-hidden="true">—</span> {offer.code}</strong></span><span className="journey-fare"><span><small>{offer.fare?.demo ? 'Demo fare / person' : offer.fare ? 'From / person' : 'Special offer'}</small><strong>{offer.fare ? groupFareMoney(offer.fare!) : 'Quote on request'}</strong></span></span><span className="journey-card-action">View fare details <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 12h14m-5-5 5 5-5 5" /></svg></span></span>
+        <span className="journey-photo"><img src={'https://images.unsplash.com/' + offer.image + '?w=640&q=75&fit=crop&auto=format'} srcSet={[400, 640, 960].map(width => 'https://images.unsplash.com/' + offer.image + '?w=' + width + '&q=75&fit=crop&auto=format ' + width + 'w').join(', ')} sizes="(max-width: 600px) 86vw, (max-width: 1000px) 46vw, (min-width: 1600px) 24vw, 31vw" width={720} height={420} style={{objectPosition:offer.imagePosition}} decoding="async" alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }} /><span className="journey-country">{offer.country}</span><DestinationWeatherBadge weather={weather[offer.code]} city={offer.city} /><span className="journey-destination"><strong>{offer.city}</strong><span>{offer.mood}</span></span></span>
+        <span className="journey-card-content"><span className="journey-airline"><span className="journey-airline-logo" data-airline={offer.airline}><span className="journey-airline-mark"><img src={'/airlines/' + offer.airline + (offer.airline === 'BG' ? '.png' : '.svg')} alt="" loading="lazy" onError={event => { event.currentTarget.style.display = 'none'; }}/></span></span><span>{offer.name}</span></span><span className="journey-route"><small>From Dhaka</small><strong>DAC <span aria-hidden="true">—</span> {offer.code}</strong></span><span className="journey-fare"><span><small>{offer.fare?.demo ? 'Demo fare / person' : offer.fare ? 'From / person' : 'Special offer'}</small><strong>{offer.fare ? groupFareMoney(offer.fare!) : 'Quote on request'}</strong></span></span><span className="journey-card-action">View fare details <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 12h14m-5-5 5 5-5 5" /></svg></span></span>
       </button>)}</div>
     </div>
     {selectedOffer && <GroupFareDetails offer={selectedOffer} onClose={() => setSelectedOffer(null)} />}
@@ -270,8 +240,7 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
   const [searchMode, setSearchMode] = useBackStepState<'flights' | 'map' | 'ai'>('home-search', 'flights');
   const compactSearch = true;
-  const [compactServices,setCompactServices]=useState(()=>window.matchMedia('(max-width: 1366px)').matches);
-  useEffect(()=>{const media=window.matchMedia('(max-width: 1366px)');const sync=()=>setCompactServices(media.matches);sync();media.addEventListener('change',sync);return()=>media.removeEventListener('change',sync);},[]);
+
   const [mapRequested, setMapRequested] = useState(searchMode === 'map');
   useEffect(() => { if (searchMode === 'map') setMapRequested(true); }, [searchMode]);
   const searchTabs = useRef<HTMLDivElement>(null);
@@ -284,7 +253,8 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
     const update = () => {
       const tabs = searchTabs.current;
       if (!tabs) return;
-      const headerHeight = root?.querySelector('.premium-header')?.getBoundingClientRect().height ?? 0;
+      const header = root?.querySelector('.premium-header');
+      const headerHeight = header && ['fixed','sticky'].includes(getComputedStyle(header).position) ? header.getBoundingClientRect().height : 0;
       const panelOffset = panel.getBoundingClientRect().top - tabs.getBoundingClientRect().top;
       setSearchPanelHeight(Math.max(180, Math.floor(window.innerHeight - headerHeight - 24 - panelOffset - 12)));
     };
@@ -298,7 +268,8 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
     setSearchMode(mode);
     const tabs = searchTabs.current;
     if (!tabs) return;
-    const headerHeight = tabs.closest('.premium-home-main')?.querySelector('.premium-header')?.getBoundingClientRect().height ?? 0;
+    const header = tabs.closest('.premium-home-main')?.querySelector('.premium-header');
+    const headerHeight = header && ['fixed','sticky'].includes(getComputedStyle(header).position) ? header.getBoundingClientRect().height : 0;
     window.scrollTo({ top: Math.max(0, tabs.getBoundingClientRect().top + window.scrollY - headerHeight - 24), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }
   const searchModes = [
@@ -314,26 +285,17 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
     className: 'premium-search-view',
     style: compactSearch ? { '--home-search-panel-height': `${searchPanelHeight}px` } as CSSProperties : undefined,
   });
-  const [desktopServicesExpanded, setDesktopServicesExpanded] = useState(true);
-  const [compactServicesExpanded, setCompactServicesExpanded] = useBackStepState('home-services', false);
-  const servicesExpanded = compactServices ? compactServicesExpanded : desktopServicesExpanded;
-  const setServicesExpanded = compactServices ? setCompactServicesExpanded : setDesktopServicesExpanded;
-  useEffect(() => {
-    if (!servicesExpanded) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setServicesExpanded(false); };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [servicesExpanded]);
+  const {compact:compactServices,expanded:servicesExpanded,setExpanded:setServicesExpanded}=useTravelServiceMenu(!embedded);
   const { data, loading, error, reload } = useOverview(!!session);
 
   const name = data.profile?.displayName?.trim() || session?.user.email?.split('@')[0] || null;
   const pending = data.payments.filter((payment) => ['CREATED', 'PENDING', 'PROCESSING', 'UNKNOWN'].includes(payment.status)).length;
   return <div className={`premium-site${embedded ? ' premium-embedded' : ''}`}>
-    <div className={`premium-home-layout${embedded ? ' is-embedded' : ''}${servicesExpanded ? ' services-open' : ''}`}>{!embedded && <><ServiceSidebar expanded={servicesExpanded} compact={compactServices} onToggle={() => setServicesExpanded((value) => !value)} /><button type="button" className="premium-service-backdrop" aria-label="Close travel services" onClick={() => setServicesExpanded(false)} /></>}<div className="premium-home-main" data-search-mode={compactSearch ? searchMode : 'all'}>
+    <div className={`premium-home-layout${embedded ? ' is-embedded' : ''}${servicesExpanded ? ' services-open' : ''}`}>{!embedded && <><TravelServiceSidebar expanded={servicesExpanded} compact={compactServices} onToggle={() => setServicesExpanded((value) => !value)} /><button type="button" className="premium-service-backdrop" aria-expanded={compactServices && servicesExpanded} aria-label="Close travel services" onClick={() => setServicesExpanded(false)} /></>}<div className="premium-home-main" data-search-mode={compactSearch ? searchMode : 'all'}>
     {!embedded && <PremiumNavbar name={name} servicesExpanded={servicesExpanded} onToggleServices={() => setServicesExpanded((value) => !value)} />}
     <main>
-      <section className="premium-hero" id="book"><HeroDestinations /><div className="premium-hero-content"><p className="premium-eyebrow">DISCOVER A BRIGHTER TOMORROW</p><h1>Your Journey<br /><em>Starts with Flyseri</em></h1><p className="premium-hero-full-copy">Beautiful journeys begin with a simple idea. Search flights, shape your plans, and keep every detail close.</p><p className="premium-hero-short-copy"><Translated text="Your next journey, made smarter." /></p><div className="premium-trust"><span>✓ Find your next flight</span><span>✓ Your plans in one place</span><span>✓ Travel documents together</span></div></div><div className="premium-hero-script" aria-hidden="true">More<br />than a Trip <span>↗</span><small>New Places<br />Brighter Stories</small></div></section>
-      <div className="premium-container premium-overlap">
+      <section className="premium-hero premium-hero-refined" id="book"><HeroDestinations /><div className="premium-hero-content"><h1>Your Journey<br /><em>Starts with Flyseri</em></h1><p className="premium-hero-short-copy"><Translated text="Compare flights and keep your travel plans in one place." /></p></div></section>
+      <div className="premium-container premium-overlap premium-main premium-search-workspace">
         {compactSearch && <div className="premium-search-mode-switch" role="tablist" aria-label="Search your way" ref={searchTabs}>
           {searchModes.map((mode, index) => <button key={mode.id} type="button" role="tab" id={`home-search-tab-${mode.id}`} aria-controls={`home-search-${mode.id}`} aria-selected={searchMode === mode.id} tabIndex={searchMode === mode.id ? 0 : -1} onClick={() => chooseSearchMode(mode.id)} onKeyDown={event => {
             const next = event.key === 'ArrowRight' ? (index + 1) % searchModes.length : event.key === 'ArrowLeft' ? (index + searchModes.length - 1) % searchModes.length : event.key === 'Home' ? 0 : event.key === 'End' ? searchModes.length - 1 : null;
@@ -346,10 +308,11 @@ export function PremiumHome({ embedded = false }: { embedded?: boolean }) {
           </svg><span>{mode.label}</span></button>)}
         </div>}
         <div {...panelProps('flights')}><SearchPanel active={!compactSearch || searchMode === 'flights'} /></div>
+        <div {...panelProps('ai')}><DeferredHomeSeriSearch active={searchMode === 'ai'} /></div>
+        <div {...panelProps('map')}>{(mapRequested || searchMode === 'map') && <HomeFeatureBoundary name="Map search"><Suspense fallback={<HomeFeatureLoading name="map search"/>}><ExploreFareMap active={searchMode === 'map'}/></Suspense></HomeFeatureBoundary>}</div>
       </div>
       <div className="premium-container premium-main">
-        <div {...panelProps('ai')}><DeferredHomeSeriSearch active={searchMode === 'ai'} /></div>
-        <div className="premium-journey-grid"><div {...panelProps('map')}>{(mapRequested || searchMode === 'map') && <HomeFeatureBoundary name="Map search"><Suspense fallback={<HomeFeatureLoading name="map search"/>}><ExploreFareMap active={searchMode === 'map'}/></Suspense></HomeFeatureBoundary>}</div><ExclusiveAirlineOffers /></div>
+        <ExclusiveAirlineOffers />
         <HomeAdBanner />
 
         <div id="deals"><HolidayPackages /></div>

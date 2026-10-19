@@ -1,0 +1,129 @@
+/* Visa discovery uses Flyseri's shared type, glass surfaces and blue actions. */
+html body #root .account-page.visa-discovery-page{max-width:var(--ui-page-width,1280px);padding-top:24px;--visa-blue:#1767cc;--visa-ink:#193854;--visa-muted:#536d87;--visa-line:#dce7f2}
+.visa-discovery-page *{box-sizing:border-box}
+.visa-discovery-page a{text-decoration:none}
+.visa-discovery-page button,.visa-discovery-page input,.visa-discovery-page select{font:inherit}
+.visa-discovery-page :is(button,a,input,select):focus-visible{outline:3px solid #79b6f5;outline-offset:4px}
+.visa-kicker{display:inline-flex;align-items:center;gap:8px;color:#2369b7;font-size:11px;font-weight:750;letter-spacing:.09em;line-height:1.5}
+.visa-kicker svg{width:18px;height:18px}
+.visa-discovery-hero{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(230px,1fr);align-items:center;gap:36px;padding:36px;margin-bottom:28px;border:1px solid #ffffffd4;border-radius:24px;background:linear-gradient(120deg,#fffffff2,#eff9ffcf 64%,#dbf5efae);box-shadow:0 12px 35px #27527b08}
+html body #root .visa-discovery-hero h1{font-size:clamp(32px,3.1vw,43px);letter-spacing:-.045em;line-height:1.2;margin:14px 0 16px}
+.visa-discovery-hero h1 em{font-style:normal;color:var(--visa-blue)}
+.visa-discovery-hero>div>p{max-width:560px;margin:0 0 24px;color:var(--visa-muted)}
+.visa-destination-search{position:relative;background:white;border:1px solid var(--visa-line);border-radius:16px;padding:14px;max-width:640px;box-shadow:0 8px 22px #29588c09}
+.visa-destination-search>label{display:block;font-size:12px;font-weight:650;margin-bottom:9px}
+.visa-destination-search>div{display:flex;align-items:center;gap:8px}
+.visa-destination-search>div>span{color:var(--visa-blue);display:flex}
+html body #root .visa-destination-search input{flex:1;min-width:0;width:0;border:0;background:transparent;padding:10px 4px;min-height:46px;box-shadow:none;font-size:14px;color:var(--visa-ink)}
+.visa-destination-search .btn-primary{flex:none;display:flex;gap:18px;align-items:center;white-space:nowrap}
+.visa-destination-search>p{margin:8px 0 0;color:#a43040;font-size:12px}
+.visa-country-suggestions{list-style:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;margin:0;padding:6px;border:1px solid var(--visa-line);border-radius:14px;background:white;box-shadow:0 14px 30px #21476c1c;max-height:340px;overflow-y:auto}
+.visa-country-suggestions li>a{display:flex;align-items:center;gap:12px;padding:10px;color:var(--visa-ink);font-size:14px;border-radius:9px;min-height:48px}
+.visa-country-suggestions li>a:hover{background:#edf5ff}
+.visa-country-suggestions li>a>span:last-child{margin-left:auto}
+.visa-hero-assurances{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;color:var(--visa-muted);font-size:11px}
+.visa-hero-assurances>span{display:flex;gap:6px;align-items:center}
+.visa-hero-assurances svg{width:16px;height:16px;color:#098b80}
+.visa-hero-visual{position:relative;display:grid;place-items:center;min-height:320px;isolation:isolate}
+.visa-orbit{position:absolute;border:1px solid #b6dbec99;border-radius:50%;z-index:-1}
+.visa-orbit-one{width:290px;height:290px}.visa-orbit-two{width:350px;height:350px;border-style:dashed;opacity:.5}
+.visa-passport-illustration{display:flex;flex-direction:column;gap:13px;padding:28px;width:208px;height:274px;border:1px solid #ffffffbb;border-radius:10px 24px 24px 10px;background:linear-gradient(145deg,#1c73d2,#144d98);box-shadow:9px 14px 30px #1f548b26,inset 5px 0 0 #ffffff15;transform:rotate(9deg);color:white}
+.visa-passport-illustration>svg{width:48px;height:48px;opacity:.75}.visa-passport-illustration>span{font-size:11px;font-weight:700;letter-spacing:.2em}.visa-passport-illustration>strong{font-size:21px;line-height:1.35;letter-spacing:-.02em}.visa-passport-illustration>div{display:flex;gap:7px;align-items:center;border-top:1px solid #ffffff40;margin-top:auto;padding-top:12px;font-size:9px;letter-spacing:.08em}
+.visa-visual-stamp{position:absolute;bottom:5px;left:10px;display:flex;align-items:center;gap:7px;border:1px solid white;background:#fffffff2;border-radius:12px;padding:12px 16px;box-shadow:0 6px 24px #21568112;color:#216660;font-size:12px;font-weight:650;transform:rotate(-4deg)}
+.visa-discovery-section{padding:24px;border:1px solid #dfe9f4;border-radius:20px;background:#ffffffef;box-shadow:0 8px 25px #244b7105;margin-bottom:20px;min-width:0;scroll-margin-top:110px}
+.visa-section-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}
+html body #root .visa-section-heading h2{font-size:22px;margin:5px 0 7px}.visa-section-heading p{margin:0;color:var(--visa-muted)}
+.visa-text-link{color:var(--visa-blue);font-size:13px;font-weight:650;white-space:nowrap}
+.visa-filter-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.visa-filter-tabs>button{padding:9px 16px;min-height:42px;border:1px solid #dce7f2;border-radius:10px;color:#486584;background:#f6f9fd;font-size:13px;font-weight:600;cursor:pointer}
+.visa-filter-tabs>button[aria-pressed=true]{color:white;background:var(--visa-blue);border-color:var(--visa-blue)}
+.visa-filter-tabs>button:hover{border-color:#6fa5e0}
+.visa-destination-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.visa-destination-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;padding:18px 14px 14px;border:1px solid #deE8f3;border-radius:14px;background:linear-gradient(140deg,#fff,#f7fbff);transition:border-color .15s,box-shadow .15s}
+.visa-destination-card:hover{border-color:#8bb6ea;box-shadow:0 7px 20px #2360a312}
+.visa-country-mark{position:relative;display:inline-grid;place-items:center;flex:none;width:44px;height:30px;border:1px solid #dde6ef;border-radius:5px;overflow:hidden;background:#eaf2fc;color:#3671ac;font-size:13px;font-weight:750}
+.visa-country-mark img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.visa-destination-card>strong{color:var(--visa-ink);font-size:14px;line-height:1.4}
+html body #root .visa-destination-card>small{color:var(--visa-muted);font-size:11px;line-height:1.5}
+.visa-destination-card>span:last-child{display:flex;justify-content:space-between;gap:8px;width:100%;margin-top:auto;padding-top:10px;font-size:12px;font-weight:650;color:var(--visa-blue)}
+.visa-directory-help{font-size:12px!important;margin:18px 0 0;color:var(--visa-muted)}.visa-directory-help a{color:var(--visa-blue);font-weight:650}
+.visa-format-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.visa-format-grid>article{padding:20px;border:1px solid var(--visa-line);border-radius:14px;background:#f8fbff}
+.visa-icon-tile{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#eaf3ff;color:var(--visa-blue);flex:none}
+.visa-format-grid h3{margin:14px 0 8px}.visa-format-grid p{margin:0;color:var(--visa-muted);font-size:13px!important}
+.visa-how-section{background:linear-gradient(120deg,#f8fcff,#f0faf7)}
+.visa-how-grid{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:0;padding:0}
+.visa-how-grid>li{position:relative;border:1px solid #dce7f2;border-radius:14px;padding:20px 16px;background:#ffffffdf;min-width:0}
+.visa-how-grid>li>svg{color:var(--visa-blue);width:26px;height:26px}.visa-step-number{position:absolute;right:16px;top:14px;color:#dde9f6;font-size:27px;font-weight:800}.visa-how-grid h3{margin:16px 0 8px;font-size:14px!important}.visa-how-grid p{margin:0;color:var(--visa-muted);font-size:12px!important}
+.visa-section-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.visa-section-actions :is(a,button){display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+.visa-saved-list{display:grid;gap:10px}.visa-saved-list>a{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--visa-line);border-radius:12px;color:var(--visa-ink)}.visa-saved-list>a>div{display:grid;gap:6px;min-width:0}.visa-saved-list strong{font-size:14px;overflow-wrap:anywhere}.visa-saved-list>a>span:last-child{margin-left:auto;color:var(--visa-blue)}
+.visa-saved-empty{display:flex;align-items:center;gap:18px;padding:24px 0}.visa-saved-empty>svg{color:#619edc;width:42px;height:42px;flex:none}.visa-saved-empty h3{margin:0 0 6px}.visa-saved-empty p{margin:0;color:var(--visa-muted)}
+.visa-discovery-footnote{color:var(--visa-muted);font-size:12px!important;margin:24px 4px}.visa-discovery-error{color:#9a3548;background:#fff3f4;padding:14px;border-radius:10px}
+/* Destination guide */
+.visa-breadcrumb{display:flex;gap:12px;font-size:12px;color:var(--visa-muted);margin:0 0 22px}.visa-breadcrumb a{color:var(--visa-blue)}
+.visa-guide-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px}.visa-guide-title{display:flex;gap:18px;align-items:center;min-width:0}.visa-guide-title>.visa-country-mark{width:64px;height:44px;border-radius:8px}.visa-guide-title h1{margin:6px 0 9px}.visa-guide-title p{margin:0;color:var(--visa-muted)}
+.visa-guide-purpose{display:flex;align-items:center;gap:18px;margin-bottom:22px}.visa-guide-purpose>span{font-size:12px;color:var(--visa-muted);flex:none}.visa-guide-purpose .visa-filter-tabs{margin:0}
+.visa-guide-nav{position:sticky;top:92px;z-index:30;display:flex;gap:6px;overflow-x:auto;white-space:nowrap;margin-bottom:24px;padding:8px;border:1px solid #dce7f2;border-radius:14px;background:#f9fcfff5;backdrop-filter:blur(18px);scrollbar-width:thin}
+.visa-guide-nav a{display:inline-flex;align-items:center;min-height:40px;padding:8px 13px;border-radius:8px;color:#496783;font-size:12px;font-weight:650}.visa-guide-nav a:hover,.visa-guide-nav a:focus{background:#e7f1ff;color:var(--visa-blue)}
+.visa-guide-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:22px;align-items:start}.visa-guide-content{min-width:0}.visa-guide-content>.visa-discovery-section{scroll-margin-top:164px}
+.visa-guide-content h2{margin:0 0 16px}.visa-guide-content>.visa-discovery-section>p{color:var(--visa-muted)}
+.visa-guide-callout{display:flex;align-items:flex-start;gap:12px;padding:16px;border:1px solid #dbe9f5;border-radius:12px;background:#f1f7ff;margin:18px 0}.visa-guide-callout>svg{flex:none;color:var(--visa-blue)}.visa-guide-callout strong{font-size:14px}.visa-guide-callout p{margin:5px 0 0;color:var(--visa-muted);font-size:13px!important}
+.visa-service-select{display:grid;gap:8px;font-size:13px;font-weight:650;margin-block:20px}.visa-service-select select{width:100%;min-height:46px;border:1px solid #d5e3f2;border-radius:10px;padding:10px;color:var(--visa-ink);background:white}
+.visa-source-link{display:inline-block;margin-top:8px;font-size:12px;color:var(--visa-blue);text-decoration:underline!important;text-underline-offset:3px}
+.visa-guide-small{font-size:12px!important;line-height:1.6;color:var(--visa-muted)}
+.visa-soft-badge{padding:6px 10px;border-radius:8px;background:#e6f5f1;color:#117765;font-size:10px;font-weight:650;white-space:nowrap}
+.visa-document-list,.visa-process-list{list-style:none;margin:0;padding:0}.visa-document-list{border:1px solid var(--visa-line);border-radius:12px;overflow:hidden}.visa-document-list>li{display:flex;gap:12px;padding:18px 16px;border-bottom:1px solid var(--visa-line);background:#fff}.visa-document-list>li:nth-child(even){background:#f8fbff}.visa-document-list>li:last-child{border:0}.visa-document-list>li>span,.visa-process-list>li>span{display:grid;place-items:center;width:26px;height:26px;flex:none;border-radius:8px;background:#eaf2ff;color:var(--visa-blue);font-size:12px;font-weight:750}.visa-document-list h3,.visa-process-list h3{font-size:14px!important;margin:1px 0 7px}.visa-document-list p,.visa-process-list p{font-size:13px!important;margin:0;color:var(--visa-muted)}
+.visa-fee-list{margin:18px 0}.visa-fee-list>div{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--visa-line);font-size:14px}.visa-fee-list dd{margin:0;font-weight:700;white-space:nowrap}
+.visa-process-list{display:grid;gap:18px;margin-top:22px}.visa-process-list>li{display:flex;gap:12px}.visa-process-list>li>span{border-radius:50%;background:var(--visa-blue);color:#fff}
+.visa-document-tips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.visa-document-tips>article{padding:16px;border:1px solid var(--visa-line);border-radius:12px;background:#f9fbff}.visa-document-tips h3{font-size:13px!important;line-height:1.5;margin:12px 0 8px}.visa-document-tips p{font-size:12px!important;margin:0;color:var(--visa-muted)}
+.visa-travel-list{padding-left:20px;color:var(--visa-muted);font-size:14px;line-height:1.7}.visa-travel-list li{padding-bottom:9px}.visa-travel-list li::marker{color:var(--visa-blue)}
+.visa-guide-sidebar{display:grid;gap:18px;min-width:0}.visa-guide-sidebar>.visa-discovery-section{margin:0;padding:20px}.visa-guide-apply{display:flex;flex-direction:column;padding:24px;border:1px solid #c5dcf3;border-radius:20px;background:linear-gradient(145deg,#fff,#eef7ff);box-shadow:0 8px 22px #235d9809}.visa-guide-apply h2{margin:16px 0 8px}.visa-guide-apply>p{color:var(--visa-muted);font-size:13px!important;margin:0 0 18px}.visa-guide-apply>div{display:flex;gap:12px;justify-content:space-between;font-size:12px;padding:12px 0;border-top:1px solid #d9e6f3}.visa-guide-apply>div>span{color:var(--visa-muted)}.visa-guide-apply>div>strong{text-align:right}.visa-guide-apply>a{display:flex;justify-content:center;align-items:center;margin-top:14px;min-height:44px}.visa-guide-apply>small{font-size:11px!important;line-height:1.6;margin-top:12px;text-align:center;color:var(--visa-muted)}
+.visa-country-location{position:relative;display:flex;align-items:center;flex-direction:column;gap:12px;overflow:hidden;padding:24px 10px;border:1px solid #dcebf2;border-radius:14px;background:radial-gradient(ellipse at 75% 20%,#c9ecdf,transparent 70%),linear-gradient(145deg,#dcefff,#eef7fc);margin:18px 0}.visa-country-location>svg{position:absolute;width:160px;height:160px;right:-40px;top:-30px;opacity:.08}.visa-country-location>a{font-size:11px;color:var(--visa-blue);padding-top:4px}
+.visa-quick-facts{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:16px 0 0}.visa-quick-facts>div{padding:12px;border:1px solid #dce7f2;background:#f8fbff;border-radius:10px}.visa-quick-facts dt{font-size:11px;color:var(--visa-muted);margin-bottom:5px}.visa-quick-facts dd{font-size:13px;font-weight:600;margin:0}.visa-published-service .visa-quick-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.visa-guide-help p{font-size:13px!important;color:var(--visa-muted)}.visa-guide-mobile-action{display:none}
+@media(max-width:1100px){
+ .visa-discovery-hero{grid-template-columns:minmax(0,1.7fr) minmax(180px,1fr);gap:24px;padding:28px}.visa-orbit-one{width:230px;height:230px}.visa-orbit-two{width:270px;height:270px}.visa-passport-illustration{width:180px;height:240px;padding:24px}.visa-passport-illustration>strong{font-size:18px}.visa-visual-stamp{left:-10px;font-size:11px;padding:10px}.visa-destination-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.visa-how-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.visa-guide-layout{grid-template-columns:minmax(0,1fr) 280px;gap:16px}.visa-document-tips{grid-template-columns:minmax(0,1fr)}.visa-document-tips>article{display:grid;grid-template-columns:42px minmax(0,1fr);gap:0 12px}.visa-document-tips .visa-icon-tile{grid-row:span 2}.visa-document-tips h3{margin:0 0 6px}
+}
+@media(max-width:980px){.visa-discovery-hero{grid-template-columns:minmax(0,1fr)}.visa-hero-visual{display:none}.visa-discovery-hero>div>p{max-width:640px}.visa-guide-layout{grid-template-columns:minmax(0,1fr)}.visa-guide-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}.visa-guide-sidebar>.visa-guide-apply{grid-column:1/-1}.visa-guide-apply{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}.visa-guide-apply>.visa-icon-tile{display:none}.visa-guide-apply h2,.visa-guide-apply>p{grid-column:1}.visa-guide-apply>a{grid-column:2}.visa-guide-apply>a.btn-primary{grid-row:1/3;align-self:center}.visa-guide-apply>small{grid-column:1/-1}.visa-guide-sidebar .visa-quick-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){
+ html body #root .account-page.visa-discovery-page{padding-top:12px}.visa-discovery-hero{padding:24px 20px;margin-bottom:18px;border-radius:18px}.visa-kicker{font-size:10px}.visa-discovery-hero>div>p{font-size:13px!important;margin-bottom:20px}html body #root .visa-discovery-hero h1{font-size:30px;margin:12px 0 14px}.visa-destination-search{padding:12px}.visa-destination-search>div{flex-wrap:wrap;gap:4px}.visa-destination-search .btn-primary{width:100%;justify-content:center;margin-top:8px}.visa-hero-assurances{gap:8px;font-size:10px;flex-direction:column}.visa-discovery-section{padding:18px 16px;border-radius:16px;margin-bottom:16px}.visa-section-heading{align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}html body #root .visa-section-heading h2{font-size:20px}.visa-section-heading p{font-size:12px!important}.visa-text-link{font-size:12px}.visa-filter-tabs{gap:6px;margin-bottom:16px}.visa-filter-tabs>button{font-size:12px;min-height:42px;padding:8px 11px}.visa-destination-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.visa-destination-card{padding:14px 10px;gap:8px}.visa-destination-card>strong{font-size:13px}.visa-destination-card>small{display:none}.visa-destination-card>span:last-child{font-size:11px;padding-top:6px}.visa-format-grid{grid-template-columns:minmax(0,1fr);gap:10px}.visa-format-grid>article{display:grid;grid-template-columns:42px minmax(0,1fr);padding:16px;gap:0 12px}.visa-format-grid .visa-icon-tile{grid-row:span 2}.visa-format-grid h3{margin:0 0 7px;font-size:14px!important}.visa-format-grid p{font-size:12px!important}.visa-how-grid{gap:10px}.visa-how-grid>li{padding:16px 12px}.visa-step-number{font-size:23px;right:12px;top:10px}.visa-how-grid h3{font-size:13px!important;margin-top:12px}.visa-how-grid p{font-size:11px!important}.visa-section-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.visa-saved-empty{padding:12px 0;gap:12px}.visa-saved-empty p{font-size:12px!important}.visa-saved-list>a{padding:12px;gap:10px}.visa-saved-list strong{font-size:12px}.visa-saved-list small{font-size:11px!important}
+ .visa-guide-hero{display:block;margin-bottom:20px}.visa-guide-title{align-items:flex-start;gap:12px}.visa-guide-title>.visa-country-mark{width:48px;height:32px;margin-top:7px}.visa-guide-title .visa-kicker{font-size:9px}html body #root .visa-guide-title h1{font-size:25px;line-height:1.25;margin:5px 0 8px}.visa-guide-title p{font-size:12px!important}.visa-guide-hero>.account-outline-button{display:inline-flex;margin-top:16px;min-height:42px;align-items:center}.visa-guide-purpose{display:block;margin-bottom:16px}.visa-guide-purpose>span{display:block;margin-bottom:10px}.visa-guide-nav{top:88px;border-radius:12px;margin-bottom:18px;padding:6px;gap:2px}.visa-guide-nav a{font-size:11px;padding:8px 10px}.visa-guide-content>.visa-discovery-section{scroll-margin-top:155px}.visa-guide-content>.visa-discovery-section>p{font-size:13px!important}.visa-document-list>li{padding:15px 12px;gap:10px}.visa-document-list h3{font-size:13px!important}.visa-document-list p{font-size:12px!important}.visa-guide-content .visa-soft-badge{display:none}.visa-guide-callout{padding:14px;gap:10px}.visa-guide-callout strong{font-size:13px}.visa-guide-callout p{font-size:12px!important}.visa-guide-sidebar{grid-template-columns:minmax(0,1fr)}.visa-guide-apply{display:flex;padding:20px}.visa-guide-apply>.visa-icon-tile{display:inline-grid}.visa-guide-sidebar .visa-quick-facts{grid-template-columns:minmax(0,1fr)}.visa-guide-mobile-action{position:fixed;left:0;right:0;bottom:0;z-index:100;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #d5e3f1;background:#fffffff5;backdrop-filter:blur(18px);box-shadow:0 -5px 20px #22486c08}.visa-guide-mobile-action>div{display:grid;gap:4px;min-width:0}.visa-guide-mobile-action strong{font-size:13px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.visa-guide-mobile-action small{font-size:10px!important;color:var(--visa-muted)}.visa-guide-mobile-action>.btn-primary{display:flex;align-items:center;justify-content:center;min-height:46px;padding:10px 14px;font-size:13px;white-space:nowrap}
+ html body:has(.visa-guide-mobile-action) .account-mobile-bottom,html body:has(.visa-guide-mobile-action) .seri-floating-launcher:not(.is-open){display:none}
+ html body #root .account-page.visa-guide-page{padding-bottom:110px}
+}
+@media(max-width:400px){.visa-destination-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.visa-discovery-hero{padding:20px 16px}html body #root .visa-discovery-hero h1{font-size:27px}.visa-how-grid{grid-template-columns:minmax(0,1fr)}.visa-how-grid>li{padding:18px 16px}.visa-how-grid p{font-size:12px!important}.visa-guide-title>.visa-country-mark{width:40px;height:28px}.visa-guide-title{gap:10px}html body #root .visa-guide-title h1{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.visa-destination-card{transition:none}}
+@media(max-width:760px){html body:has(.visa-discovery-page) .seri-floating-launcher:not(.is-open){display:none}}
+@media(max-width:760px){html body:has(.visa-page) .seri-floating-launcher:not(.is-open){display:none}}
+/* Visa pages provide their own direct links to the specialist support team. */
+html body:has(.visa-discovery-page) .seri-floating-launcher:not(.is-open){display:none}
+/* Focused landing-page refinements; destination guides retain their layout. */
+.visa-hub-refined .visa-discovery-hero{padding:28px 36px;gap:28px;margin-bottom:24px}
+.visa-hub-refined .visa-hero-visual{min-height:270px}
+.visa-hub-refined .visa-orbit-one{width:250px;height:250px}
+.visa-hub-refined .visa-orbit-two{width:300px;height:300px}
+.visa-hub-refined .visa-passport-illustration{width:184px;height:240px;padding:24px;gap:10px}
+.visa-hub-refined .visa-passport-illustration>strong{font-size:19px}
+.visa-hub-refined .visa-visual-stamp{bottom:0;left:0}
+.visa-hub-refined .visa-discovery-hero>div>p{margin-bottom:18px}
+.visa-hub-refined .visa-hero-assurances{font-size:12px;margin-top:12px}
+.visa-hub-refined .visa-destination-search>label{font-size:13px}
+html body #root .visa-hub-refined .visa-destination-card>small{font-size:13px;line-height:1.55}
+.visa-hub-refined .visa-destination-card>span:last-child{font-size:13px;line-height:1.5;align-items:center}
+.visa-hub-primary-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end}
+.visa-hub-primary-actions>.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:44px;padding:10px 16px;white-space:nowrap}
+.visa-suggestions-label{padding:8px 10px 4px;color:#60728e;font-size:12px;font-weight:650}
+.visa-suggestions-empty{padding:14px 10px;color:#536d87;font-size:13px;line-height:1.5}
+@media(max-width:1100px){.visa-hub-refined .visa-discovery-hero{padding:26px 28px}.visa-hub-refined .visa-visual-stamp{font-size:12px;padding:10px}}
+@media(max-width:760px){
+ .visa-hub-refined .visa-discovery-hero{padding:22px 20px;margin-bottom:18px}
+ .visa-hub-refined .visa-hero-assurances{font-size:12px;gap:8px}
+ html body #root .visa-hub-refined .visa-section-heading p{font-size:13px!important}
+ .visa-hub-primary-actions{justify-content:flex-start;width:100%;gap:14px}
+ .visa-hub-primary-actions>.btn-primary{margin-left:auto;font-size:13px;padding-inline:12px}
+ .visa-hub-refined .visa-destination-card>span:last-child{font-size:12px;gap:5px}
+ .visa-hub-refined .visa-destination-card>span:last-child>span{min-width:0}
+ .visa-hub-refined .visa-directory-help{font-size:13px!important}
+}
+@media(max-width:400px){.visa-hub-refined .visa-discovery-hero{padding:20px 16px}.visa-hub-primary-actions{gap:10px}.visa-hub-primary-actions>.btn-primary{font-size:12px}}

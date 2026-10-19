@@ -23,7 +23,7 @@ import { SeriRichText } from './SeriRichText';
 
 const suggestions = ['Where shall we go?', 'Plan a relaxing beach getaway', 'Help me plan a Japan trip', 'Plan a weekend trip from Dhaka'];
 
-export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) {
+export function HomeSeriSearch({floatingOnly=false, inlineOnly=false, flightSearch=false}:{floatingOnly?:boolean; inlineOnly?:boolean; flightSearch?:boolean}={}) {
   const location = useLocation();
   const search = useHomeSearchDraft();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -32,7 +32,8 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
   const [launcherObstructed, setLauncherObstructed] = useState(false);
   const [editingElsewhere, setEditingElsewhere] = useState(false);
   const [online, setOnline] = useState(() => navigator.onLine);
-  const [floating, setFloating] = useBackStepState('seri-chat', false);
+  const [requestedFloating, setFloating] = useBackStepState('seri-chat', false);
+  const floating = !inlineOnly && requestedFloating;
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
   const floatingPanel = useRef<HTMLDivElement>(null);
@@ -88,7 +89,7 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
       // Measure a constant invitation footprint so compacting cannot cause oscillation.
       const rect = launcher.current.getBoundingClientRect();
       const left = rect.right - (window.innerWidth <= 800 ? 72 : 230);
-      const controls = document.querySelectorAll<HTMLElement>('main input,main select,main textarea,main button,main [role="combobox"]');
+      const controls = document.querySelectorAll<HTMLElement>('main input,main select,main textarea,main button,main a[href],main [role="combobox"]');
       setLauncherObstructed(Array.from(controls).some(control => {
         if (control.closest('.premium-seri-chat')) return false;
         const box = control.getBoundingClientRect();
@@ -149,7 +150,7 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
     return () => window.removeEventListener('keydown', onEscape);
   }, [floating]);
   useEffect(() => {
-    if (focused || question || sending) return;
+    if (focused || question || sending || flightSearch) return;
     const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     let timer: number | undefined;
     const update = () => {
@@ -165,14 +166,14 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
       document.removeEventListener('visibilitychange', update);
       motion?.removeEventListener('change', update);
     };
-  }, [focused, question, sending]);
+  }, [focused, question, sending, flightSearch]);
   useEffect(() => {
     generation.current += 1;
     conversation.current = null;
     busy.current = false;
     skipChatSave.current = true;
     let restored: SeriMessage[] = [];
-    if (location.state?.resumeSeri === true && !floating) setFloating(true);
+    if (!inlineOnly && location.state?.resumeSeri === true && !floating) setFloating(true);
     try {
       const saved = JSON.parse(sessionStorage.getItem(chatKey) ?? 'null');
       if (saved && typeof saved.savedAt === 'number' && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 2 * 60 * 60 * 1000 && Array.isArray(saved.messages)) {
@@ -231,18 +232,22 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
   }
 
   const chat = <section ref={chatSection} className="premium-seri-entry premium-seri-chat" aria-labelledby="home-seri-title">
-    <div className="premium-seri-entry-heading"><span className="premium-seri-entry-icon" aria-hidden="true">✦</span><div><h2 id="home-seri-title">{floating ? 'Seri' : 'Plan your journey with Seri'}</h2><p><Translated text="Your AI travel assistant" /></p></div>{!floating && <div className="seri-header-support"><SupportHandover key={conversation.current ?? 'guest'} conversationId={conversation.current} messages={messages} /></div>}{floating && <button type="button" className="seri-floating-close" aria-label="Close Seri chat" onClick={closeFloating}>×</button>}</div>
+    <div className="premium-seri-entry-heading"><span className="premium-seri-entry-icon" aria-hidden="true">✦</span><div><h2 id="home-seri-title">{floating ? 'Seri' : flightSearch ? 'Find flights with Seri' : 'Plan your journey with Seri'}</h2><p><Translated text="Your AI travel assistant" /></p></div>{!floating && <div className="seri-header-support"><SupportHandover key={conversation.current ?? 'guest'} conversationId={conversation.current} messages={messages} label={flightSearch ? 'Help' : undefined} /></div>}{floating && <button type="button" className="seri-floating-close" aria-label="Close Seri chat" onClick={closeFloating}>×</button>}</div>
     {floating && <div className="seri-chat-team"><SupportHandover key={conversation.current ?? 'guest'} conversationId={conversation.current} messages={messages} /></div>}
     <div className={`home-seri-transcript${!messages.length && !sending && !error ? ' is-empty' : ''}`} ref={transcript} role="log" aria-label="Seri search conversation" aria-live="polite" aria-relevant="additions text" aria-busy={sending} tabIndex={0}>
       {!messages.length && <div className="home-seri-welcome seri-welcome-design">
         <div className="seri-welcome-orbit" aria-hidden="true"><div><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m27 5-8 23-5-10L4 13 27 5Z"/><path d="m14 18 7-7"/></svg></div><i/><i/></div>
-        <strong><Translated text="Where to next?" /></strong>
-        <p><Translated text="Find flights. Shape your next escape." /></p>
-        <div className="seri-welcome-prompts" aria-label="Start a conversation">{[
+        <strong><Translated text={flightSearch ? 'Where would you like to fly?' : 'Where to next?'} /></strong>
+        <p><Translated text={flightSearch ? 'Tell me your route, dates and travellers.' : 'Find flights. Shape your next escape.'} /></p>
+        <div className="seri-welcome-prompts" aria-label="Start a conversation">{(flightSearch ? [
+          { title: 'Find flights', prompt: 'Help me find flights for my trip', path: 'm21 3-7 18-3-8-8-3 18-7Z M11 13l5-5' },
+          { title: 'Compare options', prompt: 'Help me compare flights by price, travel time and baggage', path: 'M4 6h16M4 12h10M4 18h16M17 9l3 3-3 3' },
+          { title: 'Baggage & connections', prompt: 'Help me understand baggage allowances and connecting flights for my route', path: 'M6 7h12v14H6V7ZM9 7V4h6v3M9 10v8M15 10v8' },
+        ] : [
           { title: 'Find a flight', prompt: 'Help me find flights', path: 'm21 3-7 18-3-8-8-3 18-7Z M11 13l5-5' },
           { title: 'Plan a holiday', prompt: 'Help me plan a holiday', path: 'M4 7h16v14H4V7Z M9 7V4h6v3 M4 12h16 M9 12v3 M15 12v3' },
           { title: 'Plan by budget', prompt: 'Help me plan a trip with a budget of BDT 100000', path: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z' },
-        ].map(item => <button type="button" key={item.title} onClick={() => { setQuestion(item.prompt); chatInput.current?.focus({ preventScroll: true }); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.path}/></svg><span>{item.title}</span><span aria-hidden="true">↗</span></button>)}</div>
+        ]).map(item => <button type="button" key={item.title} onClick={() => { setQuestion(item.prompt); chatInput.current?.focus({ preventScroll: true }); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.path}/></svg><span>{item.title}</span><span aria-hidden="true">↗</span></button>)}</div>
       </div>}
       {messages.map(message => <article key={message.id} className={`home-seri-message is-${message.role.toLowerCase()}`}><small>{message.role === 'USER' ? 'You' : 'Seri'}</small>{message.role === 'USER' ? <p>{message.content}</p> : <SeriRichText content={message.payload?.source === 'sabre' && Array.isArray(message.payload.offers) && message.payload.offers.length ? 'Here are your flight options.' : message.content} hideFlightLinks={message.messageType === 'FLIGHT_RESULTS'} onFlightSearch={(city, code) => { void send(undefined, `Show me flights to ${city} (${code})`); }} />}<SeriMessageDetails message={message} onFlightsUpdate={data => setMessages(items => items.map(item => item.id === message.id ? { ...item, payload: { ...data } } : item))} />{message.messageType === 'CONFIRMATION' && conversation.current && <Link to={`/app/seri?conversation=${encodeURIComponent(conversation.current)}`}>Review this request →</Link>}</article>)}
       {!online && <p className="home-seri-error" role="status">You’re offline. Your draft is saved—reconnect to send it.</p>}
@@ -250,15 +255,15 @@ export function HomeSeriSearch({floatingOnly=false}:{floatingOnly?:boolean}={}) 
       {error && <div className="home-seri-error" role="alert"><p>{error}</p><button type="button" disabled={sending || !online || !question.trim()} onClick={() => void send()}><Translated text="Try again" /></button></div>}
     </div>
     {!session && <p className="home-seri-sign-in"><Link to="/sign-in"><Translated text="Sign in for your saved trips" /></Link></p>}
-    <form onSubmit={event => { void send(event); }}><label className="sr-only" htmlFor="home-seri-question">Ask Seri a travel question</label><input ref={chatInput} id="home-seri-question" value={question} maxLength={4000} onChange={event => setQuestion(event.target.value)} placeholder={suggestions[suggestion]} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} readOnly={sending} /><button type="submit" disabled={sending || !online || !question.trim()}>{sending ? 'Sending…' : 'Ask Seri'} <span aria-hidden="true">↗</span></button></form>
+    <form onSubmit={event => { void send(event); }}><label className="sr-only" htmlFor="home-seri-question">Ask Seri a travel question</label><input ref={chatInput} id="home-seri-question" value={question} maxLength={4000} onChange={event => setQuestion(event.target.value)} placeholder={flightSearch ? 'e.g. Dhaka to Bangkok next month, 1 adult' : suggestions[suggestion]} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} readOnly={sending} /><button type="submit" disabled={sending || !online || !question.trim()}>{sending ? 'Sending…' : 'Ask Seri'} <span aria-hidden="true">↗</span></button></form>
   </section>;
-  return <>{!floatingOnly&&(floating ? <div className="seri-inline-placeholder" style={{ minHeight: inlineHeight }}><span aria-hidden="true">✦</span><div><strong>Your conversation with Seri is open</strong></div><button type="button" onClick={closeFloating}>Continue here ↗</button></div> : chat)}{createPortal(<>
+  return <>{!floatingOnly&&(floating ? <div className="seri-inline-placeholder" style={{ minHeight: inlineHeight }}><span aria-hidden="true">✦</span><div><strong>Your conversation with Seri is open</strong></div><button type="button" onClick={closeFloating}>Continue here ↗</button></div> : chat)}{!inlineOnly && createPortal(<>
     {floating && <button type="button" className="seri-chat-outside-dismiss" aria-label="Close Seri chat by clicking outside" tabIndex={-1} onClick={closeFloating} />}
-    {floating && <div ref={floatingPanel} style={keyboardViewport ? { top: keyboardViewport.top + 12, bottom: 'auto', height: floatingOnly && !keyboardOpen ? `min(650px, calc(${Math.max(180, keyboardViewport.height - 108)}px - env(safe-area-inset-bottom, 0px)))` : Math.max(180, keyboardViewport.height - 24) } : undefined} className={`seri-floating-panel${closing ? ' is-closing' : ''}`} id="seri-floating-chat" role="dialog" aria-labelledby="home-seri-title" tabIndex={-1}>{chat}</div>}
+    {floating && <div ref={floatingPanel} style={keyboardViewport ? { top: keyboardOpen ? keyboardViewport.top + 12 : undefined, bottom: keyboardOpen ? 'auto' : undefined, height: keyboardOpen ? Math.max(180, keyboardViewport.height - 24) : `min(560px, calc(${Math.max(180, keyboardViewport.height - 120)}px - env(safe-area-inset-bottom, 0px)))` } : undefined} className={`seri-floating-panel${closing ? ' is-closing' : ''}`} id="seri-floating-chat" role="dialog" aria-labelledby="home-seri-title" tabIndex={-1}>{chat}</div>}
     {!floating && !movable.hasMoved && !labelDismissed && !launcherObstructed && !editingElsewhere && !keyboardOpen && <button type="button" className="seri-label-dismiss" aria-label="Hide chat invitation" onClick={() => { setLabelDismissed(true); try { sessionStorage.setItem('flyseri.chat-label-dismissed', '1'); } catch {} launcher.current?.focus({ preventScroll: true }); }}>×</button>}
     <button ref={launcher} type="button" hidden={floating || keyboardOpen || editingElsewhere} disabled={closing} className={`seri-floating-launcher${floating ? ' is-open' : ''}${movable.hasMoved || labelDismissed || launcherObstructed ? ' is-compact' : ''}`} data-flight={aircraft.phase} data-boosted={aircraft.boosted || undefined} data-draggable="true" data-dragging={movable.dragging || undefined} style={movable.position ? {left:movable.position.x,top:movable.position.y,right:'auto',bottom:'auto'} : undefined} title="Drag to move. Hold briefly, then pull down and release to fly. Tap to chat." aria-description="Drag to move. Hold briefly, then pull down and release to fly. Use arrow keys to move, Alt and Arrow Down to fly, or Enter to chat." aria-label={floating ? 'Minimize Seri chat' : 'Chat with us'} aria-expanded={floating} aria-controls={floating ? 'seri-floating-chat' : undefined} aria-busy={aircraft.phase === 'shaking' || aircraft.phase === 'flying' || aircraft.phase === 'landing'} {...gestures}>
       {!floating && !movable.hasMoved && !labelDismissed && !launcherObstructed && <span className="seri-launcher-label"><strong><Translated text="Chat with us" /></strong><small><Translated text="AI & travel support" /></small></span>}
-      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !movable.dragging}/><ChatAircraftMotion />
+      <AircraftGestureHint phase={aircraft.phase} boosted={aircraft.boosted} eligible={!floating && !keyboardOpen && !editingElsewhere && !movable.dragging && !launcherObstructed}/><ChatAircraftMotion />
     </button>
   </>, document.body)}</>;
 }

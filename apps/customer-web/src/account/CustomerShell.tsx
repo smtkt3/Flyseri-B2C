@@ -1,13 +1,12 @@
 import './customer-ux.css';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { MobileAccountNavigation } from './MobileAccountNavigation';
 import { lazy, Suspense } from 'react';
 import { CustomerDashboard } from './CustomerDashboard';
 import { SupportPage } from './SupportPage';
-import { PremiumNavbar } from '../components/PremiumNavbar';
 import { PageRecovery, PageRecoveryBoundary } from './PageRecovery';
 import { PageLoading } from '../components/PageLoading';
 import { TravelWorkspace } from './TravelWorkspace';
+import { CustomerSiteLayout } from './CustomerSiteLayout';
 
 const FareWatchesPage = lazy(() => import('../travel/FareWatches').then(module => ({ default: module.FareWatchesPage })));
 const ProfilePage = lazy(() => import('./ProfilePage').then((module) => ({ default: module.ProfilePage })));
@@ -17,7 +16,9 @@ const CreateTripPage = lazy(() => import('../trip/CreateTripPage').then((module)
 const TripWorkspacePage = lazy(() => import('../trip/TripWorkspacePage').then((module) => ({ default: module.TripWorkspacePage })));
 const DocumentDetailPage = lazy(() => import('../document/DocumentDetailPage').then((module) => ({ default: module.DocumentDetailPage })));
 const TripVisaPage = lazy(() => import('../visa/TripVisaPage').then((module) => ({ default: module.TripVisaPage })));
+const VisaStartPage = lazy(() => import('../visa/VisaStartPage').then((module) => ({ default: module.VisaStartPage })));
 const VisaHubPage = lazy(() => import('../visa/VisaHubPage').then((module) => ({ default: module.VisaHubPage })));
+const VisaDestinationPage = lazy(() => import('../visa/VisaDestinationPage').then((module) => ({ default: module.VisaDestinationPage })));
 const VisaApplicationPage = lazy(() => import('../visa/VisaApplicationPage').then((module) => ({ default: module.VisaApplicationPage })));
 const VisaAssistancePaymentPage = lazy(() => import('../visa/VisaAssistancePaymentPage').then(module => ({ default: module.VisaAssistancePaymentPage })));
 const VisaAssistanceDocumentsPage = lazy(() => import('../visa/VisaAssistanceDocumentsPage').then(module => ({ default: module.VisaAssistanceDocumentsPage })));
@@ -54,9 +55,7 @@ function PlannedPage({ title }: { title: string }) {
 
 export function CustomerShell() {
   const location = useLocation();
-  return <div className="customer-site-shell"><PremiumNavbar />
-    <div className="account-shell">
-    <div className="account-content">
+  return <CustomerSiteLayout>
       <PageRecoveryBoundary key={location.pathname}><Suspense fallback={<PageLoading />}><Routes>
       <Route index element={<CustomerDashboard />} />
       <Route path="profile" element={<ProfilePage />} />
@@ -67,10 +66,12 @@ export function CustomerShell() {
       <Route path="trips/:tripId" element={<TripWorkspacePage />} />
       <Route path="trips/:tripId/visa" element={<TripVisaPage />} />
       <Route path="visa" element={<VisaHubPage />} />
+      <Route path="visa/guide/:countryCode" element={<VisaDestinationPage />} />
       <Route path="visa/assistance/:requestId/payment" element={<VisaAssistancePaymentPage />} />
       <Route path="visa/assistance/:requestId/documents" element={<VisaAssistanceDocumentsPage />} />
       <Route path="visa/assistance" element={<VisaAssistanceRequestPage />} />
-      <Route path="visa/new" element={<TripVisaPage />} />
+      <Route path="visa/new" element={<VisaStartPage />} />
+      <Route path="visa/new/applicants" element={<TripVisaPage selectionChosen />} />
       <Route path="flights" element={<FlightSearchPage />} />
       <Route path="flights/booking-intents/:intentId" element={<FlightIntentPage />} />
       <Route path="flights/booking-intents/:intentId/extras" element={<FlightExtrasPage />} />
@@ -89,7 +90,6 @@ export function CustomerShell() {
       <Route path="documents/:documentId" element={<DocumentDetailPage />} />
       {sections.filter((section) => !section.ready).map((section) => <Route key={section.to} path={section.to.slice('/app/'.length)} element={<PlannedPage title={section.label} />} />)}
       <Route path="*" element={<PageRecovery />} />
-    </Routes></Suspense></PageRecoveryBoundary></div>
-    <MobileAccountNavigation/>
-  </div></div>;
+    </Routes></Suspense></PageRecoveryBoundary>
+  </CustomerSiteLayout>;
 }

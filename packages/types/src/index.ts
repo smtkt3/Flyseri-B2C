@@ -20,6 +20,9 @@ export interface FlightSearchRequest {
   tripId?: string;
 }
 export interface FlightSegment {
+  /** Explicit supplier handoff instructions at the next connection within this leg.
+   * Absence is UNKNOWN; baggage allowance and carrier changes do not establish through-checking. */
+  connectionAfter?: { baggageTransfer: 'RECHECK_REQUIRED' | 'THROUGH_CHECKED' | 'UNKNOWN'; selfTransfer?: boolean };
   origin: string;
   destination: string;
   departureAt: string;
@@ -505,6 +508,7 @@ export interface VisaFormField {
 export interface VisaFormSection { key: string; label: string; displayOrder: number; fields: VisaFormField[] }
 export interface VisaFeeComponent { code: string; label: string; amount: string; currency: string }
 export interface VisaFormDefinition { sections: VisaFormSection[] }
+export { VISA_APPLICANT_NATIONALITY, VISA_DESTINATION_CODES, isSupportedVisaDestination } from './visa-scope.js';
 export interface VisaType {
   id: string; destinationCountryCode: string; code: string; name: string; description: string | null;
   processingTimeText?: string | null; currency?: string | null; validityText?: string | null; entryType?: string | null;

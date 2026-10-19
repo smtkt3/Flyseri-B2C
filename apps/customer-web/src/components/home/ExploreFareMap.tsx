@@ -13,7 +13,7 @@ import { CalendarDateField } from "../CalendarDateField"
 import { preferredCurrency, currencyPreferenceEvent } from "../LocaleMenu"
 import type { PopularCachedFlightFare } from "@flyseri/types"
 import { flightService } from "../../services/flightService"
-import { useHomeSearchDraft, useHomeSearchField, homeSearchUrl } from "./homeSearchDraft"
+import { useHomeSearchDraft, useHomeSearchField, homeSearchUrl, updateHomeSearch } from "./homeSearchDraft"
 import airports from "./map-airports.json"
 import {
   WORLD_VIEW,
@@ -82,7 +82,7 @@ function readMapState() {
     return saved?.currency === preferredCurrency() ? saved as { currency: string; view?: MapView; faresOnly?: boolean; directOnly?: boolean; country?: string; routes?: boolean; maxPrice?: number } : null
   } catch { return null }
 }
-export function ExploreFareMap({ active: panelActive = true }: { active?: boolean } = {}) {
+export function ExploreFareMap({ active: panelActive = true, onEditRoute }: { active?: boolean; onEditRoute?: () => void } = {}) {
   const [saved] = useState(readMapState)
   const search = useHomeSearchDraft()
   const [originCode, setOriginCode] = useHomeSearchField("origin")
@@ -97,7 +97,8 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
   const [destinationValue, setDestinationValue] = useHomeSearchField("destination")
   const destination = destinationValue || null
   const setDestination = (code: string | null) => setDestinationValue(code ?? "")
-  const [departureDate, setDepartureDate] = useHomeSearchField("departure")
+  const departureDate = search.departure
+  const setDepartureDate = (value: string) => updateHomeSearch({ departure: value, ...(search.returnDate && search.returnDate < value ? { returnDate: '' } : {}) })
   const localToday = new Date()
   const minimumDate = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, "0")}-${String(localToday.getDate()).padStart(2, "0")}`
   const [view, setView] = useState<MapView>(() => {
@@ -479,9 +480,9 @@ export function ExploreFareMap({ active: panelActive = true }: { active?: boolea
             <small>{destination ? `${destination} · Change destination` : "Explore the world"} <Chevron/></small>
           </strong>
         </button>
-        <Link to={`/flights?${new URLSearchParams({ origin: originCode, currency })}`} aria-label="Change flight route">
+        {onEditRoute ? <button type="button" className="explore-map-edit-route" onClick={onEditRoute}>Edit route</button> : <Link to={`/flights?${new URLSearchParams({ origin: originCode, currency })}`} aria-label="Change flight route">
           ⇄
-        </Link>
+        </Link>}
       </div>
       <div className="explore-map-tabs">
         <button

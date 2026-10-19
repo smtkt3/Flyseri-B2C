@@ -1,0 +1,21 @@
+/* A compact welcome; conversation history keeps its scrollable reading area. */
+.premium-home-main .premium-main #home-search-ai>.premium-seri-chat{width:100%;max-width:960px;margin-inline:auto}
+.premium-home-main .premium-main #home-search-ai>.premium-seri-chat:has(.home-seri-transcript.is-empty){height:auto;min-height:0}
+#home-search-ai .premium-seri-chat:has(.seri-welcome-design) .home-seri-transcript.is-empty{flex:0 0 auto;padding:16px 24px}
+#home-search-ai .premium-seri-chat .home-seri-welcome.seri-welcome-design{height:auto;min-height:0;padding:4px 0}
+#home-search-ai .seri-welcome-design .seri-welcome-orbit{width:64px;height:64px;margin-bottom:10px}
+#home-search-ai .seri-welcome-orbit>div{width:52px;height:52px;border-radius:18px}
+#home-search-ai .seri-welcome-orbit svg{width:30px;height:30px}
+#home-search-ai .home-seri-welcome.seri-welcome-design>p{margin-bottom:14px}
+#home-search-ai .premium-seri-chat:has(.home-seri-transcript.is-empty)>form{margin-bottom:16px}
+@media(min-width:601px) and (max-width:1100px){
+ .premium-home-main .premium-main #home-search-ai{padding-inline:0;box-sizing:border-box}
+}
+@media(max-width:600px){
+ .premium-home-main .premium-main #home-search-ai{padding-inline:0;box-sizing:border-box}
+ #home-search-ai .premium-seri-chat:has(.seri-welcome-design) .home-seri-transcript.is-empty{padding:16px 12px 12px}
+ #home-search-ai .seri-welcome-design .seri-welcome-orbit{width:64px;height:64px;margin-bottom:10px}
+ #home-search-ai .home-seri-welcome.seri-welcome-design>strong{font-size:22px}
+ #home-search-ai .home-seri-welcome.seri-welcome-design>p{margin-bottom:14px}
+ #home-search-ai .premium-seri-chat:has(.home-seri-transcript.is-empty)>form{margin-bottom:12px}
+}

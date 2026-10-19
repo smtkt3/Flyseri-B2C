@@ -3,9 +3,9 @@ import { useDataSaving } from './useDataSaving';
 
 const slides = [
   { name: 'Santorini, Greece', image: 'photo-1570077188670-e3a8d69ac5ff', position: 'center 57%' },
-  { name: 'Bali, Indonesia', image: 'photo-1537996194471-e657df975ab4', position: 'center 55%' },
+  { name: 'Bali, Indonesia', image: 'photo-1537996194471-e657df975ab4', position: 'center 42%' },
   { name: 'Maldives', image: 'photo-1514282401047-d79a71a590e8', position: 'center 50%' },
-  { name: 'Swiss Alps, Switzerland', image: 'photo-1506905925346-21bda4d32df4', position: 'center 55%' },
+  { name: 'Swiss Alps, Switzerland', image: 'photo-1506905925346-21bda4d32df4', position: 'center 43%' },
 ];
 const imageUrl = (image: string, width: number) => `https://images.unsplash.com/${image}?w=${width}&q=82&fit=crop&auto=format`;
 

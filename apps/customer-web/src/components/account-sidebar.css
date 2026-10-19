@@ -1,0 +1,40 @@
+.account-secondary-rail{display:none}
+.account-secondary-drawer,.account-secondary-rail{box-sizing:border-box;color:#52677e;font-family:Inter,system-ui,sans-serif}
+.account-secondary-caption{font-size:10px;letter-spacing:.08em;font-weight:600;color:#8191a3;padding:8px 10px 14px}
+.account-secondary-identity{display:flex;align-items:center;gap:10px;padding:12px 8px 18px;margin-bottom:12px;border-bottom:1px solid #e9eef4;min-width:0}
+.account-secondary-avatar{position:relative;display:grid;place-items:center;width:34px;height:34px;flex:none;overflow:hidden;border-radius:10px;background:#edf2f7;color:#5c7895;font-size:14px;font-weight:600}
+.account-secondary-avatar>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.account-secondary-identity>div{min-width:0}.account-secondary-identity small{display:block;color:#7a8b9e;font-size:11px;margin-bottom:4px}.account-secondary-identity strong{display:block;font-size:12px;font-weight:600;line-height:1.5;color:#465d76;overflow-wrap:anywhere}
+.account-secondary-rail nav,.account-secondary-drawer nav{display:flex;flex-direction:column;gap:3px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.account-secondary-rail nav a,.account-secondary-drawer nav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:9px 10px;border:1px solid transparent;border-radius:9px;text-decoration:none;color:#61758a;box-sizing:border-box;flex:none}
+.account-secondary-rail .account-menu-icon,.account-secondary-drawer .account-menu-icon{display:grid;place-items:center;flex:none;width:22px;height:22px;background:transparent;color:#8a9db0}
+.account-secondary-rail .account-menu-icon svg,.account-secondary-drawer .account-menu-icon svg{width:18px;height:18px}
+.account-secondary-rail .account-menu-label,.account-secondary-drawer .account-menu-label{min-width:0}
+.account-secondary-rail .account-menu-label strong,.account-secondary-drawer .account-menu-label strong{display:block;font-size:12px;font-weight:500;line-height:1.5}
+.account-secondary-rail .account-menu-label small{display:none}
+.account-secondary-drawer .account-menu-label small{display:block;font-size:11px;font-weight:400;line-height:1.5;color:#8191a3;margin-top:2px}
+.account-secondary-rail nav a:hover,.account-secondary-drawer nav a:hover{background:#f1f5f9;color:#445f7a}
+.account-secondary-rail nav a[aria-current=page],.account-secondary-drawer nav a[aria-current=page]{background:#edf3f9;border-color:#e3ebf3;color:#476b91}
+.account-secondary-rail nav a[aria-current=page] .account-menu-label strong,.account-secondary-drawer nav a[aria-current=page] .account-menu-label strong{font-weight:600}
+.account-secondary-rail nav a[aria-current=page] svg,.account-secondary-drawer nav a[aria-current=page] svg{color:#6584a4}
+.account-secondary-rail .account-menu-divider,.account-secondary-drawer .account-menu-divider{margin-top:7px}
+.account-secondary-footer{margin-top:auto;padding:16px 8px 0;border-top:1px solid #e9eef4;flex:none}
+.account-secondary-footer button{min-height:44px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#99616a;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
+.account-secondary-footer button:hover{background:#fff3f3}.account-secondary-footer button:disabled{opacity:.6;cursor:wait}.account-secondary-footer p{font-size:12px;line-height:1.6;color:#a14d59}
+.account-secondary-rail :is(a,button):focus-visible,.account-secondary-drawer :is(a,button):focus-visible{outline:3px solid #92b6d8;outline-offset:2px}
+.account-secondary-modal{position:fixed;inset:0;width:100%;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;overflow:hidden;pointer-events:none;z-index:950}
+.account-secondary-modal::backdrop{background:#20364e26;backdrop-filter:blur(1px)}
+.account-secondary-drawer{position:absolute;inset:0 0 0 auto;display:flex;flex-direction:column;width:min(272px,76vw);height:100%;max-height:100dvh;padding:16px 12px calc(16px + env(safe-area-inset-bottom,0px));border:0;border-left:1px solid #e1e8f0;border-radius:0;background:#fbfdff;box-shadow:-12px 0 40px #20364e1a;overflow:hidden;pointer-events:auto}
+.account-secondary-drawer .account-secondary-identity{flex:none;gap:9px;padding:8px 8px 12px;margin-bottom:8px}
+.account-secondary-drawer .account-secondary-avatar{width:28px;height:28px;border-radius:8px;font-size:12px}
+.account-secondary-drawer .account-secondary-identity strong{font-size:12px}
+.account-secondary-drawer .account-menu-label small{display:block}
+.account-secondary-drawer nav{gap:0}
+.account-secondary-drawer nav a{padding:7px 8px;gap:9px;min-height:44px;border-radius:7px}
+.account-secondary-drawer .account-menu-icon{width:20px;height:20px}
+.account-secondary-drawer .account-menu-icon svg{width:16px;height:16px}
+.account-secondary-drawer .account-menu-divider{margin-top:3px}
+.account-secondary-drawer .account-secondary-footer{margin-top:auto;padding:16px 0 0}
+.account-secondary-drawer .account-secondary-drawer-heading{flex:none;padding:0 2px 0 8px;font-size:12px;font-weight:500}
+.account-secondary-drawer .account-secondary-drawer-heading button{background:transparent;font-size:22px}
+.account-secondary-drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:600;padding:0 8px 8px;color:#536b83}.account-secondary-drawer-heading button{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:#f0f4f8;color:#5c7187;font-size:25px;cursor:pointer}

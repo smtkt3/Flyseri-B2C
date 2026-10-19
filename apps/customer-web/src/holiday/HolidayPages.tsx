@@ -1,25 +1,31 @@
 import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
 import { Translated } from '../travel/language';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { HolidayBooking, HolidayPackage } from '@flyseri/types';
-import { PremiumNavbar } from '../components/PremiumNavbar';
+import { CustomerSiteLayout } from '../account/CustomerSiteLayout';
 import { useAuth } from '../auth/AuthProvider';
 import { randomUUID } from '../lib/randomUUID';
 import { previewHolidayPackages } from '../data/demo/holidayPackages';
-import { HolidayPackages, HolidayPhotoCredit } from './HolidayPackages';
+import { HolidayPhotoCredit } from './HolidayPackages';
+import { HolidayCatalogue } from './HolidayCatalogue';
 import { holidayMoney, holidayService } from './holidayService';
 import './holiday.css';
 
 export function HolidayCataloguePage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
-  return <div className="customer-site-shell holiday-page"><PremiumNavbar/><main className="holiday-page-main"><div className="holiday-breadcrumb"><Link to="/"><Translated text="Home" /></Link><span>/</span>Holidays</div><HolidayPackages full/><Link to="/holidays/bookings" className="holiday-bookings-link">View my holiday bookings →</Link></main></div>;
+  return <CustomerSiteLayout><div className="holiday-page"><main className="holiday-page-main"><HolidayCatalogue /></main></div></CustomerSiteLayout>;
 }
 function PaxControl({ label, note, value, min, max, disabled, onChange }: { label: string; note: string; value: number; min: number; max: number; disabled?: boolean; onChange: (n: number) => void }) {
   return <div className="holiday-pax-row"><div><strong>{label}</strong><small>{note}</small></div><div className="holiday-stepper"><button type="button" aria-label={`Remove ${label.toLowerCase()}`} disabled={disabled || value <= min} onClick={() => onChange(value - 1)}>−</button><output aria-label={`${label} quantity`}>{value}</output><button type="button" aria-label={`Add ${label.toLowerCase()}`} disabled={disabled || value >= max} onClick={() => onChange(value + 1)}>+</button></div></div>;
 }
 export function HolidayDetailPage() {
   const { id = '' } = useParams();
+  const location = useLocation();
+  const [catalogueTo] = useState(() => {
+    const savedSearch = location.state?.holidayCatalogueSearch;
+    return '/holidays' + (typeof savedSearch === 'string' && savedSearch.startsWith('?') && savedSearch.length < 2048 ? savedSearch : '');
+  });
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { session, resolving } = useAuth();
@@ -65,8 +71,8 @@ export function HolidayDetailPage() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Your booking could not be sent. Please try again.'); }
     finally { setSaving(false); }
   }
-  return <div className="customer-site-shell holiday-page"><PremiumNavbar/><main className="holiday-page-main"><div className="holiday-breadcrumb"><Link to="/"><Translated text="Home" /></Link><span>/</span><Link to="/holidays">Holidays</Link>{item && <><span>/</span>{item.location}</>}</div>
-    {loading ? <HomeLoadingScreen overlay label="Opening your getaway…"/> : !item ? <div className="holiday-empty"><p role="alert">{error}</p><Link to="/holidays">All holiday packages →</Link></div> : <>
+  return <CustomerSiteLayout><div className="holiday-page"><main className="holiday-page-main"><div className="holiday-breadcrumb"><Link to="/"><Translated text="Home" /></Link><span>/</span><Link to={catalogueTo}>Holidays</Link>{item && <><span>/</span>{item.location}</>}</div>
+    {loading ? <HomeLoadingScreen overlay label="Opening your getaway…"/> : !item ? <div className="holiday-empty"><p role="alert">{error}</p><Link to={catalogueTo}>All holiday packages →</Link></div> : <>
       <header className="holiday-detail-hero"><img src={item.imageUrl} alt={item.location}/><div><span className="holiday-tag">{item.category === 'DOMESTIC' ? 'Explore Bangladesh' : 'International escape'}</span><h1>{item.title}</h1><p>{item.location} <span>·</span> {item.days} days / {item.nights} nights</p></div></header>
       <HolidayPhotoCredit id={item.id}/>
       {item.preview && <p className="holiday-preview-note">Design preview · Images, itinerary and prices are illustrative. This package cannot be booked.</p>}
@@ -82,14 +88,14 @@ export function HolidayDetailPage() {
         <Link className="holiday-help" to="/app/support">Need help planning? Contact our team ↗</Link>
       </aside></div>
     </>}
-  </main></div>;
+  </main></div></CustomerSiteLayout>;
 }
 export function HolidayBookingsPage() {
   const [items, setItems] = useState<HolidayBooking[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   useEffect(() => { let active = true; holidayService.bookings().then(value => { if (active) setItems(value); }).catch(() => { if (active) setError('Your holiday bookings could not be loaded. Please try again later.'); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
-  return <div className="customer-site-shell holiday-page"><PremiumNavbar/><main className="holiday-page-main"><div className="holiday-section-heading"><div><span className="holiday-eyebrow">YOUR GETAWAYS</span><h1>My holiday bookings</h1></div><Link to="/holidays">Explore packages ↗</Link></div>{loading ? <HomeLoadingScreen overlay label="Loading bookings…"/> : error ? <p role="alert">{error}</p> : !items.length ? <div className="holiday-empty"><h2>Your next escape starts here</h2><p>You haven’t requested a holiday package yet.</p><Link to="/holidays">Find a holiday →</Link></div> : <div className="holiday-booking-list">{items.map(b => <article key={b.id}><span className="holiday-tag">{b.status.replace(/_/g, ' ')}</span><h2>{b.packageTitle}</h2><p>{b.departureDate} · {b.adults} adults · {b.children} children</p><strong>{holidayMoney(b.totalAmount)}</strong><small>Reference: {b.reference}</small>{b.status === 'PENDING_CONFIRMATION' && <p>Awaiting availability confirmation. No payment has been taken.</p>}</article>)}</div>}</main></div>;
+  return <CustomerSiteLayout><div className="holiday-page"><main className="holiday-page-main"><div className="holiday-section-heading"><div><span className="holiday-eyebrow">YOUR GETAWAYS</span><h1>My holiday bookings</h1></div><Link to="/holidays">Explore packages ↗</Link></div>{loading ? <HomeLoadingScreen overlay label="Loading bookings…"/> : error ? <p role="alert">{error}</p> : !items.length ? <div className="holiday-empty"><h2>Your next escape starts here</h2><p>You haven’t requested a holiday package yet.</p><Link to="/holidays">Find a holiday →</Link></div> : <div className="holiday-booking-list">{items.map(b => <article key={b.id}><span className="holiday-tag">{b.status.replace(/_/g, ' ')}</span><h2>{b.packageTitle}</h2><p>{b.departureDate} · {b.adults} adults · {b.children} children</p><strong>{holidayMoney(b.totalAmount)}</strong><small>Reference: {b.reference}</small>{b.status === 'PENDING_CONFIRMATION' && <p>Awaiting availability confirmation. No payment has been taken.</p>}</article>)}</div>}</main></div></CustomerSiteLayout>;
 }
 
 
