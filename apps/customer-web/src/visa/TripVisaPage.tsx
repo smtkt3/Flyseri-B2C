@@ -1,7 +1,10 @@
+import { PageLoading } from '../components/PageLoading';
+import { DateInput } from '../components/DateInput';
 import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
 import { VisaFlowHeader, VisaFlowActions } from './VisaFlowLayout';
 import { visaPurposeForService, visaPurposeMatches } from './visaPricing';
+import { hasVisitedVisaRequirements, visaRequirementsUrl } from './VisaRequirementsGate';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { TripDetail, VisaApplicationSummary, VisaType } from '@flyseri/types';
@@ -106,6 +109,11 @@ export function TripVisaPage({ embedded = false, initialTripId, selectionChosen 
     if (preparing.current || busy || (loadingTypes && !genericPurpose)) return;
     if (!trip || !isSupportedVisaDestination(country) || !travelDate || !typeId || (!selectedType && !genericPurpose) || (catalogueError && !genericPurpose) || !validApplicantCount) { setError('Choose an available destination, travel date and visa purpose, with 1–30 applicants.'); return; }
     if (travelDate < today()) { setError('Choose a future travel date.'); return; }
+    const applicationPurpose = visaPurposeForService(selectedType, initialPurpose || typeId.replace(/^request:/, ''));
+    if (!hasVisitedVisaRequirements(country, applicationPurpose)) {
+      navigate(visaRequirementsUrl(country, applicationPurpose));
+      return;
+    }
     preparing.current = true; setBusy(true); setError('');
     try {
       if (people.length) {
@@ -132,7 +140,7 @@ export function TripVisaPage({ embedded = false, initialTripId, selectionChosen 
   }
 
   if (selectionChosen && (!initialCountry || !initialPurpose)) return <Navigate to="/app/visa/new" replace />;
-  if (loading) return <div role="status" className="account-page visa-page"><div className="trip-skeleton trip-skeleton-wide" />Loading visa planning…</div>;
+  if (loading) return <PageLoading label="Loading visa planning"/>;
   if (notFound) return <div className="account-page visa-page"><h1>Trip not found</h1><Link to="/app/trips">Back to My Trips</Link></div>;
   if (!trip) return <div role="alert" className="account-page visa-page"><h1>We couldn't load visa planning.</h1><p>{error}</p><button className="btn-primary" onClick={() => tripId && void load(tripId)}><Translated text="Try again" /></button></div>;
 
@@ -148,21 +156,21 @@ export function TripVisaPage({ embedded = false, initialTripId, selectionChosen 
       <section className="account-panel visa-start-panel"><fieldset className="visa-intake-controls" disabled={busy}><div className="visa-start-heading"><span className="visa-start-number">01</span><div><p className="account-eyebrow">{selectionChosen ? 'TRAVEL & APPLICANTS' : 'YOUR VISA SEARCH'}</p><h2>{selectionChosen ? 'Prepare your application' : 'Tell us about your visit'}</h2></div></div>
         <div className="visa-search-grid">
           {!selectionChosen && <label>Destination country<select value={country} onChange={(event) => setCountry(event.target.value)} required><option value="">Choose a country</option>{countries.filter(item => isSupportedVisaDestination(item.code)).map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label>}
-          <label>Expected travel date<input type="date" min={today()} value={travelDate} onChange={(event) => setTravelDate(event.target.value)} required /></label>
+          <label>Expected travel date<DateInput label="Expected travel date"  min={today()} value={travelDate} onChange={(event) => setTravelDate(event.target.value)} required /></label>
           {!selectionChosen && <label>Visa purpose<select value={typeId} onChange={(event) => setTypeId(event.target.value)} required>
             <option value="">Choose a purpose</option>
             {types.length > 0 && <optgroup label="Published visa services">{types.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</optgroup>}
             <optgroup label="General assisted request">{commonPurposes.map(purpose => <option key={purpose} value={`request:${purpose}`}>{purpose}</option>)}</optgroup>
           </select></label>}
         </div>
-        {loadingTypes && <p role="status" className="visa-assistance-help">Loading published visa services. You can choose a general purpose now.</p>}
+        {loadingTypes && <PageLoading inline label="Loading visa services"/>}
         {catalogueError && <p role="alert" className="account-error">{catalogueError} You can still continue with a general assisted request. <button type="button" onClick={() => setCatalogueRevision((value) => value + 1)}><Translated text="Retry" /></button></p>}
         {!loadingTypes && country && !types.length && !catalogueError && <p className="visa-service-empty">Flyseri can review an assisted visa request for {countryName(country)}. This form is for Flyseri’s service; it is not a government application, and you can review the service fee before payment.</p>}
         {selectedType && <article className="visa-catalogue-detail"><h3>{countryName(selectedType.destinationCountryCode)} · {selectedType.name}</h3><p>{selectedType.description || 'Visa application assistance by Seri Mechan.'}</p>
           <dl>{selectedType.processingTimeText && <div><dt>Processing time</dt><dd>{selectedType.processingTimeText}</dd></div>}{selectedType.entryType && <div><dt>Entry</dt><dd>{selectedType.entryType}</dd></div>}{selectedType.validityText && <div><dt>Validity</dt><dd>{selectedType.validityText}</dd></div>}{selectedType.governmentFeeAmount && selectedType.currency && <div><dt>Government / embassy fee</dt><dd>{formatMoney(selectedType.governmentFeeAmount, selectedType.currency)}</dd></div>}{selectedType.serviceFeeAmount && selectedType.currency && <div><dt>Service fee</dt><dd>{formatMoney(selectedType.serviceFeeAmount, selectedType.currency)}</dd></div>}</dl>
           {selectedType.notes && <p>{selectedType.notes}</p>}{selectedType.disclaimers?.map((item, index) => <p className="account-muted" key={index}>{item}</p>)}<small>The embassy or relevant authority makes the visa decision. Approval is not guaranteed.</small></article>}
         <fieldset className="visa-applicant-picker"><legend>Who is applying? <span className="visa-optional-label">Optional saved profiles</span></legend><p className="visa-assistance-help">Select previous applicants to reuse their details, or continue with new applicants below.</p>{trip.travellers.map((person) => <label className="visa-check" key={person.id}><input type="checkbox" checked={people.includes(person.id)} onChange={(event) => setPeople(event.target.checked ? [...people, person.id] : people.filter((id) => id !== person.id))} /><span>{person.legalFirstName} {person.legalLastName}</span></label>)}<div className="visa-new-applicant-count"><label htmlFor="visa-new-applicants">New applicants<input id="visa-new-applicants" type="number" min={people.length ? 0 : 1} max={30 - people.length} value={newApplicants} onChange={event => setNewCount(Number(event.target.value))}/></label><p>Enter their details on the next page. You can add more applicants there.</p><strong>{totalApplicants} applicant{totalApplicants === 1 ? '' : 's'} in total</strong></div></fieldset>
-        <VisaFlowActions caption="Next: applicant details"><button type="button" className="btn-primary" aria-label={busy ? 'Preparing application' : selectedType && !newApplicants ? 'Start visa application' : 'Continue to applicant details'} disabled={busy || ((loadingTypes || Boolean(catalogueError)) && !typeId.startsWith('request:')) || !country || !travelDate || !typeId || !validApplicantCount} onClick={() => void create()}>{busy ? 'Preparing…' : <>Continue <span aria-hidden="true">→</span></>}</button></VisaFlowActions>
+        <VisaFlowActions next="Applicant details" back={<Link onClick={event=>{if(busy)event.preventDefault();}} to={selectionChosen ? '/app/visa/new?'+searchParams.toString() : '/app/visa'}>← Back</Link>}><button type="button" className="btn-primary" aria-label={busy ? 'Preparing application' : selectedType && !newApplicants ? 'Start visa application' : 'Continue to applicant details'} disabled={busy || ((loadingTypes || Boolean(catalogueError)) && !typeId.startsWith('request:')) || !country || !travelDate || !typeId || !validApplicantCount} onClick={() => void create()}>{busy ? 'Preparing…' : <>Continue <span aria-hidden="true">→</span></>}</button></VisaFlowActions>
         </fieldset>
       </section>
       <aside className="account-panel visa-existing-applications"><p className="account-eyebrow">PICK UP WHERE YOU LEFT OFF</p><h2>Your applications</h2>{applications.length ? <div className="visa-app-grid">{applications.map((application) => <Link className="visa-app-card" key={application.id} to={`/app/visa-applications/${application.id}`}><span className="visa-icon" aria-hidden="true">◆</span><div><strong>{countryName(application.destinationCountryCode)} · {application.visaTypeName}</strong><small>{visaStatus(application.status)}</small><small>{application.requiredTotal ? `${application.requiredCompleted} of ${application.requiredTotal} required items provided` : 'Contact Flyseri for document requirements'}</small></div><span aria-hidden="true">→</span></Link>)}</div> : <p className="account-muted">No visa applications for this journey yet.</p>}</aside>

@@ -18,7 +18,7 @@ export class SabreAuthService {
   private localInflight: Promise<string> | undefined;
   constructor(private readonly config: AppConfig, private readonly redis: RedisStore | undefined,
     private readonly fetcher: SabreTokenFetcher, private readonly telemetry: FlightTelemetry) {
-    const identity = JSON.stringify([config.SABRE_ENV, config.SABRE_CLIENT_ID, config.SABRE_PCC, config.SABRE_AUTH_URL]);
+    const identity = JSON.stringify([config.SABRE_ENV, config.SABRE_CLIENT_ID, config.SABRE_PCC, config.SABRE_USERNAME, config.SABRE_AUTH_URL]);
     this.key = `sabre:token:${createHash('sha256').update(identity).digest('hex')}`;
   }
   private valid(value: unknown): value is CachedToken {

@@ -8,8 +8,23 @@
 .home-loading-message{max-width:340px;text-align:center;color:#193854;text-wrap:balance}
 .home-loading-message strong{display:block;font-size:20px;line-height:1.4;font-weight:700}
 .home-loading-message p{margin:7px 0 0;font-size:13px;line-height:1.6;color:#526c88}
-/* Portals keep the loader centered even inside a scrolled or transformed page. */
-.home-loading.is-overlay{position:fixed;inset:0;z-index:840;min-height:0;background:transparent;pointer-events:none}
+/* Blur the page behind the portal, keeping the aircraft itself sharp. The
+   desktop rail sits outside this rectangle and remains clear and clickable. */
+.home-loading.is-overlay{position:fixed;inset:0;left:var(--home-loading-rail-offset,0px);z-index:840;min-height:0;background:#f7fbff2e;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);pointer-events:none}
+body:has(:is(.customer-service-layout,.premium-home-layout:not(.is-embedded))) .home-loading:not(.is-inline){left:var(--home-loading-rail-offset,0px);background:#f7fbff2e;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);pointer-events:none}
+@media(min-width:1101px){
+ body:has(:is(.customer-service-layout,.premium-home-layout:not(.is-embedded))){--home-loading-rail-offset:76px}
+ body:has(:is(.customer-service-layout,.premium-home-layout:not(.is-embedded)).services-open){--home-loading-rail-offset:var(--ui-service-rail-width,232px)}
+}
+.home-loading.is-inline{position:relative;inset:auto;z-index:auto;display:flex;width:100%;min-height:104px;padding:16px;background:transparent;pointer-events:none}
+.home-loading.is-inline .home-loading-journey{width:72px;height:72px;box-shadow:none}
+.home-loading.is-inline .home-loading-aircraft{width:56px;height:56px}
+.home-loading.is-inline .home-loading-aircraft img{width:52px;height:52px}
+.home-loading.is-inline.is-compact{display:inline-flex;vertical-align:middle;width:28px;height:28px;min-height:28px;padding:0}
+.home-loading.is-compact .home-loading-journey{width:28px;height:28px;border:0;background:transparent}
+.home-loading.is-compact .home-loading-journey::before{inset:1px;border-width:1px}
+.home-loading.is-compact .home-loading-aircraft{width:24px;height:24px}
+.home-loading.is-compact .home-loading-aircraft img{width:22px;height:22px;filter:none}
 @keyframes home-loading-spin{from{transform:translate3d(0,0,0) rotate(0deg)}to{transform:translate3d(0,0,0) rotate(360deg)}}
 @keyframes home-loading-ring{from{transform:translate3d(0,0,0) rotate(0deg)}to{transform:translate3d(0,0,0) rotate(360deg)}}
 @media(max-width:600px){.home-loading-journey{width:120px;height:120px}}

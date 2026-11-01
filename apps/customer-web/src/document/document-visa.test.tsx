@@ -35,7 +35,7 @@ describe('document vault and visa planning', () => {
     documentApi.policy.mockResolvedValue({ maxUploadMb: 10, acceptedTypes: [] });
     travellerApi.list.mockResolvedValue([]);
     render(<MemoryRouter><MyDocumentsPage /></MemoryRouter>);
-    expect(screen.getByRole('status').textContent).toContain('Loading your documents');
+    expect(screen.getByRole('status', { name: 'Loading your documents…' })).toBeTruthy();
     resolve([]);
     expect(await screen.findByText('No documents yet')).toBeTruthy();
   });

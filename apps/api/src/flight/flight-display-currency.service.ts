@@ -1,12 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import type { FlightAncillaryDisplayPrices } from '@flyseri/types';
+import type {CheckoutFx} from '../pricing/checkout-fx.contract.js';
 
 export interface DisplayPriceInput { amount: string | null; currency: string | null }
 interface Rates { values: Record<string, number>; updatedAt: string; until: number }
 
-/** Public daily FX data is used only for indicative display prices, never settlement. */
+/** Display conversion remains indicative. The separately approved CERT
+ * checkout method freezes the same verified source as a private quoted rate. */
 @Injectable()
 export class FlightDisplayCurrencyService {
+  /** Explicitly approved for CERT extra checkout. The exact rational rate and
+   * source timestamp are frozen in the private quote; no browser rate is used. */
+  async checkoutRate(from:string,to:string):Promise<CheckoutFx>{
+    if(!['BDT','MYR','USD','EUR','GBP','SGD','AUD'].includes(from)||!['BDT','MYR','USD','EUR','GBP','SGD','AUD'].includes(to))throw Error('This checkout currency requires separate support.');
+    const rates=await this.load(),source=rates.values[from],target=rates.values[to];
+    if(!source||!target)throw Error('Checkout conversion is unavailable.');
+    return {from,to,numerator:target.toFixed(10).replace('.',''),denominator:source.toFixed(10).replace('.',''),updatedAt:rates.updatedAt,validUntil:new Date(Math.min(rates.until,Date.now()+10*60000)).toISOString(),provider:'ExchangeRate-API'};
+  }
   private rates: Rates | undefined;
   private pending: Promise<Rates> | undefined;
   private retryAfter = 0;

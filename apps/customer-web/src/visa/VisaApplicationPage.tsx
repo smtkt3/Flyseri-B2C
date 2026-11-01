@@ -1,3 +1,4 @@
+import { PageLoading } from '../components/PageLoading';
 import { Translated } from '../travel/language';
 import { VisaJourneyProgress } from './VisaJourneyProgress';
 import { VisaFlowHeader, VisaFlowActions } from './VisaFlowLayout';
@@ -209,7 +210,7 @@ export function VisaApplicationPage() {
     catch { setError("We couldn't archive this application."); setBusy(false); }
   }
 
-  if (loading) return <div role="status" className="account-page visa-page"><div className="trip-skeleton trip-skeleton-wide"/>Loading your visa application…</div>;
+  if (loading) return <PageLoading label="Loading visa application"/>;
   if (notFound) return <div className="account-page visa-page"><h1>Application not found</h1><Link to="/app/visa">Back to Visa</Link></div>;
   if (!application || !trip) return <div role="alert" className="account-page visa-page"><h1>We couldn't load this application.</h1><p>{error}</p><button onClick={() => applicationId && void load(applicationId)}><Translated text="Try again" /></button></div>;
 
@@ -304,7 +305,7 @@ export function VisaApplicationPage() {
           return <div className="visa-form-group" key={`${section.key}-${person.id}`}><h4>{person.legalFirstName} {person.legalLastName}</h4><div className="visa-form-grid">{fields.map((field) => renderField(section, field, person.id))}</div></div>;
         })}
       </section>)}
-      <VisaFlowActions caption={`${completedFormFields} / ${totalFormFields} required answers`}><button type="button" className="btn-primary" disabled={busy || saving || !canEdit} onClick={() => void advanceFromDetails()}>{saving ? 'Saving…' : 'Save & continue to documents →'}</button></VisaFlowActions>
+      <VisaFlowActions next="Documents" caption={`${completedFormFields} / ${totalFormFields} required answers`} back={<Link onClick={event=>{if(busy||saving)event.preventDefault();}} to="/app/visa/new?tab=applications">← My applications</Link>}><button type="button" className="btn-primary" disabled={busy || saving || !canEdit} onClick={() => void advanceFromDetails()}>{saving ? 'Saving…' : 'Save & continue to documents →'}</button></VisaFlowActions>
     </div> : <section className="account-panel visa-unconfigured"><h2>Application temporarily unavailable</h2><p>Please contact Flyseri for help with this application. Your saved travelers and files remain available.</p></section>)}
 
     {stage === 'documents' && <section className="visa-documents-section"><div className="visa-section-title"><div><p className="account-eyebrow">STEP 03 / 05 · SECURE DOCUMENT VAULT</p><h2>Upload your documents</h2><p className="account-muted">Add each applicant's required files, then wait for the security check to finish.</p></div><span>{completeDocuments}/{requiredDocuments.length} ready</span></div>
@@ -335,7 +336,7 @@ export function VisaApplicationPage() {
             </div>}
           </article>;
         })}</div></section>)}
-      {canEdit && <VisaFlowActions back={<button type="button" disabled={busy||saving} onClick={() => setStage('details')}>← Application details</button>}><button type="button" disabled={busy||saving} className="btn-primary" onClick={advanceFromDocuments}>Continue to review →</button></VisaFlowActions>}
+      {canEdit && <VisaFlowActions next="Review" back={<button type="button" disabled={busy||saving} onClick={() => setStage('details')}>← Application details</button>}><button type="button" disabled={busy||saving} className="btn-primary" onClick={advanceFromDocuments}>Continue to review →</button></VisaFlowActions>}
     </section>}
 
     {stage === 'review' && <section className="visa-review-panel account-panel"><div><p className="account-eyebrow">STEP 04 / 05 · FINAL CHECK</p><h2>Review your application</h2><p>Check the information and document checklist before sending your application to Seri Mechan for review.</p></div>
@@ -344,9 +345,9 @@ export function VisaApplicationPage() {
       {isDraft(application.status) && <label className="visa-declaration"><input type="checkbox" checked={acceptedDeclaration} onChange={(event) => setAcceptedDeclaration(event.target.checked)} />
         <span>I confirm that my answers are accurate, my documents are genuine, and I authorize Seri Mechan to assist with processing this visa application. I understand that the embassy or relevant authority makes the decision and fees/refund terms apply.</span>
       </label>}
-      {isDraft(application.status) ? <VisaFlowActions caption="Save application · payment next" back={<button type="button" disabled={busy||saving} onClick={()=>setStage('documents')}>← Back to documents</button>}><button type="button" className="btn-primary" disabled={busy || saving || !acceptedDeclaration || !form.length || completedFormFields !== totalFormFields || completeDocuments !== requiredDocuments.length} onClick={() => void submitApplication()}>{busy ? 'Submitting securely…' : 'Submit application →'}</button></VisaFlowActions>
+      {isDraft(application.status) ? <VisaFlowActions next="Payment" caption="Save application · payment next" back={<button type="button" disabled={busy||saving} onClick={()=>setStage('documents')}>← Back to documents</button>}><button type="button" className="btn-primary" disabled={busy || saving || !acceptedDeclaration || !form.length || completedFormFields !== totalFormFields || completeDocuments !== requiredDocuments.length} onClick={() => void submitApplication()}>{busy ? 'Submitting securely…' : 'Submit application →'}</button></VisaFlowActions>
         : correctionMode ? <p className="visa-review-wait">Your requested corrections will be reviewed by Seri Mechan before processing continues.</p>
-        : <button type="button" className="btn-primary visa-submit" onClick={() => setStage('payment')}>View payment status →</button>}
+        : <VisaFlowActions next="Payment status" back={<button type="button" disabled={busy||saving} onClick={()=>setStage('documents')}>← Documents</button>}><button type="button" className="btn-primary" onClick={() => setStage('payment')}>View payment status →</button></VisaFlowActions>}
       <p className="account-muted">Submitting sends your application for review. It does not take a payment or guarantee visa approval.</p>
     </section>}
 
@@ -358,7 +359,7 @@ export function VisaApplicationPage() {
         {isDraft(application.status) && <p className="visa-review-wait">Complete the application and document steps, then submit it to unlock payment.</p>}
         {!order && application.status === 'SUBMITTED' && <button type="button" className="btn-primary visa-submit" disabled={busy} onClick={() => void submitApplication()}>Prepare payment order</button>}
         {order && checkoutAvailable && ['PENDING_PAYMENT','PAYMENT_FAILED'].includes(order.status) && (!order.payment || order.payment.status === 'FAILED') &&
-          <CheckoutActionBar label="Visa service payment" caption="Service total" total={formatMoney(order.totalAmount,order.currency)}><button type="button" className="btn-primary" disabled={busy} onClick={() => void beginPayment()}>{busy ? 'Opening secure checkout…' : 'Continue to secure test checkout'}</button></CheckoutActionBar>}
+          <CheckoutActionBar label="Visa service payment" caption="Service total" total={formatMoney(order.totalAmount,order.currency)}><button type="button" className="account-outline-button" disabled={busy||saving} onClick={()=>setStage('review')}>← Review</button><button type="button" className="btn-primary" disabled={busy} onClick={() => void beginPayment()}>{busy ? 'Opening secure checkout…' : 'Continue to secure test checkout'}</button></CheckoutActionBar>}
         {order && !checkoutAvailable && <p className="visa-review-wait">Online checkout is currently unavailable. No payment has been taken.</p>}
         {order && <button type="button" className="account-outline-button" disabled={busy} onClick={() => void refreshPayment()}>Refresh payment status</button>}
         {application.status === 'PAID' && <p className="visa-payment-confirmed">Payment is confirmed. Your application is ready for Seri Mechan’s document review.</p>}

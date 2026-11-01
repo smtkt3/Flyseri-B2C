@@ -12,7 +12,7 @@ import { PaymentEngineService } from './payment-engine.service.js';
 
 async function migrated() {
   const database = new PGlite();
-  await database.exec('CREATE ROLE flyseri_api');
+  await database.exec('CREATE ROLE flyseri_api; CREATE ROLE anon; CREATE ROLE authenticated;');
   const journal = JSON.parse(readFileSync(resolve(process.cwd(), '../../packages/database/drizzle/meta/_journal.json'), 'utf8')) as { entries: { tag: string }[] };
   for (const entry of journal.entries) {
     const migration = readFileSync(resolve(process.cwd(), `../../packages/database/drizzle/${entry.tag}.sql`), 'utf8');
@@ -50,6 +50,10 @@ describe('commerce order foundation', () => {
       const same = await service.createFlightOrder(a, intentId, 'repeat');
       expect(same.id).toBe(first.id);
       expect(await service.list(b)).toEqual([]);
+      const history = await service.list(a);
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({id:first.id,totalAmount:'1280.50',overview:{kind:'FLIGHT',title:'Flight KUL to NRT'}});
+      expect(history[0]?.overview?.reference).toBeUndefined();
       await expect(service.detail(b, first.id)).rejects.toMatchObject({ status: 404 });
       await expect(service.receipt(a, first.id)).rejects.toMatchObject({ status: 409 });
       expect((await database.query('select id from orders')).rows).toHaveLength(1);
@@ -86,6 +90,7 @@ describe('commerce order foundation', () => {
       await repository.applyVerifiedEvent('TEST_VERIFIED_ADAPTER', paymentId,
         { ...event, providerEventId: 'event-late-failure', status: 'FAILED' }, 'late');
       expect(await service.detail(a, first.id)).toMatchObject({ status: 'PAID', fulfillmentStatus: 'REVALIDATION_REQUIRED' });
+      expect((await service.list(a))[0]?.overview?.reference).toEqual({label:'PNR',value:'TEST01'});
       expect((await service.receipt(a, first.id)).documentKind).toBe('PAYMENT_RECEIPT');
       expect((await database.query('select id from commerce_outbox')).rows).toHaveLength(2);
       expect((await database.query('select id from payment_events')).rows).toHaveLength(2);

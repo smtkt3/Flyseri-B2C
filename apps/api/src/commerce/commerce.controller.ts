@@ -5,6 +5,9 @@ import { CurrentUser, CustomerAuthGuard } from '../customer/auth.js';
 import type { AuthenticatedUserContext, ContextRequest } from '../request-context.js';
 import { CommerceService } from './commerce.service.js';
 import { PaymentEngineService } from './payment-engine.service.js';
+import { FlightBookingsService } from '../flight/flight-bookings.service.js';
+import { FlightTicketingService } from '../flight/flight-ticketing.service.js';
+import { ApiException } from '../api-exception.js';
 
 class CreateFlightOrderDto { @IsUUID() bookingIntentId!: string; }
 class StartPaymentDto { @IsUUID() idempotencyKey!: string; }
@@ -18,7 +21,9 @@ const response = <T>(request: ContextRequest, data: T): ApiSuccess<T> => ({ succ
 @UseGuards(CustomerAuthGuard)
 export class CommerceController {
   constructor(@Inject(CommerceService) private readonly service: CommerceService,
-    @Inject(PaymentEngineService) private readonly paymentsEngine: PaymentEngineService) {}
+    @Inject(PaymentEngineService) private readonly paymentsEngine: PaymentEngineService,
+    @Inject(FlightBookingsService) private readonly flightBookings: FlightBookingsService,
+    @Inject(FlightTicketingService) private readonly flightTicketing: FlightTicketingService) {}
   @Post('orders/flight') @HttpCode(201)
   async create(@CurrentUser() user: AuthenticatedUserContext, @Body(validated) body: CreateFlightOrderDto,
     @Req() request: ContextRequest): Promise<ApiSuccess<OrderDetail>> {
@@ -51,7 +56,15 @@ export class CommerceController {
   async startPayment(@CurrentUser() user: AuthenticatedUserContext, @Param('orderId', ParseUUIDPipe) id: string,
     @Body(validatedPayment) body: StartPaymentDto, @Req() request: ContextRequest): Promise<ApiSuccess<PaymentStartResult>> {
     // Check ownership before explaining that the provider is unavailable.
-    await this.service.detail(user.customerId, id);
+    const order = await this.service.detail(user.customerId, id);
+    if (order.bookingIntentId && !order.flightServicingCaseId) {
+      const readiness = await this.flightTicketing.capabilities();
+      if (!readiness.ticketIssuanceAvailable) throw new ApiException('CONFLICT',
+        'Flight ticketing is unavailable. No payment was started; contact Flyseri about this reservation.',409);
+      const booking = await this.flightBookings.verifyPaymentReady(user.customerId, order.bookingIntentId, id);
+      if (booking.selectedOffer.ndcContext && !this.flightTicketing.canFulfillNdc(booking.selectedOffer.airlineCodes))
+        throw new ApiException('CONFLICT','This airline requires an approved payment and ticketing profile before checkout. No payment was started.',409);
+    }
     return response(request, await this.paymentsEngine.start(user.customerId, id, body.idempotencyKey));
   }
   @Get('payments')

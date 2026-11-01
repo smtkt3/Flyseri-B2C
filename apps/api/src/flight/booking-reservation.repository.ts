@@ -9,7 +9,7 @@ export class BookingReservationMissingError extends Error {}
 export class BookingReservationRepository {
   constructor(private readonly connection: DatabaseConnection) {}
 
-  async claim(customerId: string, intentId: string, expectedFare?: { currency: string; amount: string }, passengerNames?: string[]): Promise<string> {
+  async claim(customerId: string, intentId: string, expectedFare?: { currency: string; amount: string }, passengerNames?: string[],contactEmail?:string): Promise<string> {
     return this.connection.db.transaction(async (tx) => {
       const [intent] = await tx.select().from(flightBookingIntents)
         .where(and(eq(flightBookingIntents.id, intentId), eq(flightBookingIntents.customerId, customerId)))
@@ -28,6 +28,7 @@ export class BookingReservationRepository {
         customerId, bookingIntentId: intentId, tripId: intent.tripId, status: 'BOOKING_IN_PROGRESS',
       }).onConflictDoNothing({ target: flightBookings.bookingIntentId }).returning({ id: flightBookings.id });
       if (!created) throw new BookingReservationConflictError('This selection already has a booking attempt');
+      if(contactEmail)await tx.update(flightBookingIntents).set({searchRequestSnapshot:{...intent.searchRequestSnapshot as Record<string,unknown>,checkoutContactEmail:contactEmail.trim()}}).where(eq(flightBookingIntents.id,intentId));
       const evidence = await tx.execute(sql`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'flight_bookings' AND column_name = 'booked_passenger_names') AS ready`);
       if (passengerNames && evidence.rows[0]?.ready === true) await tx.execute(sql`UPDATE flight_bookings SET booked_passenger_names = ${JSON.stringify(passengerNames)}::jsonb WHERE id = ${created.id}::uuid`);
       await tx.insert(auditEvents).values({ actorCustomerId: customerId, tripId: intent.tripId, event: 'flight.booking.claimed' });
@@ -36,7 +37,7 @@ export class BookingReservationRepository {
   }
 
   async created(id: string, confirmationId: string, sabreBookingId: string): Promise<void> {
-    if (!/^[A-Z0-9]{5,16}$/i.test(confirmationId) || !sabreBookingId.trim()) throw new Error('Invalid Sabre booking identifiers');
+    if (!/^[A-Z0-9]{6,16}$/i.test(confirmationId) || !sabreBookingId.trim()) throw new Error('Invalid Sabre booking identifiers');
     const [row] = await this.connection.db.update(flightBookings).set({ status: 'PNR_CREATED',
       pnrLocator: confirmationId.toUpperCase(), sabreBookingId, updatedAt: new Date() })
       .where(and(eq(flightBookings.id, id), eq(flightBookings.status, 'BOOKING_IN_PROGRESS')))
@@ -54,7 +55,7 @@ export class BookingReservationRepository {
     });
   }
 
-  async rejected(id: string, failureCode?: 'AGENCY_CONFIGURATION' | 'PROVIDER_REJECTED', diagnostic?: {httpStatus?: number; errors: BookingRejectionDiagnostic[]}): Promise<void> {
+  async rejected(id: string, failureCode?: 'AGENCY_CONFIGURATION' | 'PROVIDER_REJECTED', diagnostic?: {httpStatus?: number; errors: BookingRejectionDiagnostic[]; supplierRequestId?:string}): Promise<void> {
     await this.connection.db.transaction(async tx => {
     const [row] = await tx.update(flightBookings).set({ status: 'BOOKING_FAILED', updatedAt: new Date() })
       .where(and(eq(flightBookings.id, id), eq(flightBookings.status, 'BOOKING_IN_PROGRESS')))

@@ -1,9 +1,11 @@
+import {FlightPricingService} from '../pricing/flight-pricing.service.js';
+import {priceMinor,priceAmount} from '../pricing/flight-pricing.contract.js';
 import { FlightAncillaryPurchaseService } from './flight-ancillary-purchase.service.js';
 import { ArrayMaxSize, ArrayMinSize, ArrayUnique, IsArray, IsBoolean, IsDefined, IsEmail, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, ValidateNested, IsDateString, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { BadRequestException, Body, Controller, Delete, Get, Header, HttpCode, Inject, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Optional, Body, Controller, Delete, Get, Header, HttpCode, Inject, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards, ValidationPipe } from '@nestjs/common';
 import type { Response } from 'express';
-import type { ApiSuccess, FlightBookingIntent, FlightBookingIntentInput, FlightSearchResponse, FlightSearchEvent } from '@flyseri/types';
+import type { ApiSuccess, FlightBooking,FlightAncillaryPurchase, FlightBookingIntent, FlightBookingIntentInput, FlightSearchResponse, FlightSearchEvent } from '@flyseri/types';
 import { CurrentUser, CustomerAuthGuard, OptionalCustomerAuthGuard } from '../customer/auth.js';
 import type { AuthenticatedUserContext, ContextRequest } from '../request-context.js';
 import { ApiException } from '../api-exception.js';
@@ -16,6 +18,7 @@ import { CustomerRateLimitGuard } from '../customer/rate-limit.guard.js';
 import { FlightBookingsService } from './flight-bookings.service.js';
 import { FlightAncillariesService } from './flight-ancillaries.service.js';
 import { FlightTicketingService } from './flight-ticketing.service.js';
+import {TicketDocumentsService} from './ticket-documents.service.js';
 
 class AncillaryPassengerDto {
   @IsString() @MaxLength(120) givenName!: string;
@@ -186,49 +189,78 @@ export class FlightController {
     @Inject(FlightBookingsService) private readonly bookings: FlightBookingsService,
     @Inject(FlightTicketingService) private readonly ticketing: FlightTicketingService,
     @Inject(FlightAncillariesService) private readonly ancillaries: FlightAncillariesService,
-    @Inject(FlightAncillaryPurchaseService) private readonly extras: FlightAncillaryPurchaseService) {}
+    @Inject(FlightAncillaryPurchaseService) private readonly extras: FlightAncillaryPurchaseService,
+    @Optional() @Inject(FlightPricingService) private readonly pricing?:FlightPricingService,
+    @Optional() @Inject(TicketDocumentsService) private readonly ticketDocuments?:TicketDocumentsService) {}
+  @Get('bookings/:id/ticket.pdf') @UseGuards(CustomerRateLimitGuard)
+  async ticketPdf(@CurrentUser() user:AuthenticatedUserContext,@Param('id',ParseUUIDPipe) id:string,@Res() response:Response){
+    if(!this.ticketDocuments)throw new ApiException('DEPENDENCY_UNAVAILABLE','Ticket documents are unavailable.',503);
+    const file=await this.ticketDocuments.pdf(user.customerId,id);
+    response.setHeader('Content-Type','application/pdf');response.setHeader('Cache-Control','private, no-store');response.setHeader('Content-Disposition','attachment; filename="'+file.filename+'"');response.setHeader('X-Content-Type-Options','nosniff');response.send(file.buffer);
+  }
+  @Get('bookings/:id/ticket-delivery') @Header('Cache-Control','private, no-store')
+  async ticketDelivery(@CurrentUser() user:AuthenticatedUserContext,@Param('id',ParseUUIDPipe) id:string,@Req() request:ContextRequest){
+    if(!this.ticketDocuments)throw new ApiException('DEPENDENCY_UNAVAILABLE','Ticket delivery is unavailable.',503);
+    return {success:true,data:await this.ticketDocuments.deliveryStatus(user.customerId,id),requestId:request.requestId};
+  }
+  private async publicIntent<T extends FlightBookingIntent|FlightBookingIntent[]>(customerId:string,value:T):Promise<T>{
+    if(!this.pricing)return value;return (Array.isArray(value)?await Promise.all(value.map(intent=>this.pricing!.intent(customerId,intent))):await this.pricing.intent(customerId,value)) as T;
+  }
+  private async publicBooking<T extends FlightBooking|FlightBooking[]|null>(customerId:string,value:T):Promise<T>{
+    if(!this.pricing)return value;return (Array.isArray(value)?await Promise.all(value.map(booking=>this.pricing!.booking(customerId,booking))):await this.pricing.booking(customerId,value)) as T;
+  }
+  private async publicExtras(customerId:string,bookingId:string,value:FlightAncillaryPurchase|undefined){
+    if(!value||!this.pricing)return value;const booking=await this.bookings.detail(customerId,bookingId),retail=await this.pricing.snapshot(customerId,booking.bookingIntentId,booking.amount,booking.currency);
+    return retail?{...value,airfareAmount:retail.sellingTotal,totalAmount:priceAmount(priceMinor(retail.sellingTotal)+priceMinor(value.extrasAmount))}:value;
+  }
 
   @Post('bookings/:id/extras/review') @HttpCode(200) @Header('Cache-Control', 'no-store') @UseGuards(CustomerRateLimitGuard)
   async reviewExtras(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ValidationPipe({expectedType: AncillaryReviewDto, transform: true, whitelist: true, forbidNonWhitelisted: true})) body: AncillaryReviewDto | undefined, @Req() request: ContextRequest) {
-    return { success: true, data: await this.extras.prepare(user.customerId, id, body?.refresh === true), requestId: request.requestId };
+    return { success: true, data: await this.publicExtras(user.customerId,id,await this.extras.prepare(user.customerId, id, body?.refresh === true)), requestId: request.requestId };
   }
   @Post('bookings/:id/refresh-checkout') @HttpCode(200) @Header('Cache-Control', 'no-store') @UseGuards(CustomerRateLimitGuard)
   async refreshCheckout(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) {
-    return {success:true,data:await this.bookings.refreshCheckout(user.customerId,id),requestId:request.requestId};
+    return {success:true,data:await this.publicBooking(user.customerId,await this.bookings.refreshCheckout(user.customerId,id)),requestId:request.requestId};
   }
   @Post('bookings/:id/extras/confirm') @HttpCode(200) @Header('Cache-Control', 'no-store') @UseGuards(CustomerRateLimitGuard)
   async confirmExtras(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string,
     @Body(new ValidationPipe({ expectedType: AncillaryPurchaseConfirmationDto, transform: true, whitelist: true, forbidNonWhitelisted: true })) body: AncillaryPurchaseConfirmationDto, @Req() request: ContextRequest) {
-    return { success: true, data: await this.extras.confirm(user.customerId, id, body.reviewId), requestId: request.requestId };
+    return { success: true, data: await this.publicExtras(user.customerId,id,await this.extras.confirm(user.customerId, id, body.reviewId)), requestId: request.requestId };
   }
   @Post('bookings/:id/extras/skip') @HttpCode(200) @Header('Cache-Control', 'no-store') @UseGuards(CustomerRateLimitGuard)
   async skipExtras(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) {
-    return { success: true, data: await this.extras.skip(user.customerId, id), requestId: request.requestId };
+    return { success: true, data: await this.publicExtras(user.customerId,id,await this.extras.skip(user.customerId, id)), requestId: request.requestId };
   }
   @Post('bookings/:id/extras/reconcile') @HttpCode(200) @Header('Cache-Control', 'no-store') @UseGuards(CustomerRateLimitGuard)
   async reconcileExtras(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) {
-    return { success: true, data: await this.extras.reconcile(user.customerId, id), requestId: request.requestId };
+    return { success: true, data: await this.publicExtras(user.customerId,id,await this.extras.reconcile(user.customerId, id)), requestId: request.requestId };
   }
   @Get('bookings/capabilities')
-  async bookingCapabilities(@Req() request: ContextRequest) { return { success: true, data: { ...this.bookings.capabilities(), ...await this.ticketing.capabilities() }, requestId: request.requestId }; }
+  async bookingCapabilities(@Req() request: ContextRequest) {
+    const capabilities=await this.ticketing.capabilities();
+    return { success: true, data: { ...this.bookings.capabilities(), ...capabilities,
+      ticketIssuanceAvailable:capabilities.ticketIssuanceAvailable&&capabilities.customerTicketingEnabled,
+      ticketingMessage:capabilities.customerTicketingEnabled?capabilities.ticketingMessage:'Paid reservations are reviewed by the Flyseri ticketing team. Your payment and PNR do not need to be submitted again.' }, requestId: request.requestId };
+  }
   @Post('bookings/:id/issue-tickets') @HttpCode(200) @UseGuards(CustomerRateLimitGuard)
   async issueTickets(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Body(validateTicketing) body: CancelReservationDto, @Req() request: ContextRequest) {
+    if(!(await this.ticketing.capabilities()).customerTicketingEnabled)throw new ApiException('CONFLICT','This reservation requires staff ticketing approval. Do not make another payment.',409);
     return { success: true, data: await this.ticketing.issue(user.customerId, id, body.confirmedPnr), requestId: request.requestId };
   }
   @Get('bookings') @Header('Cache-Control', 'no-store')
-  async bookingsList(@CurrentUser() user: AuthenticatedUserContext, @Req() request: ContextRequest) { return { success: true, data: await this.bookings.list(user.customerId), requestId: request.requestId }; }
+  async bookingsList(@CurrentUser() user: AuthenticatedUserContext, @Req() request: ContextRequest) { return { success: true, data: await this.publicBooking(user.customerId,await this.bookings.list(user.customerId)), requestId: request.requestId }; }
   @Get('bookings/:id') @Header('Cache-Control', 'no-store')
-  async bookingDetail(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) { return { success: true, data: await this.bookings.detail(user.customerId, id), requestId: request.requestId }; }
+  async bookingDetail(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) { return { success: true, data: await this.publicBooking(user.customerId,await this.bookings.detail(user.customerId, id)), requestId: request.requestId }; }
   @Post('bookings/:id/refresh') @HttpCode(200) @UseGuards(CustomerRateLimitGuard)
-  async refreshBooking(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) { return { success: true, data: await this.bookings.refresh(user.customerId, id), requestId: request.requestId }; }
+  async refreshBooking(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) { return { success: true, data: await this.publicBooking(user.customerId,await this.bookings.refresh(user.customerId, id)), requestId: request.requestId }; }
   @Post('bookings/:id/cancel') @HttpCode(200) @UseGuards(CustomerRateLimitGuard)
-  async cancelBooking(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Body(validateCancellation) body: CancelReservationDto, @Req() request: ContextRequest) { return { success: true, data: await this.bookings.cancelUnticketed(user.customerId,id,body.confirmedPnr), requestId: request.requestId }; }
+  async cancelBooking(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Body(validateCancellation) body: CancelReservationDto, @Req() request: ContextRequest) { return { success: true, data: await this.publicBooking(user.customerId,await this.bookings.cancelUnticketed(user.customerId,id,body.confirmedPnr)), requestId: request.requestId }; }
   @Post('booking-intents/:id/reserve') @HttpCode(200) @UseGuards(CustomerRateLimitGuard)
-  async reserve(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Body(validateReservation) input: ReservationDto, @Req() request: ContextRequest) { return { success: true, data: await this.bookings.reserve(user.customerId, id, input), requestId: request.requestId }; }
+  async reserve(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Body(validateReservation) input: ReservationDto, @Req() request: ContextRequest) { return { success: true, data: await this.publicBooking(user.customerId,await this.bookings.reserve(user.customerId, id, input)), requestId: request.requestId }; }
 
   @Get('booking-intents/:id/booking') @Header('Cache-Control', 'no-store')
   async intentBooking(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) {
-    return { success: true, data: await this.bookings.forIntent(user.customerId, id), requestId: request.requestId };
+    return { success: true, data: await this.publicBooking(user.customerId,await this.bookings.forIntent(user.customerId, id)), requestId: request.requestId };
   }
   @Post('booking-intents/:id/ancillaries') @HttpCode(200) @Header('Cache-Control', 'no-store') @UseGuards(FlightRateGuard)
   async intentAncillaries(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest) {
@@ -238,32 +270,32 @@ export class FlightController {
   async saveAncillarySelections(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string,
     @Body(new ValidationPipe({ expectedType: AncillarySelectionsDto, transform: true, whitelist: true, forbidNonWhitelisted: true })) body: AncillarySelectionsDto, @Req() request: ContextRequest) {
     const extras = this.ancillaries.resolveSelections(user.customerId, { intentId: id }, body.selections);
-    return { success: true, data: await this.intents.saveAncillaryRequests(user.customerId, id, extras), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.saveAncillaryRequests(user.customerId, id, extras)), requestId: request.requestId };
   }
 
   @Post('booking-intents') @HttpCode(201)
   async createIntent(@CurrentUser() user: AuthenticatedUserContext, @Body(validatedIntent) body: BookingIntentDto, @Req() request: ContextRequest): Promise<ApiSuccess<FlightBookingIntent>> {
     const extras = this.ancillaries.resolveSelections(user.customerId, { searchId: body.searchId, offerId: body.offerId }, body.ancillarySelections ?? []);
-    return { success: true, data: await this.intents.create(user.customerId, body, extras), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.create(user.customerId, body, extras)), requestId: request.requestId };
   }
   @Get('booking-intents')
   async listIntents(@CurrentUser() user: AuthenticatedUserContext, @Query('tripId', ParseUUIDPipe) tripId: string, @Req() request: ContextRequest): Promise<ApiSuccess<FlightBookingIntent[]>> {
-    return { success: true, data: await this.intents.list(user.customerId, tripId), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.list(user.customerId, tripId)), requestId: request.requestId };
   }
   @Get('booking-intents/:id')
   async intent(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest): Promise<ApiSuccess<FlightBookingIntent>> {
-    return { success: true, data: await this.intents.detail(user.customerId, id), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.detail(user.customerId, id)), requestId: request.requestId };
   }
   @Post('booking-intents/:id/validate') @HttpCode(200)
   async validateIntent(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest): Promise<ApiSuccess<FlightBookingIntent>> {
-    return { success: true, data: await this.intents.validate(user.customerId, id, request.requestId), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.validate(user.customerId, id, request.requestId)), requestId: request.requestId };
   }
   @Post('booking-intents/:id/confirm-price') @HttpCode(200)
   async confirmPrice(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest): Promise<ApiSuccess<FlightBookingIntent>> {
-    return { success: true, data: await this.intents.confirmPrice(user.customerId, id), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.confirmPrice(user.customerId, id)), requestId: request.requestId };
   }
   @Delete('booking-intents/:id')
   async cancelIntent(@CurrentUser() user: AuthenticatedUserContext, @Param('id', ParseUUIDPipe) id: string, @Req() request: ContextRequest): Promise<ApiSuccess<FlightBookingIntent>> {
-    return { success: true, data: await this.intents.cancel(user.customerId, id), requestId: request.requestId };
+    return { success: true, data: await this.publicIntent(user.customerId,await this.intents.cancel(user.customerId, id)), requestId: request.requestId };
   }
 }

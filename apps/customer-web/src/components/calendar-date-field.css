@@ -1,4 +1,11 @@
 .calendar-date-field{position:relative;min-width:0;color:#213a5b}
+.app-date-input{position:relative;display:block;min-width:0;width:100%}
+.app-date-input>input.app-date-native{position:absolute!important;inset:0 auto auto 0!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;opacity:0;clip-path:inset(50%);pointer-events:none}
+.app-date-input .calendar-date-field{width:100%}
+.app-date-input .calendar-date-trigger{font:inherit}
+.calendar-date-trigger:disabled{cursor:not-allowed;opacity:.6}
+.calendar-date-trigger[aria-invalid=true]{border-color:#d75b6b;box-shadow:0 0 0 2px #d75b6b12}
+.calendar-footer-actions{display:flex;align-items:center;gap:6px;flex:none}
 .calendar-date-field.is-open{z-index:160}
 .calendar-date-trigger{position:relative;display:flex;align-items:center;justify-content:space-between;gap:.7rem;width:100%;min-width:0;min-height:58px;padding:.55rem .72rem;border:1px solid #dce8f4;border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(246,251,255,.94));color:inherit;text-align:left;cursor:pointer;transition:border-color .18s,box-shadow .18s,background .18s}
 .calendar-date-trigger:hover{border-color:#9dc6f2;background:#fff}
@@ -91,3 +98,20 @@
  .calendar-popover-portal .calendar-month-controls button{width:34px;min-width:34px}
  .calendar-popover-portal .calendar-popover-header{align-items:center}
 }
+
+/* Shared calendar surface for search, booking and account forms. */
+body .calendar-popover.calendar-popover-portal{padding:16px;border:1px solid #dce6f1;border-radius:16px;background:#fff;box-shadow:0 12px 40px #203e6226,0 2px 8px #203e620a}
+body .calendar-popover-portal .calendar-popover-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:0 0 12px;align-items:center}
+body .calendar-popover-portal .calendar-popover-eyebrow{font-size:11px;letter-spacing:0;font-weight:600;color:#60758d;margin-bottom:5px}
+body .calendar-popover-portal .calendar-period-select{gap:4px}
+body .calendar-popover-portal .calendar-period-select select{min-height:40px;padding:6px;font-size:13px;background:#f4f7fb;border:1px solid #e4ebf3;border-radius:8px}
+body .calendar-popover-portal .calendar-period-select select:first-child{width:106px;max-width:100%}
+body .calendar-popover-portal .calendar-period-select select:last-child{width:70px}
+body .calendar-popover-portal .calendar-month-controls{gap:4px}
+body .calendar-popover-portal .calendar-month-controls button{width:36px;min-width:36px;height:44px;min-height:44px;border-radius:8px;background:#fff;border-color:#e2eaf3;transform:none}
+body .calendar-popover-portal .calendar-weekdays{font-size:11px;color:#6c7d91;font-weight:600;padding:12px 0 8px}
+body .calendar-popover-portal .calendar-day{font-size:13px;font-weight:550;transform:none}
+body .calendar-popover-portal .calendar-day.today:not(.selected){border-color:#b4d2f4;color:#1766ca;background:#f4f9ff}
+body .calendar-popover-portal .calendar-day.selected{background:#1766ca;border-color:#1766ca;font-weight:700;color:#fff}
+body .calendar-popover-portal .calendar-popover-footer{margin-top:12px;padding-top:12px;font-size:11px}
+@media(max-width:650px){body .calendar-popover.calendar-popover-portal{padding:16px 14px calc(16px + env(safe-area-inset-bottom,0px));border-radius:18px}body .calendar-popover-portal .calendar-day{min-height:44px}body .calendar-popover-portal .calendar-popover-header{gap:6px}}

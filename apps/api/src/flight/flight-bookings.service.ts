@@ -1,8 +1,9 @@
-import { hasIssuedTicketEvidence, matchesConfirmedItinerary } from './reservation-evidence.js';
-import { publicAncillaryPurchase, type AncillarySnapshot } from './ancillary-purchase.contract.js';
+import { hasIssuedTicketEvidence, hasCurrentIssuedTicketEvidence, matchesConfirmedItinerary } from './reservation-evidence.js';
+import { publicAncillaryPurchase,confirmedAncillaryItems,cents,requestKey, type AncillarySnapshot } from './ancillary-purchase.contract.js';
+import {publicAncillaryRequest} from '../pricing/ancillary-pricing.contract.js';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { auditEvents, customerTravellers, flightBookingIntents, flightBookingIntentTravellers, flightBookings, orders, travellers, type DatabaseConnection } from '@flyseri/database';
+import { auditEvents, customerTravellers, flightBookingIntents, flightBookingIntentTravellers, flightBookings, orders, payments, travellers, type DatabaseConnection } from '@flyseri/database';
 import type { AppConfig } from '@flyseri/config';
 import type { FlightBooking, FlightBookingProviderView, FlightReservationInput, FlightServiceRequest, OrderStatus, FlightAncillaryRequest } from '@flyseri/types';
 import { ApiException } from '../api-exception.js';
@@ -15,6 +16,11 @@ import { passengerCodeAt } from './flight-passenger-types.js';
 import { FlightTelemetry } from './flight.telemetry.js';
 import { SabreBookingManagementClient, SabreBookingUnknownError, SabreBookingRejectedError, buildSabreCreateBooking, buildSabreCreateNdcBooking, selectCheckedAtpcoOffer, type BookingAgency } from './sabre-booking-management.client.js';
 import { readPricedNdcOffer } from './sabre-ndc-price.js';
+import { TicketingValidationError } from './ticketing-currency.contract.js';
+import { reservationFailureMessage } from './reservation-failure.contract.js';
+import {customerExchangeQuotations} from './customer-exchange-quotation.js';
+import {readRetailPricing} from '../pricing/flight-pricing.contract.js';
+import {ticketDocumentAvailable} from './ticket-document.contract.js';
 
 const missing = () => new ApiException('NOT_FOUND', 'Booking not found.', 404);
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Reservation creation is not configured. Your flight selection is kept.', 503);
@@ -54,6 +60,7 @@ export class FlightBookingsService {
       bookedNames: sql<string[] | null>`to_jsonb(${flightBookings})->'booked_passenger_names'`,
       providerSnapshot: sql<FlightBookingProviderView | null>`to_jsonb(${flightBookings})->'provider_view_snapshot'`,
       failureCode: sql<string | null>`(SELECT CASE WHEN a.event = 'flight.booking.rejected:' || ${flightBookings.id}::text || ':AGENCY_CONFIGURATION' THEN 'AGENCY_CONFIGURATION' ELSE 'PROVIDER_REJECTED' END FROM audit_events a WHERE a.actor_customer_id = ${flightBookings.customerId} AND a.event IN ('flight.booking.rejected:' || ${flightBookings.id}::text || ':AGENCY_CONFIGURATION', 'flight.booking.rejected:' || ${flightBookings.id}::text || ':PROVIDER_REJECTED') ORDER BY a.created_at DESC LIMIT 1)`,
+      unknownDiagnosticEvent: sql<string | null>`(SELECT a.event FROM audit_events a WHERE a.actor_customer_id = ${flightBookings.customerId} AND a.event LIKE 'flight.booking.unknown-diagnostic:' || ${flightBookings.id}::text || ':%' ORDER BY a.created_at DESC LIMIT 1)`,
       reconciliationEvent: sql<string | null>`(SELECT a.event FROM audit_events a WHERE a.actor_customer_id = ${flightBookings.customerId} AND a.event LIKE 'flight.booking.reconciliation:' || ${flightBookings.id}::text || ':%' ORDER BY a.created_at DESC LIMIT 1)`,
       order: { id: orders.id, orderNumber: orders.orderNumber, status: orders.status, expiresAt: orders.expiresAt, paidAt: orders.paidAt },
       currency: flightBookingIntents.currency, amount: flightBookingIntents.validatedTotalAmount, shoppingAmount: flightBookingIntents.searchTotalAmount })
@@ -63,8 +70,10 @@ export class FlightBookingsService {
       .orderBy(desc(flightBookings.createdAt), desc(flightBookings.id)).limit(id ? 1 : 100);
   }
   private async present(row: Awaited<ReturnType<FlightBookingsService['rows']>>[number]): Promise<FlightBooking> {
-    const selectedOffer = parseFlightOffers([row.offer])?.[0];
+    const serviced=(row.searchSnapshot as {servicedOffer?:unknown}).servicedOffer;
+    const selectedOffer = parseFlightOffers([serviced??row.offer])?.[0];
     if (!selectedOffer) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'The saved itinerary could not be read.', 503);
+    const unconfirmedMessage=row.booking.status==='BOOKING_UNKNOWN'&&!row.booking.pnrLocator?reservationFailureMessage(row.unknownDiagnosticEvent,row.booking.id,selectedOffer):undefined;
     let reconciliation: {checkedAt:string;result:'NO_ACTIVE_MATCH'} | undefined;
     if(row.reconciliationEvent) try {
       const evidence=JSON.parse(row.reconciliationEvent.split(':').slice(2).join(':'));
@@ -75,14 +84,15 @@ export class FlightBookingsService {
       .innerJoin(travellers, eq(travellers.id, flightBookingIntentTravellers.travellerId)).where(eq(flightBookingIntentTravellers.bookingIntentId, row.booking.bookingIntentId));
     const storedOrder = (row.searchSnapshot as { checkoutTravellerOrder?: string[] }).checkoutTravellerOrder;
     const orderedPeople = storedOrder && storedOrder.length === people.length && new Set(storedOrder).size === people.length && storedOrder.every(id => people.some(person => person.id === id)) ? storedOrder.map(id => people.find(person => person.id === id)!) : people;
-    return { id: row.booking.id, bookingIntentId: row.booking.bookingIntentId, tripId: row.booking.tripId, status: row.booking.status,
+    const presented:FlightBooking={ id: row.booking.id, bookingIntentId: row.booking.bookingIntentId, tripId: row.booking.tripId, status: row.booking.status,
       pnr: row.booking.pnrLocator, currency: row.currency, amount: row.amount ?? row.shoppingAmount, selectedOffer,
       ancillaryPurchase: publicAncillaryPurchase((row.searchSnapshot as AncillarySnapshot).checkoutAncillaryPurchase),
-      ancillaryRequests: (row.searchSnapshot as { checkoutAncillaryRequests?: FlightAncillaryRequest[] }).checkoutAncillaryRequests ?? [],
+      ancillaryRequests: ((row.searchSnapshot as { checkoutAncillaryRequests?: FlightAncillaryRequest[] }).checkoutAncillaryRequests ?? []).map(publicAncillaryRequest),
       passengerNames: row.bookedNames ?? orderedPeople.map(person => [person.first, person.middle, person.last].filter(Boolean).join(' ')),
       passengerNamesSource: row.bookedNames ? 'BOOKED_SNAPSHOT' : 'CURRENT_PROFILES',
       ...(reconciliation ? {reconciliation} : {}),
       ...(row.failureCode ? { failureMessage: row.failureCode === 'AGENCY_CONFIGURATION' ? 'The reservation was rejected because of an agency configuration issue. No PNR was confirmed.' : 'The airline provider rejected this reservation. No PNR was confirmed.' } : {}),
+      ...(unconfirmedMessage?{failureMessage:unconfirmedMessage}:{}),
       serviceRequests: ((row.serviceRequests ?? []) as FlightServiceRequest[]).map(request => {
         const person = people.find(person => person.id === request.travellerId);
         return { ...request, passengerName: person ? [person.first, person.middle, person.last].filter(Boolean).join(' ') : 'Traveler' };
@@ -90,10 +100,14 @@ export class FlightBookingsService {
       ...(row.providerSnapshot ? { providerView: row.providerSnapshot } : {}),
       ...(row.order?.id ? { order: { ...row.order, status: (row.order.expiresAt && row.order.expiresAt.getTime() <= Date.now() && ['PENDING_PAYMENT','PAYMENT_FAILED'].includes(row.order.status) ? 'EXPIRED' : row.order.status) as OrderStatus, expiresAt: row.order.expiresAt?.toISOString() ?? null, paidAt: row.order.paidAt?.toISOString() ?? null } } : {}),
       createdAt: row.booking.createdAt.toISOString(), updatedAt: row.booking.updatedAt.toISOString(),
-      lastSabreRefreshAt: row.booking.lastSabreRefreshAt?.toISOString() ?? null, ticketStatus: hasIssuedTicketEvidence(row.providerSnapshot,row.bookedNames?.length ?? orderedPeople.length) ? 'ISSUED' : 'NOT_VERIFIED' };
+      lastSabreRefreshAt: row.booking.lastSabreRefreshAt?.toISOString() ?? null, ticketStatus: hasCurrentIssuedTicketEvidence(row.providerSnapshot,row.bookedNames?.length ?? orderedPeople.length) ? 'ISSUED' : 'NOT_VERIFIED' };
+    return {...presented,ticketDocumentAvailable:ticketDocumentAvailable(presented)};
   }
-  async list(customerId: string) { return Promise.all((await this.rows(customerId)).map(row => this.present(row))); }
-  async detail(customerId: string, id: string) { const [row] = await this.rows(customerId, id); if (!row) throw missing(); return this.present(row); }
+  async list(customerId: string) {
+    const rows=await this.rows(customerId),quotations=await customerExchangeQuotations(this.connection!,customerId,{bookingIds:rows.map(row=>row.booking.id)});
+    return Promise.all(rows.map(async row=>({...await this.present(row),exchangeQuotations:quotations.filter(quote=>quote.bookingId===row.booking.id)})));
+  }
+  async detail(customerId: string, id: string) { const [row] = await this.rows(customerId, id); if (!row) throw missing(); return {...await this.present(row),exchangeQuotations:await customerExchangeQuotations(this.connection!,customerId,{bookingIds:[id]})}; }
   async forIntent(customerId: string, intentId: string) {
     await this.intents.detail(customerId, intentId);
     const [row] = await this.db.select({ id: flightBookings.id }).from(flightBookings)
@@ -162,7 +176,7 @@ export class FlightBookingsService {
     } catch (error) { if (error instanceof ApiException) throw error; throw new ApiException('DEPENDENCY_UNAVAILABLE', 'The airline reservation fare could not be confirmed. No booking was sent.', 503); }
     const repository = new BookingReservationRepository(this.connection);
     let id: string;
-    try { id = await repository.claim(customerId, intentId, {currency: intent.currency, amount: intent.validatedTotalAmount}, passengers.map(person => `${person.givenName} ${person.surname}`)); }
+    try { id = await repository.claim(customerId, intentId, {currency: intent.currency, amount: intent.validatedTotalAmount}, passengers.map(person => `${person.givenName} ${person.surname}`),input.contactEmail); }
     catch (error) {
       if (error instanceof BookingReservationMissingError) throw missing();
       if (error instanceof BookingReservationConflictError) {
@@ -178,7 +192,7 @@ export class FlightBookingsService {
     try { created = await this.sabre.createBooking(body); }
     catch (error) {
       if (error instanceof SabreBookingRejectedError) {
-        await repository.rejected(id, error.failureCode, {httpStatus:error.httpStatus,errors:error.diagnostics});
+        await repository.rejected(id, error.failureCode, {httpStatus:error.httpStatus,errors:error.diagnostics,supplierRequestId:error.supplierRequestId});
         this.telemetry.increment('booking_create_failure_total');
       } else {
         // An unexpected adapter error does not prove the airline rejected the
@@ -213,24 +227,91 @@ export class FlightBookingsService {
     });
     return {...await this.detail(customerId, id), providerView: result.view};
   }
+  private async checkoutFareEvidence(customerId: string, booking: FlightBooking) {
+    if (!this.sabre) throw unavailable();
+    if (!booking.pnr) throw new ApiException('CONFLICT', 'This reservation needs review before payment.', 409);
+    // The shopping fare can still match while the stored PNR quote is invalid.
+    // Validate the actual ticketing quote before offering customer payment.
+    let current: Awaited<ReturnType<SabreBookingManagementClient['getBookingView']>>;
+    let storedQuote: Awaited<ReturnType<SabreBookingManagementClient['getTicketingContext']>> | undefined;
+    try {
+      if (booking.selectedOffer.ndcContext) current = await this.sabre.getBookingView(booking.pnr);
+      else { storedQuote = await this.sabre.getTicketingContext(booking.pnr); current = storedQuote; }
+    } catch (error) {
+      if (error instanceof TicketingValidationError) throw new ApiException('CONFLICT', 'The stored airline fare needs review before payment. Contact Flyseri about this reservation; please do not book it again.', 409);
+      throw error;
+    }
+    const [record] = await this.db.select().from(flightBookings).where(and(eq(flightBookings.id,booking.id),eq(flightBookings.customerId,customerId))).limit(1);
+    if (booking.passengerNamesSource !== 'BOOKED_SNAPSHOT' || !record || current.bookingId !== (record.sabreBookingId ?? booking.pnr) || !current.view.cancellationCheckComplete || current.view.tickets.length || current.view.travellers.length !== booking.passengerNames.length || current.view.travellers.some((person,index)=>[person.givenName,person.surname].join(' ').trim().replace(/\s+/g,' ').toUpperCase() !== booking.passengerNames[index]!.trim().replace(/\s+/g,' ').toUpperCase()) || !matchesConfirmedItinerary(current.view, booking.selectedOffer)) throw new ApiException('CONFLICT','Your reservation needs airline verification before payment. Contact Flyseri.',409);
+    const [intent] = await this.db.select().from(flightBookingIntents).where(and(eq(flightBookingIntents.id,booking.bookingIntentId),eq(flightBookingIntents.customerId,customerId))).limit(1);
+    if (!intent?.validatedTotalAmount) throw missing();
+    if (storedQuote && (storedQuote.selection.currency !== intent.currency || !amountEquals(storedQuote.selection.totalAmount, intent.validatedTotalAmount))) throw new ApiException('CONFLICT', 'The stored airline fare differs from the price you accepted. Contact Flyseri to review this reservation before payment.', 409);
+    const offer=booking.selectedOffer;
+    // A held ATPCO seat is verified against its active stored PQ, not the
+    // availability for selling another seat in the same booking class.
+    const checked = offer.ndcContext ? await (async()=>{const priced=readPricedNdcOffer(await this.sabre!.priceNdcOffer(offer.ndcContext!.offerItemIds ?? []),offer);return {totalAmount:priced.currentTotalAmount,currency:priced.currency,validUntil:priced.expiresAt};})()
+      : {totalAmount:storedQuote!.selection.totalAmount,currency:storedQuote!.selection.currency,validUntil:undefined};
+    if (checked.currency!==intent.currency || !amountEquals(checked.totalAmount,intent.validatedTotalAmount)) throw new ApiException('CONFLICT','The airline fare changed. Contact Flyseri to review your existing reservation before paying.',409);
+    const expiresAt=new Date(Math.min(Date.now()+this.config.FLIGHT_VALIDATION_TTL_SECONDS*1000,checked.validUntil ? Date.parse(checked.validUntil) : Infinity));
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt<=new Date()) throw new ApiException('CONFLICT','This airline fare is no longer available for payment.',409);
+    return {intent,expiresAt};
+  }
+  /** An existing order cannot bypass the supplier checks before a Stripe checkout starts or resumes. */
+  async verifyPaymentReady(customerId: string, intentId: string, orderId: string) {
+    const booking = await this.forIntent(customerId,intentId);
+    if (!booking || booking.order?.id !== orderId || !['PNR_CREATED','AWAITING_PAYMENT','PAYMENT_PENDING'].includes(booking.status))
+      throw new ApiException('CONFLICT','This reservation needs review before payment.',409);
+    const {intent,expiresAt}=await this.checkoutFareEvidence(customerId,booking);
+    const reviewedSnapshot=intent.searchRequestSnapshot as AncillarySnapshot,reviewedExtras=reviewedSnapshot.checkoutAncillaryPurchase;
+    if(reviewedExtras&&!['SKIPPED','UNAVAILABLE'].includes(reviewedExtras.status)){
+      if(reviewedExtras.status!=='CONFIRMED'||reviewedExtras.requestKey!==requestKey(reviewedSnapshot.checkoutAncillaryRequests??[]))throw new ApiException('CONFLICT','The selected extras need reconciliation before payment.',409);
+      const current=await this.sabre!.getPurchaseBooking(booking.pnr!);
+      if(current.bookingId!==reviewedExtras.bookingId||current.travelers.length!==booking.passengerNames.length||current.travelers.some((person,index)=>[person.givenName,person.surname].join(' ').trim().replace(/\s+/g,' ').toUpperCase()!==booking.passengerNames[index]!.trim().replace(/\s+/g,' ').toUpperCase()))throw new ApiException('CONFLICT','The extra-service reservation or travelers changed before payment.',409);
+      let evidence:ReturnType<typeof confirmedAncillaryItems>;
+      try{evidence=confirmedAncillaryItems(current,reviewedExtras.plans,reviewedSnapshot.checkoutAncillaryRequests??[]);}catch{throw new ApiException('CONFLICT','The attached airline extras could not be verified before payment.',409);}
+      if(evidence.length!==reviewedExtras.items.length||reviewedExtras.items.some(item=>!evidence.some(actual=>actual.requestId===item.requestId&&item.providerAncillaryIds.includes(actual.itemId)&&actual.currency===item.airlineCurrency&&cents(actual.amount)===cents(item.airlineAmount))))throw new ApiException('CONFLICT','The airline extra price or association changed. Review the existing reservation before payment.',409);
+    }
+    // Carry the fresh, unchanged-fare evidence into the existing order. Otherwise
+    // reservePayment still rejects the old shopping TTL after Sabre just passed.
+    // This renews our fare-check window, never the airline's ticketing deadline.
+    await this.db.transaction(async tx=>{
+      const [lockedIntent]=await tx.select().from(flightBookingIntents).where(and(eq(flightBookingIntents.id,intentId),eq(flightBookingIntents.customerId,customerId))).for('update');
+      const [order]=await tx.select().from(orders).where(and(eq(orders.id,orderId),eq(orders.customerId,customerId))).for('update');
+      const [payment]=await tx.select().from(payments).where(eq(payments.orderId,orderId)).for('update');
+      const [saved]=await tx.select().from(flightBookings).where(eq(flightBookings.id,booking.id)).for('update');
+      if(!lockedIntent || !order || order.bookingIntentId!==intentId || order.flightServicingCaseId || !['PENDING_PAYMENT','PAYMENT_FAILED','PAYMENT_PROCESSING'].includes(order.status) || order.paidAt ||
+        !saved || !['PNR_CREATED','AWAITING_PAYMENT','PAYMENT_PENDING'].includes(saved.status) || saved.pnrLocator!==booking.pnr ||
+        lockedIntent.currency!==intent.currency || lockedIntent.validatedTotalAmount!==intent.validatedTotalAmount ||
+        payment && (!['FAILED','PENDING'].includes(payment.status) || payment.currency!==order.currency || payment.amount!==order.totalAmount))
+        throw new ApiException('CONFLICT','Checkout changed. Check payment and reservation status before continuing.',409);
+      const extras=(lockedIntent.searchRequestSnapshot as AncillarySnapshot).checkoutAncillaryPurchase;
+      // An existing extras order also needs supplier service-price verification;
+      // do not silently extend that snapshot with airfare-only evidence.
+      if(extras && !['SKIPPED','UNAVAILABLE'].includes(extras.status)) {
+        const retail=readRetailPricing((lockedIntent.searchRequestSnapshot as {retailPricing?:unknown}).retailPricing,intent.validatedTotalAmount!,intent.currency);
+        if(extras.status!=='CONFIRMED'||JSON.stringify(extras)!==JSON.stringify(reviewedExtras)||extras.currency!==order.currency||order.currency!==intent.currency||cents(extras.extrasAmount)!==extras.items.reduce((sum,item)=>sum+cents(item.checkoutAmount),0n)||cents(order.subtotalAmount)!==cents(retail?.sellingTotal??intent.validatedTotalAmount!)+cents(extras.extrasAmount))throw new ApiException('CONFLICT','The frozen extra-service order changed. Review it before payment.',409);
+        const verifiedUntil=new Date(Math.min(expiresAt.getTime(),Date.now()+120000));
+        await tx.update(orders).set({expiresAt:verifiedUntil,updatedAt:new Date()}).where(eq(orders.id,orderId));
+        await tx.update(flightBookingIntents).set({expiresAt:verifiedUntil,validatedAt:new Date(),searchRequestSnapshot:{...lockedIntent.searchRequestSnapshot as AncillarySnapshot,checkoutAncillaryPurchase:{...extras,expiresAt:verifiedUntil.toISOString()}},updatedAt:new Date()}).where(eq(flightBookingIntents.id,intentId));
+        await tx.insert(auditEvents).values({actorCustomerId:customerId,tripId:booking.tripId,event:'flight.payment.fare_and_extras_revalidated'});
+        return;
+      }
+      const retail=readRetailPricing((lockedIntent.searchRequestSnapshot as {retailPricing?:unknown}).retailPricing,intent.validatedTotalAmount!,intent.currency);
+      if(order.currency!==intent.currency || !amountEquals(order.subtotalAmount,retail?.sellingTotal??intent.validatedTotalAmount!))
+        throw new ApiException('CONFLICT','The order no longer matches the verified airline fare. Contact Flyseri before payment.',409);
+      await tx.update(orders).set({expiresAt,updatedAt:new Date()}).where(eq(orders.id,orderId));
+      await tx.update(flightBookingIntents).set({expiresAt,validatedAt:new Date(),updatedAt:new Date()}).where(eq(flightBookingIntents.id,intentId));
+      await tx.insert(auditEvents).values({actorCustomerId:customerId,tripId:booking.tripId,event:'flight.payment.fare_revalidated'});
+    });
+    return booking;
+  }
   /** Refresh an existing reservation's checkout window without creating another PNR. */
   async refreshCheckout(customerId: string, id: string) {
     if (!this.sabre) throw unavailable();
     const booking = await this.detail(customerId, id);
     if (booking.order) return booking;
     if (!booking.pnr || !['PNR_CREATED', 'AWAITING_PAYMENT'].includes(booking.status)) throw new ApiException('CONFLICT', 'This reservation needs review before payment.', 409);
-    const current = await this.sabre.getBookingView(booking.pnr);
-    const [record] = await this.db.select().from(flightBookings).where(and(eq(flightBookings.id,id),eq(flightBookings.customerId,customerId))).limit(1);
-    if (booking.passengerNamesSource !== 'BOOKED_SNAPSHOT' || !record || current.bookingId !== (record.sabreBookingId ?? booking.pnr) || !current.view.cancellationCheckComplete || current.view.tickets.length || current.view.travellers.length !== booking.passengerNames.length || current.view.travellers.some((person,index)=>[person.givenName,person.surname].join(' ').trim().replace(/\s+/g,' ').toUpperCase() !== booking.passengerNames[index]!.trim().replace(/\s+/g,' ').toUpperCase()) || !matchesConfirmedItinerary(current.view, booking.selectedOffer)) throw new ApiException('CONFLICT','Your reservation needs airline verification before payment. Contact Flyseri.',409);
-    const [intent] = await this.db.select().from(flightBookingIntents).where(and(eq(flightBookingIntents.id,booking.bookingIntentId),eq(flightBookingIntents.customerId,customerId))).limit(1);
-    if (!intent?.validatedTotalAmount) throw missing();
-    const offer=booking.selectedOffer;
-    const search=intent.searchRequestSnapshot as {adults:number;children:number;infants:number};
-    const checked = offer.ndcContext ? await (async()=>{const priced=readPricedNdcOffer(await this.sabre!.priceNdcOffer(offer.ndcContext!.offerItemIds ?? []),offer);return {totalAmount:priced.currentTotalAmount,currency:priced.currency,validUntil:priced.expiresAt};})()
-      : selectCheckedAtpcoOffer(await this.sabre.flightCheck(offer,[...Array.from({length:search.adults},()=> 'ADT' as const),...Array.from({length:search.children},()=> 'CNN' as const),...Array.from({length:search.infants},()=> 'INF' as const)]),offer,this.config.SABRE_PCC!);
-    if (checked.currency!==intent.currency || !amountEquals(checked.totalAmount,intent.validatedTotalAmount)) throw new ApiException('CONFLICT','The airline fare changed. Contact Flyseri to review your existing reservation before paying.',409);
-    const expiresAt=new Date(Math.min(Date.now()+this.config.FLIGHT_VALIDATION_TTL_SECONDS*1000,checked.validUntil ? Date.parse(checked.validUntil) : Infinity));
-    if (!Number.isFinite(expiresAt.getTime()) || expiresAt<=new Date()) throw new ApiException('CONFLICT','This airline fare is no longer available for payment.',409);
+    const {intent,expiresAt}=await this.checkoutFareEvidence(customerId,booking);
     await this.db.transaction(async tx=>{
       const [locked]=await tx.select().from(flightBookingIntents).where(and(eq(flightBookingIntents.id,intent.id),eq(flightBookingIntents.customerId,customerId))).for('update');
       const [order]=await tx.select({id:orders.id}).from(orders).where(eq(orders.bookingIntentId,intent.id)).limit(1);

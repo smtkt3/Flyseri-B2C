@@ -1,9 +1,12 @@
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import {publicAncillaryRequest} from '../pricing/ancillary-pricing.contract.js';
 import { auditEvents, customerTravellers, flightBookingIntents, flightBookingIntentTravellers, flightBookings, travellers, trips, tripTravellers, type DatabaseConnection } from '@flyseri/database';
 import type { FlightBookingIntent, FlightOffer, FlightSearchRequest, FlightServiceRequest, FlightAncillaryRequest } from '@flyseri/types';
 import { parseFlightOffers } from './flight-response.js';
 import type { FlightOfferValidationOutcome } from './flight-offer-validation.service.js';
 import { passengerCodeAt } from './flight-passenger-types.js';
+import {readRetailPricing,type FlightRetailPricing} from '../pricing/flight-pricing.contract.js';
+import {ApiException} from '../api-exception.js';
 
 export class BookingIntentTravellerError extends Error {}
 export class BookingIntentPassengerError extends Error {}
@@ -21,6 +24,7 @@ const minorUnits = (amount: string): bigint => {
   return BigInt(whole!) * 100n + BigInt((fraction + '00').slice(0, 2));
 };
 export interface BookingIntentCreate {
+  retailPricing?:FlightRetailPricing;
   customerId: string; tripId: string | null; searchId: string; offerId: string; idempotencyKey: string;
   travellerIds: string[]; offer: FlightOffer; search: Omit<FlightSearchRequest, 'tripId'>;
   serviceRequests?: FlightServiceRequest[];
@@ -40,11 +44,11 @@ type IntentRow = typeof flightBookingIntents.$inferSelect;
 function present(row: IntentRow, travellerIds: string[]): FlightBookingIntent {
   const offer = parseFlightOffers([row.selectedOfferSnapshot])?.[0];
   if (!offer) throw new Error('Invalid stored flight offer');
-  const { checkoutServiceRequests: _legacyRequests, checkoutAncillaryRequests = [], checkoutTravellerOrder, checkoutAncillaryPurchase: _purchase, ...searchRequest } = row.searchRequestSnapshot as SearchSnapshot & { checkoutAncillaryPurchase?: unknown };
+  const { retailPricing:_pricing,checkoutServiceRequests: _legacyRequests, checkoutAncillaryRequests = [], checkoutTravellerOrder, checkoutAncillaryPurchase: _purchase, ...searchRequest } = row.searchRequestSnapshot as SearchSnapshot & { checkoutAncillaryPurchase?: unknown;retailPricing?:unknown };
   return {
     id: row.id, tripId: row.tripId, status: row.status as FlightBookingIntent['status'], selectedOffer: offer,
     searchRequest,
-    travellerIds: checkoutTravellerOrder && checkoutTravellerOrder.length === travellerIds.length && new Set(checkoutTravellerOrder).size === travellerIds.length && checkoutTravellerOrder.every(id => travellerIds.includes(id)) ? checkoutTravellerOrder : travellerIds, serviceRequests: savedRequests(row), ancillaryRequests: checkoutAncillaryRequests, currency: row.currency, searchTotalAmount: row.searchTotalAmount,
+    travellerIds: checkoutTravellerOrder && checkoutTravellerOrder.length === travellerIds.length && new Set(checkoutTravellerOrder).size === travellerIds.length && checkoutTravellerOrder.every(id => travellerIds.includes(id)) ? checkoutTravellerOrder : travellerIds, serviceRequests: savedRequests(row), ancillaryRequests: checkoutAncillaryRequests.map(publicAncillaryRequest), currency: row.currency, searchTotalAmount: row.searchTotalAmount,
     validatedTotalAmount: row.validatedTotalAmount, priceChanged: row.priceChanged,
     validatedAt: row.validatedAt?.toISOString() ?? null, expiresAt: row.expiresAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(),
@@ -104,7 +108,7 @@ export class DrizzleBookingIntentStore implements BookingIntentStore {
       const [created] = await tx.insert(flightBookingIntents).values({
         customerId: input.customerId, tripId: input.tripId, searchId: input.searchId, selectedOfferId: input.offerId,
         idempotencyKey: input.idempotencyKey, currency: input.offer.currency, searchTotalAmount: input.offer.totalAmount,
-        selectedOfferSnapshot: input.offer, searchRequestSnapshot: { ...input.search, checkoutServiceRequests: input.serviceRequests ?? [], checkoutAncillaryRequests: input.ancillaryRequests ?? [], checkoutTravellerOrder: input.travellerIds },
+        selectedOfferSnapshot: input.offer, searchRequestSnapshot: { ...input.search,...(input.retailPricing?{retailPricing:readRetailPricing(input.retailPricing,input.offer.totalAmount,input.offer.currency)}:{}), checkoutServiceRequests: input.serviceRequests ?? [], checkoutAncillaryRequests: input.ancillaryRequests ?? [], checkoutTravellerOrder: input.travellerIds },
         serviceRequests: input.serviceRequests ?? [],
       }).onConflictDoNothing({ target: [flightBookingIntents.customerId, flightBookingIntents.idempotencyKey] }).returning({ id: flightBookingIntents.id });
       if (!created) {
@@ -162,6 +166,7 @@ export class DrizzleBookingIntentStore implements BookingIntentStore {
       const validatedAt = new Date(outcome.validatedAt);
       if (!Number.isFinite(validatedAt.getTime())) throw new Error('Invalid validation timestamp');
       const available = outcome.result === 'AVAILABLE';
+      if(available)try{readRetailPricing((row.searchRequestSnapshot as {retailPricing?:unknown}).retailPricing,outcome.currentTotalAmount,outcome.currency);}catch{throw new ApiException('CONFLICT','The airline fare changed. Refresh flight search to verify its new base fare, taxes and selling price before booking.',409);}
       if (available && (!/^[A-Z]{3}$/.test(outcome.currency) || !/^\d+(\.\d{1,2})?$/.test(outcome.currentTotalAmount))) throw new Error('Invalid validation amount');
       const originalOffer = parseFlightOffers([row.selectedOfferSnapshot])?.[0];
       if (!originalOffer) throw new Error('Invalid original fare');

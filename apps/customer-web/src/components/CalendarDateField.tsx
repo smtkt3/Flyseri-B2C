@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { AriaAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { useViewportPopover } from './useViewportPopover';
 import { useBackStepState } from './useBackStepState';
@@ -15,6 +16,10 @@ type CalendarDateFieldProps = {
   maxYear?: number;
   controlId?: string;
   required?: boolean;
+  disabled?: boolean;
+  invalid?: AriaAttributes['aria-invalid'];
+  describedBy?: string;
+  allowClear?: boolean;
   fareSearch?: FlightSearchRequest;
   fareDateField?: 'departure' | 'return';
   onChange: (value: string) => void;
@@ -57,7 +62,7 @@ export function HistoryCalendarDateField(props: CalendarDateFieldProps) {
   return <CalendarDateField {...props} open={props.active === false ? false : open} onOpenChange={setOpen} />;
 }
 
-export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900, maxYear=new Date().getFullYear()+15, controlId, required=false, fareSearch, fareDateField='departure', onChange, className = '', align = 'start', error, open: controlledOpen, onOpenChange }: CalendarDateFieldProps) {
+export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900, maxYear=new Date().getFullYear()+15, controlId, required=false, disabled=false, invalid, describedBy, allowClear=false, fareSearch, fareDateField='departure', onChange, className = '', align = 'start', error, open: controlledOpen, onOpenChange }: CalendarDateFieldProps) {
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen ?? localOpen;
   const setOpen = onOpenChange ?? setLocalOpen;
@@ -66,7 +71,7 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const popover = useRef<HTMLElement>(null);
-  const popoverStyle = useViewportPopover(open, trigger, { width: fareSearch?420:360, height: fareSearch?580:480, mobileSheet: true, align });
+  const popoverStyle = useViewportPopover(open, trigger, { width: fareSearch?420:360, height: fareSearch?580:480, mobileSheet: true, align, preferFullHeight: true });
   const selectedDate = parseDate(value);
   const minimum = parseDate(minDate);
   const minimumKey = minimum ? dateKey(minimum) : '';
@@ -116,7 +121,7 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
     if (!open) return;
     const dismiss = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node) && !popover.current?.contains(event.target as Node)) setOpen(false); };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { setOpen(false); trigger.current?.focus(); }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
       if(event.key==='Tab'&&popover.current){
         const controls=[...popover.current.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled)')];
         const first=controls[0],last=controls.at(-1);
@@ -126,12 +131,15 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
     };
     const frame=requestAnimationFrame(()=>popover.current?.querySelector<HTMLElement>('.calendar-day.selected:not(:disabled),.calendar-day:not(:disabled)')?.focus());
     document.addEventListener('pointerdown', dismiss);
-    document.addEventListener('keydown', onKeyDown);
-    return () => { cancelAnimationFrame(frame);document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', onKeyDown); };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => { cancelAnimationFrame(frame);document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', onKeyDown, true); };
   }, [open]);
 
   function showCalendar() {
-    setVisibleMonth(monthStart(selectedDate ?? minimum ?? today()));
+    const preferred = selectedDate ?? minimum ?? today();
+    const upper = parseDate(maxDate);
+    const bounded = upper && preferred > upper ? upper : minimum && preferred < minimum ? minimum : preferred;
+    setVisibleMonth(monthStart(new Date(Math.min(lastYear,Math.max(firstYear,bounded.getFullYear())),bounded.getMonth(),1)));
     setOpen(true);
   }
 
@@ -140,7 +148,7 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
   }
 
   return <div ref={root} className={`calendar-date-field${open ? ' is-open' : ''}${align === 'end' ? ' align-end' : ''} ${className}`}>
-    <button id={controlId} ref={trigger} type="button" className="calendar-date-trigger" aria-required={required} aria-invalid={!!error} aria-describedby={error ? errorId : undefined} aria-label={`${label}${value ? `, ${formatDate(value)}` : ', choose date'}`} aria-haspopup="dialog" aria-expanded={open} data-value={value} onClick={() => open ? setOpen(false) : showCalendar()}>
+    <button id={controlId} ref={trigger} disabled={disabled} type="button" className="calendar-date-trigger" aria-required={required} aria-invalid={invalid ?? !!error} aria-describedby={error ? errorId : describedBy} aria-label={`${label}${value ? `, ${formatDate(value)}` : ', choose date'}`} aria-haspopup="dialog" aria-expanded={open} data-value={value} onClick={() => open ? setOpen(false) : showCalendar()}>
       <span className="calendar-date-copy"><span className="calendar-date-label">{label}</span><span className={`calendar-date-value${value ? '' : ' is-empty'}`}>{value ? formatDate(value) : 'Choose date'}</span></span>
       <svg className="calendar-date-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5" /><path d="M7.5 3.5v4M16.5 3.5v4M4 9.5h16M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01" /></svg>
     </button>
@@ -167,7 +175,7 @@ export function CalendarDateField({ label, value, minDate, maxDate, minYear=1900
         })}
       </div>
       {fareSearch&&<p className="calendar-fare-notice" role="status">{fareSearch.currency} · {fareSearch.adults+fareSearch.children+fareSearch.infants} traveler{fareSearch.adults+fareSearch.children+fareSearch.infants===1?'':'s'} · {fareNotice}{freshFares.length>0&&<span>Green marks the lowest displayed price. Select a date for full flight options.</span>}</p>}
-      <footer className="calendar-popover-footer"><span>{value ? `Selected · ${formatDate(value)}` : 'Choose a date'}</span><button type="button" disabled={!!maximumKey&&todayKey>maximumKey} onClick={() => { const target = minimum && minimumKey > todayKey ? minimum : today(); const key = dateKey(target); onChange(key); setVisibleMonth(monthStart(target)); setOpen(false); trigger.current?.focus(); }}>{minimum && minimumKey > todayKey ? 'Earliest' : 'Today'}</button></footer>
+      <footer className="calendar-popover-footer"><span>{value ? `Selected · ${formatDate(value)}` : 'Choose a date'}</span><div className="calendar-footer-actions">{allowClear && value && <button type="button" onClick={()=>{onChange('');setOpen(false);trigger.current?.focus();}}>Clear</button>}<button type="button" disabled={!!maximumKey&&todayKey>maximumKey} onClick={() => { const target = minimum && minimumKey > todayKey ? minimum : today(); const key = dateKey(target); onChange(key); setVisibleMonth(monthStart(target)); setOpen(false); trigger.current?.focus(); }}>{minimum && minimumKey > todayKey ? 'Earliest' : 'Today'}</button></div></footer>
     </section>, document.body)}
   </div>;
 }

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable,Optional } from '@nestjs/common';
 import type { AppConfig } from '@flyseri/config';
 import type { FlightOffer, FlightSearchRequest, FlightSearchResponse, PopularCachedFlightFare } from '@flyseri/types';
 import type { RedisStore } from '@flyseri/redis';
@@ -9,6 +9,8 @@ import type { TripStore } from '../trip/trip.repository.js';
 import { flightSearchHash, normalizeFlightSearch, type NormalizedFlightSearch } from './flight-search.js';
 import type { FlightTelemetry } from './flight.telemetry.js';
 import { parseFlightOffers } from './flight-response.js';
+import {FlightPricingService} from '../pricing/flight-pricing.service.js';
+import {retailFlightPrice,sellingOffer,type FlightRetailPricing,type FlightPricingPolicy} from '../pricing/flight-pricing.contract.js';
 
 export interface FlightProvider {
   search(input: NormalizedFlightSearch, requestId: string, onProgress?: (offers: FlightOffer[]) => Promise<void>): Promise<FlightOffer[] | { offers: FlightOffer[]; incomplete?: boolean }>;
@@ -16,8 +18,8 @@ export interface FlightProvider {
 interface CachedSearch { offers: FlightOffer[]; searchedAt: string; incomplete?: boolean }
 const progressRevision = (value: CachedSearch) => `${value.searchedAt}:${value.offers.length}:${value.offers.at(-1)?.offerId ?? ''}`;
 const POPULAR_FARE_DESTINATIONS = ['KUL','LHR','ICN','NRT','DXB','BKK','CGK','DPS','SYD','SIN','SGN','KIX','TPE','MNL','DAC','CGP','KTM','CMB','KHI','CCU','MAA','PEN','LGK','BKI','KCH','JHB','HKT','CNX','HAN','DAD','PNH','SAI','VTE','RGN','DEL','BOM','BLR','HYD','MLE','HKG','PEK','PVG','CAN','HND','DOH','AUH','JED','RUH','IST','CDG','AMS','FRA','FCO','MAD','ZRH','ATH','CAI','JNB','CPT','NBO','MEL','PER','AKL','JFK','LAX','SFO','YVR','YYZ','GRU','SCL','MEX','HNL','NAN'] as const;
-interface SearchSession { customerId: string | null; tripId: string | null; search: NormalizedFlightSearch; offers: FlightOffer[]; expiresAt: string }
-export interface SelectedFlightOffer { searchId: string; tripId: string | null; search: NormalizedFlightSearch; offer: FlightOffer }
+interface SearchSession { customerId: string | null; tripId: string | null; search: NormalizedFlightSearch; offers: FlightOffer[]; expiresAt: string;pricingPolicy?:FlightPricingPolicy;retailPricing?:Record<string,FlightRetailPricing> }
+export interface SelectedFlightOffer { searchId: string; tripId: string | null; search: NormalizedFlightSearch; offer: FlightOffer;retailPricing?:FlightRetailPricing }
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Flight search is temporarily unavailable. Please try again.', 503);
 const busy = () => new ApiException('RATE_LIMITED', 'Flight search is busy. Please try again shortly.', 429);
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -34,7 +36,7 @@ export class FlightService {
   private readonly localCache = new Map<string, { value: CachedSearch; expiresAt: number }>();
   private readonly localFailures = new Map<string, number>();
   private readonly localSessions = new Map<string, SearchSession>();
-  private readonly localPopularFares = new Map<string, PopularCachedFlightFare>();
+  private readonly localPopularFares = new Map<string, PopularCachedFlightFare&{supplierOffer?:FlightOffer;search?:NormalizedFlightSearch}>();
   private readonly progressListeners = new Map<string, Set<(result: CachedSearch) => Promise<void>>>();
   private readonly pendingResults = new Map<string, CachedSearch>();
   private readonly recentSearches=new Map<string,{search:NormalizedFlightSearch;lastSeen:number;count:number;cachedAt:number;attemptedAt:number}>();
@@ -45,6 +47,7 @@ export class FlightService {
     @Inject(TRIP_STORE) private readonly trips: TripStore | undefined,
     @Inject(FLIGHT_PROVIDER) private readonly provider: FlightProvider | undefined,
     @Inject(FLIGHT_TELEMETRY) private readonly telemetry: FlightTelemetry,
+    @Optional() @Inject(FlightPricingService) private readonly pricing?:FlightPricingService,
   ) {}
 
   async calendarCachedFares(input:FlightSearchRequest,month:string,field:'departure'|'return',keepTripLength=false,selectedDates?:string[]) {
@@ -53,6 +56,7 @@ export class FlightService {
     if(year<new Date().getUTCFullYear()-1||year>new Date().getUTCFullYear()+3)throw new ApiException('VALIDATION_ERROR','Choose a month within the travel calendar.',400);
     if(input.tripType==='MULTI_CITY'||field==='return'&&input.tripType!=='ROUND_TRIP')return [];
     normalizeFlightSearch(input);
+    const pricingPolicy=this.pricing?await this.pricing.policy():{revision:0,rules:[]};
     const allDates=Array.from({length:new Date(Date.UTC(year,monthIndex+1,0)).getUTCDate()},(_,index)=>`${month}-${String(index+1).padStart(2,'0')}`);
     if(selectedDates?.some(date=>!allDates.includes(date)))throw new ApiException('VALIDATION_ERROR','Choose valid travel dates.',400);
     const dates=selectedDates?[...new Set(selectedDates)]:allDates;
@@ -67,7 +71,7 @@ export class FlightService {
         if(request.tripType==='ROUND_TRIP'&&(!request.returnDate||request.returnDate<request.departureDate))return null;
         const cached=await this.readCache(flightSearchHash(normalizeFlightSearch(request),this.config));
         if(!cached)return null;
-        const amounts=cached.offers.filter(offer=>offer.currency===input.currency).map(offer=>Number(offer.totalAmount)).filter(value=>Number.isFinite(value)&&value>0);
+        const amounts=cached.offers.filter(offer=>offer.currency===input.currency).flatMap(offer=>{try{return [Number(retailFlightPrice(offer,normalizeFlightSearch(request),pricingPolicy)?.sellingTotal??offer.totalAmount)];}catch{return [];}}).filter(value=>Number.isFinite(value)&&value>0);
         const expiresAt=this.cacheExpiresAt(cached);
         return amounts.length&&expiresAt>Date.now()?{date,amount:Math.min(...amounts),currency:input.currency,expiresAt:new Date(expiresAt).toISOString()}:null;
       }));
@@ -215,14 +219,18 @@ export class FlightService {
   }
 
   async popularCachedFares(origin = 'DAC', currency = 'BDT'): Promise<PopularCachedFlightFare[]> {
+    const policy=this.pricing?await this.pricing.policy():{revision:0,rules:[]};
     const now = Date.now();
     const fares = await Promise.all(POPULAR_FARE_DESTINATIONS.map(async (destination) => {
-      let fare: PopularCachedFlightFare | undefined;
+      let fare: (PopularCachedFlightFare&{supplierOffer?:FlightOffer;search?:NormalizedFlightSearch}) | undefined;
       if (this.redis) {
-        const read = await this.redis.readJson<PopularCachedFlightFare>(`flight:popular-fare:v3:${origin}:${currency}:${destination}`);
+        const read = await this.redis.readJson<PopularCachedFlightFare&{supplierOffer?:FlightOffer;search?:NormalizedFlightSearch}>(`flight:popular-fare:v3:${origin}:${currency}:${destination}`);
         if (read.state === 'hit' && read.value?.destination === destination && Number.isFinite(Number(read.value.price)) && read.value.currency === currency) fare = read.value;
       } else if (this.config.APP_ENV !== 'production') fare = this.localPopularFares.get(`${origin}:${currency}:${destination}`);
-      return fare && Date.parse(fare.expiresAt) > now && Date.parse(`${fare.departureDate}T23:59:59+08:00`) > now ? fare : undefined;
+      if(!fare||Date.parse(fare.expiresAt)<=now||Date.parse(`${fare.departureDate}T23:59:59+08:00`)<=now)return undefined;
+      const {supplierOffer,search,...publicFare}=fare;
+      if(supplierOffer&&search){try{return {...publicFare,price:retailFlightPrice(supplierOffer,search,policy)?.sellingTotal??supplierOffer.totalAmount};}catch{return undefined;}}
+      return policy.rules.some(rule=>rule.enabled&&rule.currency===currency)?undefined:publicFare;
     }));
     return fares.filter((fare): fare is PopularCachedFlightFare => !!fare).sort((a, b) => Number(a.price) - Number(b.price));
   }
@@ -230,17 +238,18 @@ export class FlightService {
   private async capturePopularFare(search: NormalizedFlightSearch, result: CachedSearch): Promise<void> {
     if (search.tripType !== 'ONE_WAY' || search.adults !== 1 || search.children !== 0 || search.infants !== 0 || search.cabin !== 'ECONOMY' ||
         !POPULAR_FARE_DESTINATIONS.includes(search.destination as typeof POPULAR_FARE_DESTINATIONS[number]) || Date.parse(`${search.departureDate}T23:59:59+08:00`) <= Date.now()) return;
-    const cheapest = result.offers.filter((offer) => offer.currency === search.currency && Number.isFinite(Number(offer.totalAmount)) && Number(offer.totalAmount) > 0)
-      .reduce<FlightOffer | undefined>((low, offer) => !low || Number(offer.totalAmount) < Number(low.totalAmount) ? offer : low, undefined);
+    const policy=this.pricing?await this.pricing.policy():{revision:0,rules:[]};
+    const priced=result.offers.filter(offer=>offer.currency===search.currency).flatMap(offer=>{try{return [{offer,price:Number(retailFlightPrice(offer,search,policy)?.sellingTotal??offer.totalAmount)}];}catch{return [];}}).filter(row=>Number.isFinite(row.price)&&row.price>0).sort((a,b)=>a.price-b.price);
+    const cheapest=priced[0]?.offer;
     if (!cheapest) return;
     const key = `flight:popular-fare:v3:${search.origin}:${search.currency}:${search.destination}`;
     const previous = this.redis ? await this.redis.getJson<PopularCachedFlightFare>(key) : this.localPopularFares.get(`${search.origin}:${search.currency}:${search.destination}`);
     const previousStillUsable = previous && Date.parse(previous.expiresAt) > Date.now() && Date.parse(`${previous.departureDate}T23:59:59+08:00`) > Date.now();
-    if (previousStillUsable && Number(previous.price) <= Number(cheapest.totalAmount)) return;
+    if (!policy.rules.some(rule=>rule.enabled)&&previousStillUsable && Number(previous.price) <= Number(cheapest.totalAmount)) return;
     const now = Date.now();
     const expiresAtMs = Date.parse(result.searchedAt) + this.config.SABRE_BFM_CACHE_TTL_SECONDS * 1000;
     if (!Number.isFinite(expiresAtMs) || expiresAtMs <= now) return;
-    const fare: PopularCachedFlightFare = { destination: search.destination, departureDate: search.departureDate, price: cheapest.totalAmount, currency: cheapest.currency, searchedAt: result.searchedAt,
+    const fare: PopularCachedFlightFare&{supplierOffer:FlightOffer;search:NormalizedFlightSearch} = {supplierOffer:cheapest,search, destination: search.destination, departureDate: search.departureDate, price: cheapest.totalAmount, currency: cheapest.currency, searchedAt: result.searchedAt,
       durationMinutes: cheapest.outbound.durationMinutes, stops: cheapest.outbound.stops,
       expiresAt: new Date(expiresAtMs).toISOString() };
     if (this.redis) await this.redis.setJson(key, fare, Math.max(1, Math.ceil((expiresAtMs - now) / 1000)));
@@ -386,7 +395,11 @@ export class FlightService {
   private async present(customerId: string | null, tripId: string | null, search: NormalizedFlightSearch, result: CachedSearch, existingId?: string): Promise<FlightSearchResponse> {
     const searchId = existingId ?? randomUUID();
     const expiresAt = new Date(Date.now() + this.config.SABRE_SEARCH_SESSION_TTL_SECONDS * 1000).toISOString();
-    const session: SearchSession = { customerId, tripId, search, offers: result.offers, expiresAt };
+    const previous=existingId?(this.redis?await this.redis.getJson<SearchSession>(`flight:search-session:${searchId}`):this.localSessions.get(searchId)):undefined;
+    const policy=previous?.pricingPolicy??(this.pricing?await this.pricing.policy():{revision:0,rules:[]});
+    const retailPricing:Record<string,FlightRetailPricing>={},offers:FlightOffer[]=[],publicOffers:FlightOffer[]=[];
+    for(const offer of result.offers){try{const snapshot=retailFlightPrice(offer,search,policy);if(snapshot)retailPricing[offer.offerId]=snapshot;offers.push(offer);publicOffers.push(sellingOffer(offer,snapshot));}catch{/* A rule requiring base/tax evidence must never guess an incentive. */}}
+    const session: SearchSession = { customerId, tripId, search, offers, expiresAt,pricingPolicy:policy,retailPricing };
     if (this.redis) {
       const saved = await this.redis.setJson(`flight:search-session:${searchId}`, session, this.config.SABRE_SEARCH_SESSION_TTL_SECONDS);
       if (!saved) {
@@ -397,7 +410,7 @@ export class FlightService {
     } else if (this.config.APP_ENV !== 'production') {
       this.rememberLocally(searchId, session);
     } else throw unavailable();
-    return { searchId, offers: result.offers, source: 'sabre', searchedAt: result.searchedAt,
+    return { searchId, offers: publicOffers, source: 'sabre', searchedAt: result.searchedAt,
       expiresAt, ...(result.incomplete && { incomplete: true }) };
   }
 
@@ -411,7 +424,7 @@ export class FlightService {
     const offers = parseFlightOffers(session.offers);
     const offer = offers?.find((item) => item.offerId === offerId);
     if (!offer || !session.search) throw new ApiException('NOT_FOUND', 'Flight option not found.', 404);
-    return { searchId, tripId: session.tripId, search: session.search, offer };
+    return { searchId, tripId: session.tripId, search: session.search, offer,...(session.retailPricing?.[offerId]?{retailPricing:session.retailPricing[offerId]}:{}) };
   }
 
   private rememberLocally(searchId: string, session: SearchSession): void {

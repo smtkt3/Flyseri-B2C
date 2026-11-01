@@ -5,6 +5,7 @@ import { isSupportedVisaDestination } from '@flyseri/types';
 import { VisaConflictError, VisaValidationError } from './visa.errors.js';
 import { conditionMatches, parseVisaFormDefinition, validateVisaAnswers } from './visa-form.js';
 export interface VisaStore {
+  archiveAssistance(customerId: string, id: string): Promise<boolean>;
   saveAssistanceForm(customerId: string, id: string, input: VisaAssistanceRequestInput): Promise<VisaAssistanceRequestDetail | null>;
   assistanceList(customerId: string): Promise<VisaAssistanceRequestSummary[]>;
   assistanceDetail(customerId: string, id: string): Promise<VisaAssistanceRequestDetail | null>;
@@ -49,6 +50,19 @@ function applicable(rule: typeof visaRequirements.$inferSelect, person: typeof t
 }
 export class DrizzleVisaStore implements VisaStore {
   constructor(private readonly connection: DatabaseConnection) {}
+  async archiveAssistance(customerId: string, id: string): Promise<boolean> {
+    return this.connection.db.transaction(async tx => {
+      const [request] = await tx.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId), isNull(visaAssistanceRequests.archivedAt))).for('update');
+      if (!request) return false;
+      if (request.status !== 'NEW') throw new VisaConflictError('Only an unfinished application can be deleted. Contact Flyseri about a submitted request.');
+      const [order] = await tx.select({ id: orders.id }).from(orders).innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+        .where(and(eq(orders.customerId, customerId), eq(orderItems.itemType, 'VISA_SERVICE'), eq(orderItems.referenceId, id))).limit(1);
+      if (order) throw new VisaConflictError('This application has a payment order. Contact Flyseri for help cancelling it.');
+      await tx.update(visaAssistanceRequests).set({ archivedAt: new Date(), status: 'CLOSED', updatedAt: new Date() }).where(eq(visaAssistanceRequests.id, id));
+      await tx.insert(auditEvents).values({ actorCustomerId: customerId, tripId: request.tripId, event: 'visa.assistance.request.archived:' + id });
+      return true;
+    });
+  }
   async saveAssistanceForm(customerId: string, id: string, input: VisaAssistanceRequestInput): Promise<VisaAssistanceRequestDetail | null> {
     validateAssistanceScope(input);
     const travellerIds = input.applicants.map(person => person.travellerId);
@@ -59,7 +73,7 @@ export class DrizzleVisaStore implements VisaStore {
       if (person.documentIssuedOn && person.documentIssuedOn > person.documentExpiresOn) throw new VisaValidationError('Document expiry must follow its issue date');
     }
     const found = await this.connection.db.transaction(async tx => {
-      const [request] = await tx.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId))).for('update');
+      const [request] = await tx.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId), isNull(visaAssistanceRequests.archivedAt))).for('update');
       if (!request) return false;
       if (request.status !== 'NEW') throw new VisaConflictError('This request has already been submitted');
       if (request.tripId !== input.tripId || request.destinationCountryCode !== input.destinationCountryCode || request.expectedTravelDate !== input.expectedTravelDate || request.purpose !== input.purpose) throw new VisaValidationError('Keep the saved visa selection for this application');
@@ -143,11 +157,11 @@ export class DrizzleVisaStore implements VisaStore {
     });
   }
   async assistanceList(customerId: string): Promise<VisaAssistanceRequestSummary[]> {
-    const rows = await this.connection.db.select().from(visaAssistanceRequests).where(eq(visaAssistanceRequests.customerId, customerId)).orderBy(desc(visaAssistanceRequests.createdAt)).limit(200);
+    const rows = await this.connection.db.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.customerId, customerId), isNull(visaAssistanceRequests.archivedAt))).orderBy(desc(visaAssistanceRequests.createdAt)).limit(200);
     return rows.map(row => ({ id: row.id, requestReference: row.requestReference, tripId: row.tripId, destinationCountryCode: row.destinationCountryCode, expectedTravelDate: row.expectedTravelDate, purpose: row.purpose, status: row.status as VisaAssistanceRequestSummary['status'], createdAt: row.createdAt.toISOString() }));
   }
   async assistanceDetail(customerId: string, id: string): Promise<VisaAssistanceRequestDetail | null> {
-    const [row] = await this.connection.db.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId))).limit(1);
+    const [row] = await this.connection.db.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId), isNull(visaAssistanceRequests.archivedAt))).limit(1);
     if (!row) return null;
     const applicants = await this.connection.db.select().from(visaAssistanceRequestTravellers).where(eq(visaAssistanceRequestTravellers.requestId, id)).orderBy(asc(visaAssistanceRequestTravellers.createdAt));
     const files = await this.connection.db.select({ link: visaAssistanceRequestDocuments, doc: documents, version: documentVersions }).from(visaAssistanceRequestDocuments)
@@ -162,7 +176,7 @@ export class DrizzleVisaStore implements VisaStore {
     if (input.customerMessage !== undefined && (typeof input.customerMessage !== 'string' || input.customerMessage.length > 2000)) throw new VisaValidationError('Notes must be at most 2,000 characters');
     if (action === 'NOTE' && input.customerMessage === undefined) throw new VisaValidationError('Provide a note to save');
     const found = await this.connection.db.transaction(async tx => {
-      const [request] = await tx.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId))).for('update');
+      const [request] = await tx.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, id), eq(visaAssistanceRequests.customerId, customerId), isNull(visaAssistanceRequests.archivedAt))).for('update');
       if (!request) return false;
       if (action === 'SUBMIT' && request.status === 'IN_REVIEW') return true;
       if (request.status !== 'NEW') throw new VisaConflictError('This request has already been submitted');
@@ -511,9 +525,11 @@ export class DrizzleVisaStore implements VisaStore {
   }
   async archive(customerId: string, applicationId: string): Promise<boolean> {
     return this.connection.db.transaction(async (tx) => {
-      const [application] = await tx.select({ status: visaApplications.status, tripId: visaApplications.tripId }).from(visaApplications).where(and(eq(visaApplications.id, applicationId), eq(visaApplications.customerId, customerId), isNull(visaApplications.archivedAt))).limit(1);
+      const [application] = await tx.select({ status: visaApplications.status, tripId: visaApplications.tripId }).from(visaApplications).where(and(eq(visaApplications.id, applicationId), eq(visaApplications.customerId, customerId), isNull(visaApplications.archivedAt))).for('update').limit(1);
       if (!application) return false;
       if (!['DRAFT', 'INCOMPLETE'].includes(application.status)) throw new VisaConflictError('Only a draft application can be archived');
+      const [order] = await tx.select({ id: orders.id }).from(orders).where(and(eq(orders.customerId, customerId), eq(orders.visaApplicationId, applicationId))).limit(1);
+      if (order) throw new VisaConflictError('This application has a payment order. Contact Flyseri for help cancelling it.');
       await tx.update(visaApplications).set({ status: 'CANCELLED', archivedAt: new Date(), updatedAt: new Date() }).where(eq(visaApplications.id, applicationId));
       await tx.insert(visaStatusHistory).values({ applicationId, fromStatus: application.status, toStatus: 'CANCELLED', actorType: 'CUSTOMER', actorCustomerId: customerId });
       await tx.insert(auditEvents).values({ actorCustomerId: customerId, tripId: application.tripId, visaApplicationId: applicationId, event: 'visa.application.archived' });

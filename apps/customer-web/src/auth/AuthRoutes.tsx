@@ -1,6 +1,7 @@
 import { lazy, Suspense, useRef } from 'react';
 import { Route, Routes, useLocation, type Location } from 'react-router-dom';
 import { ProtectedRoute } from './AuthProvider';
+import { VisaRequirementsGate } from '../visa/VisaRequirementsGate';
 import { PremiumNavbar } from '../components/PremiumNavbar';
 import { PageRecovery, PageRecoveryBoundary } from '../account/PageRecovery';
 import { HomeLoadingScreen } from '../components/home/HomeLoadingScreen';
@@ -62,7 +63,7 @@ export function AuthRoutes() {
           <Route path="/holidays/:id" element={<HolidayDetailPage />} />
           <Route path="/app/visa" element={<PublicVisaPage />} />
           <Route path="/app/visa/guide/:countryCode" element={<PublicVisaPage guide />} />
-          <Route path="/app/*" element={<ProtectedRoute><CustomerShell /></ProtectedRoute>} />
+          <Route path="/app/*" element={<VisaRequirementsGate><ProtectedRoute><CustomerShell /></ProtectedRoute></VisaRequirementsGate>} />
           <Route path="*" element={<div className="customer-site-shell"><PremiumNavbar/><PageRecovery /></div>} />
         </Routes>
       </Suspense></PageRecoveryBoundary>

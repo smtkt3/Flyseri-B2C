@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { OrderSummary } from '@flyseri/types';
 import { commerceService } from '../services/commerceService';
-import { formatMoney, formatTimestamp, orderStatus } from '../account/presentation';
+import { OrderHistoryCard } from './OrderHistoryCard';
 import '../flight/booking-checkout.css';
 
 export function OrdersPage({embedded=false}:{embedded?:boolean}={}) {
@@ -23,9 +23,7 @@ export function OrdersPage({embedded=false}:{embedded?:boolean}={}) {
     {!loading && !error && <><div className="checkout-history-stats" aria-label="Order counts"><div><strong>{orders.length}</strong><span>Total orders</span></div><div><strong>{orders.filter(order => order.status === 'PAID').length}</strong><span>Payment confirmed</span></div><div><strong>{orders.filter(order => ['PENDING_PAYMENT','PAYMENT_PROCESSING','PAYMENT_FAILED'].includes(order.status)).length}</strong><span>Awaiting payment</span></div></div>
     {!orders.length ? <section className="account-panel checkout-empty"><span className="checkout-empty-icon" aria-hidden="true">✈</span><p className="account-eyebrow">YOUR NEXT JOURNEY STARTS HERE</p><h2>Your orders will appear here</h2><p>Your orders appear after a reservation is ready for checkout.</p><div className="checkout-actions"><Link className="btn-primary" to="/app/flights">Find a flight →</Link><Link className="account-outline-button" to="/app/bookings">View my reservations</Link></div><small>Already reserved a flight? Open its reservation and select “Continue to secure payment”.</small></section> : <><div className="checkout-history-filter" role="group" aria-label="Filter orders">{([['ALL','All orders'],['UNPAID','Unpaid'],['PAID','Paid']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div>
     {!visible.length && <section className="account-panel checkout-empty"><h2>No orders match this filter</h2><p>Choose another filter to find your order.</p><button type="button" className="account-outline-button" onClick={() => setFilter('ALL')}>Show all orders</button></section>}
-    {visible.map((order) => <Link className="account-panel commerce-order-link" key={order.id} to={`/app/orders/${order.id}`}>
-      <div><strong>{order.orderNumber}</strong><p>{formatTimestamp(order.createdAt)} · {orderStatus(order.status)}</p></div>
-      <strong>{formatMoney(order.totalAmount, order.currency)}</strong><span aria-hidden="true">→</span></Link>)}</>}
+    <div className="order-history-list">{visible.map(order => <OrderHistoryCard key={order.id} order={order}/>)}</div></>}
       <div className="checkout-trial-note"><div><strong>Test reservations and payments</strong>Payment confirmation and airline ticket issuance are separate. A payment receipt is not an airline ticket.</div></div></>}
   </div>;
 }

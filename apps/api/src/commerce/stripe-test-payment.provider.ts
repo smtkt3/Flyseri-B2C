@@ -23,7 +23,7 @@ interface StripeSession {
 export class StripeVerificationError extends Error {}
 export class StripeWebhookUnavailableError extends Error {}
 
-function minorAmount(amount: string, currency: string): number {
+export function minorAmount(amount: string, currency: string): number {
   if (!amountPattern.test(amount) || !/^[A-Z]{3}$/.test(currency)) throw new Error('Invalid checkout amount');
   const [whole, fraction = ''] = amount.split('.');
   if (zeroDecimal.has(currency) && fraction && Number(fraction) !== 0) throw new Error('Fractional zero-decimal currency');

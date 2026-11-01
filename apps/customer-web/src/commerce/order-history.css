@@ -1,0 +1,42 @@
+.order-history-list{display:grid;gap:14px}
+.account-panel.order-history-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 28px;padding:20px 22px;color:#193854;text-decoration:none;transition:border-color .18s ease,box-shadow .18s ease;min-width:0}
+.order-history-card:hover{box-shadow:0 10px 28px #367aad18!important;border-color:#bed8f7!important}
+.order-history-card:focus-visible{outline:3px solid #7cb4f3;outline-offset:3px}
+.order-card-main{display:flex;align-items:flex-start;gap:14px;min-width:0}
+.order-card-icon{display:grid;place-items:center;flex:0 0 44px;height:44px;border:1px solid #d6e8fc;border-radius:12px;background:#eaf3ff;color:#247be1}
+.order-card-icon.visa{background:#eaf8f5;color:#177d73;border-color:#d7eee7}
+.order-card-icon svg{width:23px;height:23px}
+.order-card-content{min-width:0}
+.order-card-kicker{display:flex;align-items:center;gap:8px;color:#5c7690;font-size:11px;font-weight:600;line-height:1.4}
+.order-card-kicker>span+span:before{content:'·';margin-right:8px;color:#90a4b9}
+.order-history-card .order-card-content h2{margin:5px 0 8px;font-size:20px;line-height:1.35;font-weight:750;letter-spacing:-.025em;overflow-wrap:anywhere}
+.order-card-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 14px;color:#5e7790;font-size:12px;line-height:1.5}
+.order-card-meta>span{display:inline-flex;align-items:center;gap:5px}
+.order-card-meta>span>svg{width:15px;height:15px;flex-shrink:0}
+.order-card-airlines{margin-top:10px}
+.order-card-airlines .airline-list{display:flex;flex-wrap:wrap;gap:8px 16px}
+.order-card-airlines .airline-identity{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.order-card-airlines .airline-logo{display:grid;place-items:center;width:32px;height:24px;flex:0 0 32px;padding:3px;border:1px solid #e2ebf6;border-radius:5px;background:white;font-size:10px;color:#345b81}
+.order-card-airlines .airline-logo img{width:100%;height:100%;object-fit:contain}
+.order-card-airlines .airline-copy strong{display:block;font-size:11px;font-weight:600;line-height:1.4;color:#45617e}
+.order-card-airlines .airline-copy small{display:none}
+.order-card-payment{display:flex;flex-direction:column;align-items:flex-end;gap:11px;min-width:180px}
+.order-payment-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;background:#eef2f6;color:#62758a;font-size:11px;line-height:1.3;font-weight:650;white-space:nowrap}
+.order-payment-status i{width:5px;height:5px;flex-shrink:0;background:currentColor;border-radius:50%}
+.order-payment-status.paid{background:#e7f6ef;color:#18754f}
+.order-payment-status.pending{background:#fff3dd;color:#946118}
+.order-payment-status.failed{background:#fff0f1;color:#b44253}
+.order-card-total{display:flex;align-items:flex-end;flex-direction:column;gap:3px}
+.order-card-total>span{font-size:11px;color:#6b8299}
+.order-card-total>strong{font-size:21px;line-height:1.25;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#193854;white-space:nowrap}
+.order-card-action{display:inline-flex;align-items:center;gap:12px;font-size:12px;line-height:1.4;font-weight:700;color:#2276ce}
+.order-card-action>span{font-size:17px;line-height:1}
+.order-card-footer{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 20px;padding-top:13px;border-top:1px solid #e1eaf4;font-size:11px;line-height:1.5;color:#6a8198}
+.order-card-number{display:flex;gap:5px;align-items:baseline;min-width:0;overflow-wrap:anywhere}
+.order-card-number strong{font-size:11px;font-weight:600;color:#526e8b;overflow-wrap:anywhere}
+.order-card-reference strong{margin-left:4px;letter-spacing:.04em;color:#395d7e;font-weight:650}
+.order-card-service-status{margin-left:auto;color:#81633a}
+.order-card-service-status.issued{color:#18754f}
+@media(max-width:760px){.account-panel.order-history-card{gap:16px 18px;padding:18px}.order-history-card .order-card-content h2{font-size:18px}.order-card-payment{min-width:152px}.order-card-total>strong{font-size:19px}.order-card-footer{gap:7px 16px}.order-card-service-status{margin-left:0}}
+@media(max-width:540px){.account-panel.order-history-card{grid-template-columns:minmax(0,1fr);gap:16px;padding:16px}.order-card-main{gap:11px}.order-card-icon{flex-basis:38px;height:38px;border-radius:10px}.order-card-icon svg{width:21px;height:21px}.order-card-kicker{font-size:10px}.order-history-card .order-card-content h2{font-size:18px;margin-top:4px}.order-card-meta{gap:5px 10px;font-size:11px}.order-card-airlines{margin-top:9px}.order-card-payment{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 12px;min-width:0;align-items:center}.order-payment-status{justify-self:start;font-size:10px}.order-card-total{grid-row:1/3;grid-column:2;align-self:center}.order-card-total>strong{font-size:19px}.order-card-action{grid-column:1;font-size:11px}.order-card-footer{gap:6px 14px;padding-top:11px;font-size:10px}.order-card-number{flex-basis:100%}.order-card-number strong{font-size:10px}.order-card-service-status{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){.account-panel.order-history-card{transition:none}}

@@ -26,6 +26,18 @@ export interface RequestOptions {
 
 export class ApiClient {
   constructor(private readonly baseUrl: string = '/api/v1') {}
+  async pdf(path:string):Promise<Blob>{
+    if(!path.startsWith('/')||path.startsWith('//'))throw new Error('Use an API-relative document path');
+    let token=await authService.accessToken();
+    for(let attempt=0;attempt<2;attempt++){
+      const response=await fetch(this.baseUrl.replace(/\/$/,'')+path,{headers:{Accept:'application/pdf',...(token?{Authorization:'Bearer '+token}:{})},signal:AbortSignal.timeout(20000),cache:'no-store'});
+      if(response.status===401&&attempt===0&&token){const refreshed=await authService.refreshToken();if(refreshed){token=refreshed;continue;}}
+      if(!response.ok){const error:unknown=await response.json().catch(()=>null);if(isError(error))throw new ApiClientError(error.error.code,error.error.message,error.error.requestId,response.status);throw new ApiClientError('DEPENDENCY_UNAVAILABLE','The ticket PDF could not be prepared.',undefined,response.status);}
+      if(!response.headers.get('Content-Type')?.includes('application/pdf'))throw new ApiClientError('INVALID_RESPONSE','The ticket document could not be verified.');
+      return response.blob();
+    }
+    throw new ApiClientError('AUTHENTICATION_REQUIRED','Please sign in to download your ticket.');
+  }
 
   async get<T>(path: string, options: RequestOptions = {}): Promise<ApiSuccess<T>> {
     return this.request<T>('GET', path, undefined, options);

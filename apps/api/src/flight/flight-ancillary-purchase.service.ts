@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {calculateAncillaryPrice,verifiedAncillaryPricing,type PricedAncillaryRequest} from '../pricing/ancillary-pricing.contract.js';
+import {extraDocument} from '../pricing/ancillary-refund.contract.js';
+import {convertCheckoutAmount} from '../pricing/checkout-fx.contract.js';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { AppConfig } from '@flyseri/config';
@@ -26,6 +29,15 @@ export class FlightAncillaryPurchaseService {
     @Inject(SabreAtpcoAncillariesClient) private readonly atpco: SabreAtpcoAncillariesClient | undefined,
     @Inject(FlightTicketingService) private readonly ticketing: FlightTicketingService) {}
   private get db() { if (!this.connection) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Booking extras are temporarily unavailable.', 503); return this.connection.db; }
+  private pricedItem(request:FlightAncillaryRequest,amount:string,currency:string,checkoutCurrency:string){
+    const saved=verifiedAncillaryPricing((request as PricedAncillaryRequest).ancillaryPricing);
+    const checkoutFx=(request as PricedAncillaryRequest).checkoutFx;
+    if(saved&&saved.currency!==checkoutCurrency)throw conflict('The extra checkout currency changed. Contact Flyseri to review this reservation.');
+    const checkoutSupplierAmount=checkoutFx?convertCheckoutAmount(amount,currency,checkoutCurrency,checkoutFx):this.checkoutAmount(amount,currency,checkoutCurrency);
+    const pricing=saved?calculateAncillaryPrice(checkoutSupplierAmount,checkoutCurrency,saved.rule,saved.revision):undefined;
+    const checkoutAmount=pricing?.sellingTotal??checkoutSupplierAmount;
+    return {airlineAmount:fromCents(cents(amount)),airlineCurrency:currency,checkoutSupplierAmount,checkoutAmount,serviceCharge:fromCents(cents(checkoutAmount)-cents(checkoutSupplierAmount)),chargeRefundable:pricing?.refundCharge??true,...(pricing?{ancillaryPricing:pricing}:{}),...(checkoutFx?{checkoutFx}:{})};
+  }
   private async owned(customerId: string, bookingId: string) {
     const [row] = await this.db.select({ booking: flightBookings, intent: flightBookingIntents }).from(flightBookings)
       .innerJoin(flightBookingIntents, and(eq(flightBookingIntents.id, flightBookings.bookingIntentId), eq(flightBookingIntents.customerId, customerId)))
@@ -95,13 +107,13 @@ export class FlightAncillaryPurchaseService {
       const service = quote.services.find(service => key(service) === key(request));
       if (!service?.currency || service.amount === null) throw conflict('A selected extra has no confirmed price.');
       return { requestId: request.id, name: request.name, segmentLabels: request.segmentLabels, passengerIndexes: request.passengerIndexes,
-        airlineAmount: fromCents(cents(service.amount)), airlineCurrency: service.currency, checkoutAmount: this.checkoutAmount(service.amount, service.currency, checkoutCurrency), providerAncillaryIds: [] as string[] };
+        ...this.pricedItem(request,service.amount,service.currency,checkoutCurrency), providerAncillaryIds: [] as string[] };
     });
     return { plans, items };
   }
   private segmentIndexes(request: FlightAncillaryRequest, offer: FlightOffer) {
     return request.segmentLabels.map(label => {
-      const matches = segments(offer).flatMap((segment, index) => label === `${segment.origin} → ${segment.destination} · ${segment.marketingCarrier} ${segment.flightNumber} · ${segment.departureAt.slice(0, 10)}` ? [index] : []);
+      const matches = segments(offer).flatMap((segment, index) => [ `${segment.origin} → ${segment.destination} · ${segment.marketingCarrier} ${segment.flightNumber}`,`${segment.origin} → ${segment.destination} · ${segment.marketingCarrier} ${segment.flightNumber} · ${segment.departureAt.slice(0, 10)}`].includes(label) ? [index] : []);
       if (matches.length !== 1) throw conflict('The extra could not be assigned to one airline flight.');
       return matches[0]!;
     });
@@ -179,7 +191,7 @@ export class FlightAncillaryPurchaseService {
       fresh = { ...purchase, plans: quoted.plans };
     } else {
       const evidence = confirmedAncillaryItems(current, purchase.plans, requested);
-      if (evidence.some(item => !purchase.items.some(expected => expected.requestId === item.requestId && expected.providerAncillaryIds.includes(item.itemId) && cents(expected.airlineAmount) === cents(item.amount) && expected.airlineCurrency === item.currency && expected.checkoutAmount === this.checkoutAmount(item.amount, item.currency, purchase.currency)))) throw conflict('The airline extra price changed again. Refresh the review before accepting it.');
+      if (evidence.some(item => !purchase.items.some(expected => expected.requestId === item.requestId && expected.providerAncillaryIds.includes(item.itemId) && cents(expected.airlineAmount) === cents(item.amount) && expected.airlineCurrency === item.currency && expected.checkoutAmount === this.pricedItem(requested.find(r=>r.id===item.requestId)!,item.amount,item.currency,purchase.currency).checkoutAmount))) throw conflict('The airline extra price changed again. Refresh the review before accepting it.');
     }
     const body = purchase.status === 'PREPARED' ? buildAncillaryModification(owned.booking.pnrLocator!, current, fresh.plans) : null;
     await this.db.transaction(async tx => {
@@ -199,7 +211,7 @@ export class FlightAncillaryPurchaseService {
       const evidence = confirmedAncillaryItems(after, fresh.plans, requested);
       const items = fresh.items.map(item => {
         const actual = evidence.find(entry => entry.requestId === item.requestId)!;
-        return { ...item, airlineAmount: fromCents(cents(actual.amount)), airlineCurrency: actual.currency, checkoutAmount: this.checkoutAmount(actual.amount, actual.currency, fresh.currency), providerAncillaryIds: [actual.itemId] };
+        return { ...item, ...this.pricedItem(requested.find(r=>r.id===item.requestId)!,actual.amount,actual.currency,fresh.currency), providerAncillaryIds: [actual.itemId] };
       });
       const extrasAmount = fromCents(items.reduce((sum, item) => sum + cents(item.checkoutAmount), 0n));
       const totalAmount = fromCents(cents(fresh.airfareAmount) + cents(extrasAmount));
@@ -217,6 +229,23 @@ export class FlightAncillaryPurchaseService {
     if (!this.sabre) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Airline lookup is unavailable.', 503);
     const owned = await this.owned(customerId, bookingId), snapshot = owned.intent.searchRequestSnapshot as AncillarySnapshot;
     const purchase = snapshot.checkoutAncillaryPurchase, requests = snapshot.checkoutAncillaryRequests ?? [];
+    if(purchase?.status==='FULFILLED')return publicAncillaryPurchase(purchase);
+    if(purchase?.status==='FULFILLMENT_PENDING'&&owned.booking.status==='TICKETED'&&owned.booking.pnrLocator){
+      const current=await this.sabre.getAncillaryDocumentBooking(owned.booking.pnrLocator);
+      this.verifyBooking(current,owned.booking.sabreBookingId,owned.intent.selectedOfferSnapshot as FlightOffer,await this.bookedNames(bookingId));
+      confirmedAncillaryItems(current,purchase.plans,requests);
+      for(const item of purchase.items)try{extraDocument(current,item,this.config.SABRE_PCC!,'issued');}catch(e){throw conflict((e as Error).message);}
+      const complete:StoredAncillaryPurchase={...purchase,status:'FULFILLED',documentAttempt:{...purchase.documentAttempt,status:'VERIFIED'},message:'All purchased extra-service documents have been independently verified.'};
+      await this.db.transaction(async tx=>{
+        const [intent]=await tx.select().from(flightBookingIntents).where(eq(flightBookingIntents.id,owned.intent.id)).for('update');
+        const [booking]=await tx.select().from(flightBookings).where(eq(flightBookings.id,bookingId)).for('update');
+        const fresh=intent!.searchRequestSnapshot as AncillarySnapshot;
+        if(booking?.status!=='TICKETED'||JSON.stringify(fresh.checkoutAncillaryPurchase)!==JSON.stringify(purchase))throw conflict('The extra documents changed during verification.');
+        await tx.update(flightBookingIntents).set({searchRequestSnapshot:{...fresh,checkoutAncillaryPurchase:complete},updatedAt:new Date()}).where(eq(flightBookingIntents.id,intent!.id));
+        await tx.update(orders).set({fulfillmentStatus:'COMPLETED',updatedAt:new Date()}).where(and(eq(orders.bookingIntentId,intent!.id),eq(orders.status,'PAID')));
+        await tx.insert(auditEvents).values({actorCustomerId:customerId,tripId:intent!.tripId,event:'flight.extras.documents.verified'});
+      });return publicAncillaryPurchase(complete);
+    }
     if (!purchase || !['ADDING', 'UNKNOWN', 'PRICE_CHANGED', 'CONFIRMED'].includes(purchase.status) || !owned.booking.pnrLocator) throw conflict('This booking has no extras addition to verify.');
     const current = await this.sabre.getPurchaseBooking(owned.booking.pnrLocator);
     this.verifyBooking(current, owned.booking.sabreBookingId, owned.intent.selectedOfferSnapshot as FlightOffer, await this.bookedNames(bookingId));
@@ -225,7 +254,7 @@ export class FlightAncillaryPurchaseService {
     catch { throw conflict('The airline has not returned complete confirmed extras. The attempt remains locked; contact Flyseri before purchasing again.'); }
     const items = purchase.items.map(item => {
       const actual = evidence.find(entry => entry.requestId === item.requestId)!;
-      return { ...item, airlineAmount: fromCents(cents(actual.amount)), airlineCurrency: actual.currency, checkoutAmount: this.checkoutAmount(actual.amount, actual.currency, purchase.currency), providerAncillaryIds: [actual.itemId] };
+      return { ...item, ...this.pricedItem(requests.find(r=>r.id===item.requestId)!,actual.amount,actual.currency,purchase.currency), providerAncillaryIds: [actual.itemId] };
     });
     const extrasAmount = fromCents(items.reduce((sum, item) => sum + cents(item.checkoutAmount), 0n));
     const changed = purchase.status === 'PRICE_CHANGED' || items.some((item, index) => item.checkoutAmount !== purchase.items[index]?.checkoutAmount || item.airlineCurrency !== purchase.items[index]?.airlineCurrency || item.airlineAmount !== purchase.items[index]?.airlineAmount);

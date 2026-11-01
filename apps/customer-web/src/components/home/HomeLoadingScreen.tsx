@@ -10,8 +10,8 @@ let rotationEpoch: number | null = (typeof document === 'undefined' ? [] :
   .find(animation => typeof animation.startTime === 'number')?.startTime as number | undefined ?? null;
 
 /** Keep this fallback in sync with the first-paint markup in index.html. */
-export function HomeLoadingScreen({label='Loading Flyseri',overlay=false,message}:{label?:string;overlay?:boolean;message?:ReactNode}) {
-  const journey = useRef<HTMLDivElement>(null);
+export function HomeLoadingScreen({label='Loading Flyseri',overlay=false,message,inline=false,compact=false}:{label?:string;overlay?:boolean;message?:ReactNode;inline?:boolean;compact?:boolean}) {
+  const journey = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     let frame = 0;
     const preference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -28,15 +28,16 @@ export function HomeLoadingScreen({label='Loading Flyseri',overlay=false,message
     preference?.addEventListener('change',motionChanged);
     return () => { cancelAnimationFrame(frame); preference?.removeEventListener('change',motionChanged); };
   }, [overlay]);
-  const content = <div className={`home-loading${overlay ? ' is-overlay' : ''}`} role="status" aria-live="polite" aria-label={label}>
-    <div ref={journey} className="home-loading-journey" aria-hidden="true">
-      <div className="home-loading-aircraft">
+  const Container = inline ? 'span' : 'div';
+  const content = <Container className={`home-loading${overlay ? ' is-overlay' : ''}${inline ? ' is-inline' : ''}${compact ? ' is-compact' : ''}`} role="status" aria-live="polite" aria-label={label}>
+    <span ref={journey} className="home-loading-journey" aria-hidden="true">
+      <span className="home-loading-aircraft">
         <span className="home-loading-smoke"/><span className="home-loading-smoke"/>
         <span className="home-loading-smoke"/><span className="home-loading-smoke"/>
         <img src={aircraft} alt="" width={96} height={96}/>
-      </div>
-    </div>
+      </span>
+    </span>
     {message && <div className="home-loading-message">{message}</div>}
-  </div>;
-  return createPortal(content, document.body);
+  </Container>;
+  return inline ? content : createPortal(content, document.body);
 }

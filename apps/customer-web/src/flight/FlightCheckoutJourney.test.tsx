@@ -3,7 +3,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {MemoryRouter,Routes,Route,useLocation} from 'react-router-dom';
 import {FlightIntentPage} from './FlightIntentPage';
-import {FlightPaymentPreparation} from './FlightPaymentPreparation';
+import {FlightBookingPage} from './FlightBookingsPage';
 import {OrderDetailPage} from '../commerce/OrderDetailPage';
 import {keepCheckoutPassports,clearCheckoutPassports} from './checkoutPassportDraft';
 import {clearCheckoutDraft,clearReservationRecovery,reservationRecoveryKey} from './checkoutDrafts';
@@ -40,7 +40,7 @@ afterEach(()=>{cleanup();clearCheckoutPassports('journey');});
 function Location(){const l=useLocation();return <output data-testid="route">{l.pathname+l.search}</output>;}
 function open(search=''){render(<MemoryRouter initialEntries={[{pathname:'/app/flights/booking-intents/journey',search,state:{passportsCaptured:true,bookingContact:{contactEmail:'test@example.com',contactPhone:'+60123456789'}}}]}><Location/><Routes>
  <Route path="/app/flights/booking-intents/:intentId" element={<FlightIntentPage/>}/>
- <Route path="/app/bookings/:bookingId" element={<FlightPaymentPreparation booking={booking}/>}/>
+ <Route path="/app/bookings/:bookingId" element={<FlightBookingPage/>}/>
  <Route path="/app/orders/:orderId" element={<OrderDetailPage/>}/>
  </Routes></MemoryRouter>);}
 function billing(){for(const [label,value] of [['Billing name','Test Buyer'],['Billing street address','Test street'],['Billing city','Kuala Lumpur'],['Billing state / region','Kuala Lumpur'],['Billing postcode','50000'],['Billing country','MY']])fireEvent.change(screen.getByLabelText(label!),{target:{value}});}
@@ -55,12 +55,38 @@ it('runs Review through verification to one Payment page with one reservation an
  expect(screen.getByRole('listitem',{name:'Payment, current step'})).toBeTruthy();
  expect(screen.queryByText('ABC123')).toBeNull();expect(api.reserve).toHaveBeenCalledOnce();expect(api.refreshCheckout).toHaveBeenCalledOnce();expect(commerce.createFlightOrder).toHaveBeenCalledOnce();
 });
+it.each(['BOOKING_UNKNOWN','BOOKING_FAILED','BOOKING_IN_PROGRESS'])('keeps %s in Review without charging or showing a final booking result',async(status)=>{
+ const unconfirmed={...booking,status,pnr:null};api.reserve.mockResolvedValue(unconfirmed);api.booking.mockResolvedValue(unconfirmed);
+ open();await screen.findByLabelText('Billing name');billing();fireEvent.click(screen.getByRole('checkbox',{name:/checked these legal names/}));
+ fireEvent.submit((screen.getByRole('button',{name:'Continue to payment'}) as HTMLButtonElement).form!);
+ await screen.findByText(/Payment has not started/);
+ expect(screen.getByRole('listitem',{name:'Review trip, current step'})).toBeTruthy();
+ expect(screen.queryByText('Booking pending')).toBeNull();expect(commerce.createFlightOrder).not.toHaveBeenCalled();expect(api.refreshCheckout).not.toHaveBeenCalled();
+ // A read-only status check can resume checkout after confirmed evidence arrives.
+ api.booking.mockResolvedValue(booking);fireEvent.click(screen.getByRole('button',{name:'Refresh saved status'}));
+ await screen.findByRole('region',{name:'Payment methods'});
+ expect(api.reserve).toHaveBeenCalledOnce();expect(commerce.createFlightOrder).toHaveBeenCalledOnce();
+});
 it('opens legacy payment-details links in Review and uses the quoted currency when conversion fails',async()=>{
  conversion.failed=true;open('?step=payment');await screen.findByLabelText('Billing name');billing();fireEvent.click(screen.getByRole('checkbox',{name:/checked these legal names/}));
  await waitFor(()=>expect(screen.getByTestId('route').textContent).toBe('/app/flights/booking-intents/journey'));
  expect(screen.getByRole('listitem',{name:'Review trip, current step'})).toBeTruthy();
  expect((screen.getByRole('button',{name:'Continue to payment'}) as HTMLButtonElement).disabled).toBe(false);
  expect(screen.getAllByText(/MYR.*100/).length).toBeGreaterThan(0);expect(api.reserve).not.toHaveBeenCalled();
+});
+it('shows the saved airline sell failure and refreshing does not submit another MH booking',async()=>{
+ const failureMessage='The airline did not confirm the requested seats for MH197. The displayed fare could not be secured. This attempt needs a reservation check before booking again.';
+ const unconfirmed={...booking,status:'BOOKING_UNKNOWN',pnr:null,failureMessage};
+ api.reserve.mockResolvedValue(unconfirmed);api.booking.mockResolvedValue(unconfirmed);
+ open();await screen.findByLabelText('Billing name');billing();fireEvent.click(screen.getByRole('checkbox',{name:/checked these legal names/}));
+ fireEvent.submit((screen.getByRole('button',{name:'Continue to payment'}) as HTMLButtonElement).form!);
+ await screen.findByRole('heading',{name:'The airline could not confirm your flight'});
+ expect(screen.getByText(failureMessage)).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Refresh saved status'}));
+ await screen.findByText(failureMessage);
+ expect(api.reserve).toHaveBeenCalledOnce();
+ expect(commerce.createFlightOrder).not.toHaveBeenCalled();
+ expect(screen.queryByRole('region',{name:'Payment methods'})).toBeNull();
 });
 it('waits for traveler details before showing the review form',async()=>{
  let done!:(value:unknown)=>void;people.get.mockReturnValue(new Promise(resolve=>{done=resolve;}));open();

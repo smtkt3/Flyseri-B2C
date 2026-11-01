@@ -232,6 +232,16 @@ describe('flight cache identity and coalescing', () => {
 });
 
 describe('Sabre token coordination', () => {
+  it('does not share a cached token between EPR identities in the same PCC',async()=>{
+    const redis=new MemoryRedis();
+    const first=vi.fn(async()=>({accessToken:'first-private-token',expiresInSeconds:120}));
+    const second=vi.fn(async()=>({accessToken:'second-private-token',expiresInSeconds:120}));
+    const a=new SabreAuthService({...config,SABRE_USERNAME:'111111-TEST-AA'},redis.redis(),{fetchToken:first},telemetry());
+    const b=new SabreAuthService({...config,SABRE_USERNAME:'222222-TEST-AA'},redis.redis(),{fetchToken:second},telemetry());
+    expect(await a.token()).toBe('first-private-token');expect(await b.token()).toBe('second-private-token');
+    expect(first).toHaveBeenCalledOnce();expect(second).toHaveBeenCalledOnce();
+    expect([...redis.values.keys()].join(' ')).not.toMatch(/111111|222222|private-token/);
+  });
   it('derives TTL from expires_in, reuses token and coalesces concurrent refresh', async () => {
     const redis = new MemoryRedis();
     const fetchToken = vi.fn(async () => { await new Promise((resolve) => setTimeout(resolve, 40)); return { accessToken: 'private-token', expiresInSeconds: 120 }; });

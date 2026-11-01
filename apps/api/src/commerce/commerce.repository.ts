@@ -1,10 +1,13 @@
 import { couponConflict, discountFor, minor } from '../coupons/coupon.rules.js';
 import { cents as extraCents, fromCents as extraFromCents, requestKey, type AncillarySnapshot } from '../flight/ancillary-purchase.contract.js';
 import { randomBytes } from 'node:crypto';
-import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
-import { discountCoupons, couponRedemptions, auditEvents, commerceAuditEvents, commerceOutbox, flightBookingIntents, flightBookings, orderItems, orders,
-  paymentAttempts, paymentEvents, payments, visaAssistanceRequests, visaAssistanceRequestTravellers, visaAssistanceFeeSettings, visaApplications, visaStatusHistory, type DatabaseConnection } from '@flyseri/database';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { discountCoupons, couponRedemptions, auditEvents, commerceAuditEvents, commerceOutbox, flightBookingIntents, flightBookings, flightServicingCases, orderItems, orders,
+  paymentAttempts, paymentEvents, payments, refunds, visaAssistanceRequests, visaAssistanceRequestTravellers, visaAssistanceFeeSettings, visaApplications, visaStatusHistory, type DatabaseConnection } from '@flyseri/database';
 import type { OrderDetail, OrderItem, OrderSummary, PaymentSummary } from '@flyseri/types';
+import {customerExchangeQuotations,customerExchangeQuotation} from '../flight/customer-exchange-quotation.js';
+import {readRetailPricing} from '../pricing/flight-pricing.contract.js';
+import { orderOverview } from './order-overview.js';
 import type { VerifiedPaymentEvent } from './payment-provider.js';
 
 const amountPattern = /^(?:0|[1-9][0-9]{0,15})(?:\.[0-9]{1,2})?$/;
@@ -29,7 +32,7 @@ type PaymentRow = typeof payments.$inferSelect;
 export function presentOrder(row: OrderRow): OrderSummary {
   const status = row.expiresAt && row.expiresAt <= new Date() && ['PENDING_PAYMENT', 'PAYMENT_FAILED'].includes(row.status)
     ? 'EXPIRED' : row.status;
-  return { id: row.id, orderNumber: row.orderNumber, tripId: row.tripId, bookingIntentId: row.bookingIntentId, visaApplicationId: row.visaApplicationId,
+  return { id: row.id, orderNumber: row.orderNumber, tripId: row.tripId, bookingIntentId: row.bookingIntentId, visaApplicationId: row.visaApplicationId,flightServicingCaseId:row.flightServicingCaseId,
     status: status as OrderSummary['status'], fulfillmentStatus: row.fulfillmentStatus as OrderSummary['fulfillmentStatus'],
     currency: row.currency, totalAmount: row.totalAmount, discountAmount: row.discountAmount, expiresAt: row.expiresAt?.toISOString() ?? null,
     paidAt: row.paidAt?.toISOString() ?? null, createdAt: row.createdAt.toISOString() };
@@ -63,7 +66,8 @@ export class CommerceRepository {
       if (extraPurchase && extraPurchase.requestKey !== requestKey(extrasSnapshot.checkoutAncillaryRequests ?? [])) throw new OrderConflictError();
       if (extraPurchase?.status === 'CONFIRMED' && (!extraPurchase.items.length || !Number.isFinite(Date.parse(extraPurchase.expiresAt)) || extraCents(extraPurchase.totalAmount) !== extraCents(extraPurchase.airfareAmount) + extraCents(extraPurchase.extrasAmount) || extraPurchase.items.length !== extrasSnapshot.checkoutAncillaryRequests?.length || new Set(extraPurchase.items.map(item => item.requestId)).size !== extraPurchase.items.length || extraPurchase.items.some(item => !extrasSnapshot.checkoutAncillaryRequests?.some(request => request.id === item.requestId)))) throw new OrderConflictError();
       if (extraPurchase?.status === 'CONFIRMED' && (extraPurchase.currency !== intent.currency || extraCents(extraPurchase.airfareAmount) !== extraCents(intent.validatedTotalAmount) || Date.parse(extraPurchase.expiresAt) <= Date.now() || extraPurchase.items.some(item => !item.providerAncillaryIds.length) || extraCents(extraPurchase.extrasAmount) !== extraPurchase.items.reduce((sum, item) => sum + extraCents(item.checkoutAmount), 0n))) throw new OrderConflictError();
-      const airfare = money(intent.validatedTotalAmount);
+      const retail=readRetailPricing((intent.searchRequestSnapshot as {retailPricing?:unknown}).retailPricing,intent.validatedTotalAmount,intent.currency);
+      const airfare = money(retail?.sellingTotal??intent.validatedTotalAmount);
       const total = extraPurchase?.status === 'CONFIRMED' ? extraFromCents(extraCents(airfare) + extraCents(extraPurchase.extrasAmount)) : airfare;
       const search = intent.searchRequestSnapshot as { origin?: unknown; destination?: unknown };
       const from = typeof search.origin === 'string' && /^[A-Z]{3}$/.test(search.origin) ? search.origin : 'departure';
@@ -89,7 +93,7 @@ export class CommerceRepository {
   async createAssistanceOrder(customerId: string, assistanceId: string, requestId: string): Promise<OrderDetail> {
     const id = await this.connection.db.transaction(async tx => {
       const [request] = await tx.select().from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.id, assistanceId), eq(visaAssistanceRequests.customerId, customerId))).for('update');
-      if (!request) throw new OrderUnavailableError();
+      if (!request || request.archivedAt) throw new OrderUnavailableError();
       const [prior] = await tx.select({id: orders.id}).from(orders).innerJoin(orderItems, eq(orderItems.orderId, orders.id)).where(and(eq(orderItems.referenceId, assistanceId), eq(orderItems.itemType, 'VISA_SERVICE'), eq(orders.customerId, customerId), isNull(orders.visaApplicationId), isNull(orders.bookingIntentId))).limit(1);
       if (prior) return prior.id;
       if(request.expectedTravelDate<new Date().toISOString().slice(0,10))throw new OrderConflictError('The planned travel date has passed. Start a new visa application with your current travel plans.');
@@ -153,24 +157,54 @@ export class CommerceRepository {
   }
 
   async list(customerId: string): Promise<OrderSummary[]> {
-    const rows = await this.connection.db.select().from(orders).where(eq(orders.customerId, customerId))
+    const rows = await this.connection.db.select({order:orders, bookingId:flightBookings.id, bookingStatus:flightBookings.status, pnr:flightBookings.pnrLocator,
+      offer:flightBookingIntents.selectedOfferSnapshot, search:flightBookingIntents.searchRequestSnapshot,
+      passengerNames:sql<unknown>`to_jsonb(${flightBookings})->'booked_passenger_names'`, providerView:sql<unknown>`to_jsonb(${flightBookings})->'provider_view_snapshot'`,
+      visaCountry:visaApplications.destinationCountryCode, visaReference:visaApplications.applicationReference,
+    }).from(orders).leftJoin(flightServicingCases,eq(flightServicingCases.id,orders.flightServicingCaseId))
+      .leftJoin(flightBookings,and(eq(flightBookings.customerId,customerId),or(eq(flightBookings.bookingIntentId,orders.bookingIntentId),eq(flightBookings.id,flightServicingCases.bookingId))))
+      .leftJoin(flightBookingIntents,and(eq(flightBookingIntents.id,flightBookings.bookingIntentId),eq(flightBookingIntents.customerId,customerId)))
+      .leftJoin(visaApplications,and(eq(visaApplications.id,orders.visaApplicationId),eq(visaApplications.customerId,customerId),isNull(visaApplications.archivedAt)))
+      .where(and(eq(orders.customerId, customerId),or(isNull(orders.flightServicingCaseId),eq(orders.status,'PAID'),sql`${flightServicingCases.result}->>'customerQuoteSentAt' IS NOT NULL`)))
       .orderBy(desc(orders.createdAt)).limit(50);
-    return rows.map(presentOrder);
+    if (!rows.length) return [];
+    const [items, exchangeQuotations] = await Promise.all([
+      this.connection.db.select({orderId:orderItems.orderId,itemType:orderItems.itemType,descriptionSnapshot:orderItems.descriptionSnapshot,quantity:orderItems.quantity,referenceId:orderItems.referenceId})
+        .from(orderItems).where(inArray(orderItems.orderId,rows.map(row=>row.order.id))).orderBy(asc(orderItems.id)),
+      rows.some(row=>row.order.flightServicingCaseId) ? customerExchangeQuotations(this.connection,customerId) : Promise.resolve([]),
+    ]);
+    const assistanceIds = [...new Set(items.filter(item=>item.itemType==='VISA_SERVICE'&&rows.some(row=>row.order.id===item.orderId&&!row.order.visaApplicationId&&!row.order.bookingIntentId&&!row.order.flightServicingCaseId)).flatMap(item=>item.referenceId?[item.referenceId]:[]))];
+    const assistance = assistanceIds.length ? await this.connection.db.select({id:visaAssistanceRequests.id,destinationCountryCode:visaAssistanceRequests.destinationCountryCode,
+      travelDate:visaAssistanceRequests.expectedTravelDate,reference:visaAssistanceRequests.requestReference,
+      travelerCount:sql<number>`(SELECT count(*)::int FROM ${visaAssistanceRequestTravellers} WHERE ${visaAssistanceRequestTravellers.requestId}=${visaAssistanceRequests.id})`,
+    }).from(visaAssistanceRequests).where(and(eq(visaAssistanceRequests.customerId,customerId),inArray(visaAssistanceRequests.id,assistanceIds),isNull(visaAssistanceRequests.archivedAt))) : [];
+    return rows.map(row=>{
+      const summary=presentOrder(row.order), orderLines=items.filter(item=>item.orderId===row.order.id);
+      const assisted=assistance.find(request=>orderLines.some(item=>item.referenceId===request.id));
+      const visa=row.visaCountry?{destinationCountryCode:row.visaCountry,reference:row.visaReference,travelDate:null}:assisted;
+      return {...summary,overview:orderOverview(summary,orderLines,row.bookingId?{status:row.bookingStatus!,pnr:row.pnr,offer:row.offer,search:row.search,passengerNames:row.passengerNames,providerView:row.providerView}:undefined,visa,exchangeQuotations.find(quote=>quote.orderId===summary.id))};
+    });
   }
   async detail(customerId: string, id: string): Promise<OrderDetail | null> {
     const [row] = await this.connection.db.select().from(orders)
       .where(and(eq(orders.customerId, customerId), eq(orders.id, id))).limit(1);
     if (!row) return null;
-    const [items, paymentRows, bookingRows, couponRows] = await Promise.all([
+    const exchangeQuotation=row.flightServicingCaseId?(await customerExchangeQuotations(this.connection,customerId,{orderId:id}))[0]??null:null;
+    if(row.flightServicingCaseId&&!exchangeQuotation&&row.status!=='PAID')return null;
+    const [items, paymentRows, bookingRows, couponRows, refundRows] = await Promise.all([
       this.connection.db.select().from(orderItems).where(eq(orderItems.orderId, id)),
       this.connection.db.select().from(payments).where(eq(payments.orderId, id)).limit(1),
       row.bookingIntentId ? this.connection.db.select({ id: flightBookings.id }).from(flightBookings)
         .where(and(eq(flightBookings.bookingIntentId, row.bookingIntentId), eq(flightBookings.customerId, customerId))).limit(1) : Promise.resolve([]),
       this.connection.db.select().from(couponRedemptions).where(and(eq(couponRedemptions.orderId,id),inArray(couponRedemptions.state,['RESERVED','CAPTURED']))).limit(1),
+      this.connection.db.select({status:refunds.status,amount:refunds.amount,currency:refunds.currency,completedAt:refunds.completedAt,reasonCode:refunds.reasonCode}).from(refunds)
+        .innerJoin(payments,eq(refunds.paymentId,payments.id)).where(and(eq(refunds.orderId,id),eq(payments.orderId,id),eq(payments.customerId,customerId)))
+        .orderBy(desc(refunds.createdAt)).limit(20),
     ]);
-    return { ...presentOrder(row), coupon:couponRows[0]?{code:couponRows[0].code,discountAmount:couponRows[0].discountAmount,currency:couponRows[0].currency}:null, flightBookingId: bookingRows[0]?.id ?? null, visaAssistanceRequestId: !row.visaApplicationId && !row.bookingIntentId ? items.find(item => item.itemType === 'VISA_SERVICE')?.referenceId ?? null : null, items: items.map((item): OrderItem => ({ id: item.id,
+    return { ...presentOrder(row), exchangeQuotation, coupon:couponRows[0]?{code:couponRows[0].code,discountAmount:couponRows[0].discountAmount,currency:couponRows[0].currency}:null, flightBookingId: bookingRows[0]?.id ?? null, visaAssistanceRequestId: !row.visaApplicationId && !row.bookingIntentId ? items.find(item => item.itemType === 'VISA_SERVICE')?.referenceId ?? null : null, items: items.map((item): OrderItem => ({ id: item.id,
       itemType: item.itemType as OrderItem['itemType'], description: item.descriptionSnapshot,
       quantity: item.quantity, unitAmount: item.unitAmount, totalAmount: item.totalAmount, currency: item.currency })),
+      refunds:refundRows.map(refund=>({status:refund.status as NonNullable<OrderDetail['refunds']>[number]['status'],amount:refund.amount,currency:refund.currency,completedAt:refund.completedAt?.toISOString()??null,...(refund.reasonCode==='ANCILLARY_SERVICING'?{scope:'ANCILLARY' as const}:{})})),
       payment: paymentRows[0] ? presentPayment(paymentRows[0]) : null };
   }
   async payments(customerId: string): Promise<PaymentSummary[]> {
@@ -191,7 +225,14 @@ export class CommerceRepository {
       if (!order) throw new OrderUnavailableError();
       if (!['PENDING_PAYMENT', 'PAYMENT_FAILED', 'PAYMENT_PROCESSING'].includes(order.status) ||
           order.expiresAt && order.expiresAt <= new Date()) throw new OrderConflictError();
-      if (order.visaApplicationId) {
+      if(order.flightServicingCaseId){
+        const [source]=await tx.select({record:flightServicingCases,customerId:flightBookings.customerId}).from(flightServicingCases).innerJoin(flightBookings,eq(flightBookings.id,flightServicingCases.bookingId)).where(eq(flightServicingCases.id,order.flightServicingCaseId)).limit(1);
+        const state=source?.record.result as {stage?:string;collectionOrderId?:string}|null;
+        if(provider!=='STRIPE_TEST'||source?.customerId!==customerId||source?.record.kind!=='EXCHANGE'||source.record.status!=='EXECUTING'||state?.stage!=='EXCHANGE_PAYMENT_PENDING'||state.collectionOrderId!==order.id||minor(order.discountAmount)!==0n)throw new OrderConflictError();
+        const [existingPayment]=await tx.select().from(payments).where(eq(payments.orderId,order.id)).limit(1);
+        const quotation=customerExchangeQuotation({record:source.record,order,bookingCustomerId:source.customerId,paymentStatus:existingPayment?.status??null});
+        if(!quotation||!['PAYMENT_REQUIRED','PAYMENT_PROCESSING'].includes(quotation.status))throw new OrderConflictError();
+      }else if (order.visaApplicationId) {
         const [application] = await tx.select({ status: visaApplications.status }).from(visaApplications)
           .where(and(eq(visaApplications.id, order.visaApplicationId), eq(visaApplications.customerId, customerId), isNull(visaApplications.archivedAt))).limit(1);
         if (!application || !['AWAITING_PAYMENT', 'PAYMENT_FAILED', 'PAYMENT_CONFIRMING'].includes(application.status)) throw new OrderConflictError();

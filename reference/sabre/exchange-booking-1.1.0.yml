@@ -1,0 +1,3197 @@
+openapi: 3.0.0
+info:
+  title: Exchange Booking
+  version: 1.1.0
+  description: The Exchange Booking API is used to update the itinerary and create a single, or multiple, Price Quote
+    Reissue (PQR) record(s) for a ticket exchange in a single API call.
+servers:
+  - url: https://api.cert.platform.sabre.com
+security:
+  - oauth2_authentication:
+      []
+tags:
+  - name: Exchange Booking
+    description: Update the itinerary and create a single, or multiple, Price Quote Reissue (PQR) record(s) for a ticket exchange.
+paths:
+  /v1.1.0/exchange/booking:
+    post:
+      operationId: exchangeBooking
+      description: Update the itinerary and create a single, or multiple, Price Quote Reissue (PQR) record(s) for a ticket exchange.
+      tags:
+        - Exchange Booking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeBookingRequest'
+            examples:
+              requestExample:
+                $ref: '#/components/examples/requestExample'
+      responses:
+        "200":
+          description: Response success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeBookingResponse'
+              examples:
+                responseExample:
+                  $ref: '#/components/examples/responseExample'
+        "400":
+          description: |
+            Bad Request
+
+            - The request was not valid.
+        "404":
+          description: |
+            Not Found
+
+            - No results were found.
+components:
+  examples:
+    requestExample:
+      value:
+        {
+          "ExchangeBookingRQ":
+            {
+              "version": "1.1.0",
+              "targetCity": "G7HE",
+              "Itinerary": { "id": "IJNPIE" },
+              "Cancel":
+                {
+                  "Segment":
+                    [
+                      { "Number": 1 },
+                      { "Number": 2 },
+                      { "Number": 3 },
+                      { "Number": 4 }
+                    ]
+                },
+              "AirBook":
+                {
+                  "HaltOnStatus":
+                    [
+                      { "Code": "HL" },
+                      { "Code": "KK" },
+                      { "Code": "LL" },
+                      { "Code": "NN" },
+                      { "Code": "NO" },
+                      { "Code": "UC" },
+                      { "Code": "US" }
+                    ],
+                  "HaltOnTimeDiscrepancy": { "acceptableThreshold": 59 },
+                  "OriginDestinationInformation":
+                    {
+                      "FlightSegment":
+                        [
+                          {
+                            "ArrivalDateTime": "2026-05-03T08:19:00",
+                            "DepartureDateTime": "2026-05-03T06:00:00",
+                            "FlightNumber": "781",
+                            "NumberInParty": "1",
+                            "ResBookDesigCode": "G",
+                            "Status": "NN",
+                            "DestinationLocation": { "LocationCode": "PDX" },
+                            "MarketingAirline": { "Code": "AS", "FlightNumber": "781" },
+                            "OriginLocation": { "LocationCode": "LAS" }
+                          },
+                          {
+                            "ArrivalDateTime": "2026-05-03T10:20:00",
+                            "DepartureDateTime": "2026-05-03T09:30:00",
+                            "FlightNumber": "2172",
+                            "NumberInParty": "1",
+                            "ResBookDesigCode": "G",
+                            "Status": "NN",
+                            "DestinationLocation": { "LocationCode": "SEA" },
+                            "MarketingAirline": { "Code": "AS", "FlightNumber": "2172" },
+                            "OriginLocation": { "LocationCode": "PDX" }
+                          },
+                          {
+                            "ArrivalDateTime": "2026-05-03T17:30:00",
+                            "DepartureDateTime": "2026-05-03T11:45:00",
+                            "FlightNumber": "642",
+                            "NumberInParty": "1",
+                            "ResBookDesigCode": "G",
+                            "Status": "NN",
+                            "DestinationLocation": { "LocationCode": "DFW" },
+                            "MarketingAirline": { "Code": "AS", "FlightNumber": "642" },
+                            "OriginLocation": { "LocationCode": "SEA" }
+                          },
+                          {
+                            "ArrivalDateTime": "2026-05-20T17:14:00",
+                            "DepartureDateTime": "2026-05-20T15:15:00",
+                            "FlightNumber": "655",
+                            "NumberInParty": "1",
+                            "ResBookDesigCode": "G",
+                            "Status": "NN",
+                            "DestinationLocation": { "LocationCode": "PDX" },
+                            "MarketingAirline": { "Code": "AS", "FlightNumber": "655" },
+                            "OriginLocation": { "LocationCode": "DFW" }
+                          },
+                          {
+                            "ArrivalDateTime": "2026-05-20T23:07:00",
+                            "DepartureDateTime": "2026-05-20T20:55:00",
+                            "FlightNumber": "624",
+                            "NumberInParty": "1",
+                            "ResBookDesigCode": "G",
+                            "Status": "NN",
+                            "DestinationLocation": { "LocationCode": "LAS" },
+                            "MarketingAirline": { "Code": "AS", "FlightNumber": "624" },
+                            "OriginLocation": { "LocationCode": "PDX" }
+                          }
+                        ]
+                    }
+                },
+              "AutomatedExchanges":
+                [
+                  {
+                    "ExchangeComparison":
+                      {
+                        "ExchangeSegment": [
+                          {
+                            "bookSequence": 15,
+                            "id": 333
+                          }
+                        ],
+                        "OriginalTicketNumber": "0277173836173",
+                        "PriceRequestInformation":
+                          {
+                            "OptionalQualifiers":
+                              {
+                                "PricingQualifiers": { "NameSelect": { "NameNumber": "1.1" } }
+                              }
+                          },
+                        "PQ_Number": "45444"
+                      },
+                    "PriceComparison":
+                      {
+                        "amountSpecified": 0,
+                        "AcceptablePriceIncrease": { "haltOnNonAcceptablePrice": true, "Amount": 10 },
+                        "AcceptablePriceDecrease": { "haltOnNonAcceptablePrice": false, "Amount": 10 }
+                      }
+                  }
+                ],
+              "PostProcessing":
+                {
+                  "returnPQRInfo": true,
+                  "redisplayReservation": true,
+                  "EndTransaction": { "Source": { "ReceivedFrom": "SP TEST" } }
+                }
+            }
+        }
+
+    responseExample:
+      value:
+        {
+          "ApplicationResults":
+            {
+              "status": "Complete",
+              "Success": [ { "timeStamp": "2026-12-12T08:48:30.243-06:00" } ],
+              "Warning":
+                [
+                  {
+                    "type": "BusinessLogic",
+                    "timeStamp": "2026-12-12T08:48:28.091-06:00",
+                    "SystemSpecificResults":
+                      [
+                        {
+                          "Message":
+                            [
+                              {
+                                "code": "WARN.SWS.HOST.ERROR_IN_RESPONSE",
+                                "content": "NO ARNK INSERTED"
+                              }
+                            ]
+                        }
+                      ]
+                  },
+                  {
+                    "type": "BusinessLogic",
+                    "timeStamp": "2026-12-12T08:48:28.580-06:00",
+                    "SystemSpecificResults":
+                      [
+                        {
+                          "Message":
+                            [
+                              {
+                                "code": "WARN.SWS.HOST.ERROR_IN_RESPONSE",
+                                "content": "EndTransactionLLSRQ: BSG NOT ALLOWED GROUP PLANNER ACTIVE - USE CORPORATE NAME FIELD"
+                              }
+                            ]
+                        }
+                      ]
+                  }
+                ]
+            },
+          "ExchangeBookingRS":
+            {
+              "ApplicationResults":
+                {
+                  "status": "Complete",
+                  "Success": [ { "timeStamp": "2026-02-07T05:24:07.797-06:00" } ]
+                },
+              "ExchangeConfirmation":
+                [
+                  {
+                    "PQR_Number": "02",
+                    "AutoRedirect": "Y",
+                    "PriceComparison": { "amountReturned": "0.00", "amountSpecified": "0.00" },
+                    "AdditionalText": "CHG FEE AMT MODIFIED - REISSUE GUARANTEE NO LONGER APPLIES",
+                    "ChangeFee": "200.00",
+                    "DisruptionWaiver":
+                      {
+                        "Code":
+                          {
+                            "Text": "12D"
+                          },
+                        "type": "Full Exchange Waiver",
+                        "placement": "Tour Code"
+                      }
+                  }
+                ],
+              "PriceQuoteReissue":
+                [
+                  {
+                    "PQR_Number": "2",
+                    "MiscInformation":
+                      {
+                        "BaggageFees":
+                          [
+                            { "Text": "BAG ALLOWANCE     -LASDFW-NIL/AS" },
+                            {
+                              "Text": "1STCHECKED BAG FEE-LASDFW-USD30.00/AS/UP TO 50 POUNDS/23 KILOGR"
+                            },
+                            {
+                              "Text": "AMS AND UP TO 62 LINEAR INCHES/158 LINEAR CENTIMETERS**"
+                            },
+                            {
+                              "Text": "2NDCHECKED BAG FEE-LASDFW-USD40.00/AS/UP TO 50 POUNDS/23 KILOGR"
+                            },
+                            {
+                              "Text": "AMS AND UP TO 62 LINEAR INCHES/158 LINEAR CENTIMETERS**"
+                            },
+                            { "Text": "BAG ALLOWANCE     -DFWLAS-NIL/AS" },
+                            {
+                              "Text": "1STCHECKED BAG FEE-DFWLAS-USD30.00/AS/UP TO 50 POUNDS/23 KILOGR"
+                            },
+                            {
+                              "Text": "AMS AND UP TO 62 LINEAR INCHES/158 LINEAR CENTIMETERS**"
+                            },
+                            {
+                              "Text": "2NDCHECKED BAG FEE-DFWLAS-USD40.00/AS/UP TO 50 POUNDS/23 KILOGR"
+                            },
+                            {
+                              "Text": "AMS AND UP TO 62 LINEAR INCHES/158 LINEAR CENTIMETERS**"
+                            },
+                            { "Text": "**BAG FEES APPLY AT EACH CHECK IN LOCATION" },
+                            { "Text": "CARRY ON ALLOWANCE" },
+                            { "Text": "LASPDX PDXSEA SEADFW DFWPDX PDXLAS-01P/AS" },
+                            { "Text": "01/CARRY ON PERSONAL ITEM" },
+                            { "Text": "CARRY ON CHARGES" },
+                            { "Text": "LASPDX PDXSEA SEADFW DFWPDX PDXLAS-AS" },
+                            { "Text": "CARRY ON PERSONAL ITEM-USD0.00" },
+                            { "Text": "1ST AND EACH ABOVE 1ST PET IN CABIN-USD100.00" },
+                            {
+                              "Text": "ADDITIONAL ALLOWANCES AND/OR DISCOUNTS MAY APPLY DEPENDING ON"
+                            },
+                            {
+                              "Text": "FLYER-SPECIFIC FACTORS /E.G. FREQUENT FLYER STATUS/MILITARY/"
+                            },
+                            {
+                              "Text": "CREDIT CARD FORM OF PAYMENT/EARLY PURCHASE OVER INTERNET,ETC./"
+                            },
+                            { "Text": "EMBARGOES-APPLY TO EACH PASSENGER" },
+                            { "Text": "PDXSEA-AS" },
+                            {
+                              "Text": "SPORTING EQUIPMENT/CANOE/KAYAK EXCESS OVER ALLOWANCE NOT PERMIT"
+                            },
+                            { "Text": "TED" }
+                          ],
+                        "SignatureLine":
+                          [
+                            {
+                              "CreationAgent": "ASP",
+                              "CreateDateTime": "2026-02-07T05:24",
+                              "HomePseudoCityCode": "G7HE",
+                              "PseudoCityCode": "G7HE",
+                              "Source": "SYS"
+                            }
+                          ]
+                      },
+                    "PricedItinerary":
+                      {
+                        "InputMessage": "WFRF",
+                        "AirItineraryPricingInfo":
+                          {
+                            "ExchangeDetails":
+                              {
+                                "DocNumber": "0277173836173",
+                                "CurrencyCode": "USD",
+                                "PQR_Status": "E",
+                                "TicketValue": "1222.01",
+                                "ChangeFeeInformation": [ { "Amount": "N/A", "content": "" } ],
+                                "PersonName": { "Surname": "SMITH/JAMES" },
+                                "Text": [ "RESIDUAL AMT REFUNDABLE PER RULE 739.81" ],
+                                "TransactionInformation":
+                                  [
+                                    {
+                                      "Amount": "0.00",
+                                      "CurrencyCode": "USD",
+                                      "Text": "EVEN"
+                                    }
+                                  ]
+                              },
+                            "FareCalculation":
+                              {
+                                "Text":
+                                  [
+                                    "LAS AS X/PDX AS X/SEA AS DFW200.93AS X/PDX AS LAS200.93USD40",
+                                    "1.86END ZPLASPDXSEADFWPDX XFLAS4.5PDX4.5DFW4.5PDX4.5"
+                                  ]
+                              },
+                            "ItinTotalFare":
+                              {
+                                "BaseFare": { "Amount": "401.86", "CurrencyCode": "USD" },
+                                "Taxes":
+                                  {
+                                    "TaxCode": "XT",
+                                    "TotalAmount": "80.34",
+                                    "Tax":
+                                      [
+                                        { "Amount": "30.14", "TaxCode": "US" },
+                                        { "Amount": "21.00", "TaxCode": "ZP" },
+                                        { "Amount": "11.20", "TaxCode": "AY" },
+                                        { "Amount": "18.00", "TaxCode": "XF" }
+                                      ]
+                                  },
+                                "TotalFare": { "Amount": "482.20", "CurrencyCode": "USD" }
+                              },
+                            "PassengerTypeQuantity": [ { "Code": "ADT", "Quantity": "01" } ],
+                            "PTC_FareBreakdown":
+                              {
+                                "FlightSegment":
+                                  [
+                                    {
+                                      "ConnectionInd": "O",
+                                      "DepartureDateTime": "05-03T06:00",
+                                      "FlightNumber": "781",
+                                      "ResBookDesigCode": "G",
+                                      "RPH": "01",
+                                      "BaggageAllowance": { "Number": "NIL" },
+                                      "FareBasis": { "Code": "GH2OAVMN" },
+                                      "MarketingAirline": { "Code": "AS", "FlightNumber": "781" },
+                                      "OriginLocation": { "LocationCode": "LAS" },
+                                      "ValidityDates":
+                                        {
+                                          "NotValidAfter": "2026-05-03",
+                                          "NotValidBefore": "2026-05-03"
+                                        }
+                                    },
+                                    {
+                                      "ConnectionInd": "O",
+                                      "DepartureDateTime": "05-03T09:30",
+                                      "FlightNumber": "2172",
+                                      "ResBookDesigCode": "G",
+                                      "RPH": "02",
+                                      "BaggageAllowance": { "Number": "NIL" },
+                                      "FareBasis": { "Code": "GH2OAVMN" },
+                                      "MarketingAirline": { "Code": "AS", "FlightNumber": "2172" },
+                                      "OriginLocation": { "LocationCode": "PDX" },
+                                      "ValidityDates":
+                                        {
+                                          "NotValidAfter": "2026-05-03",
+                                          "NotValidBefore": "2026-05-03"
+                                        }
+                                    },
+                                    {
+                                      "ConnectionInd": "O",
+                                      "DepartureDateTime": "05-03T11:45",
+                                      "FlightNumber": "642",
+                                      "ResBookDesigCode": "G",
+                                      "RPH": "03",
+                                      "BaggageAllowance": { "Number": "NIL" },
+                                      "FareBasis": { "Code": "GH2OAVMN" },
+                                      "MarketingAirline": { "Code": "AS", "FlightNumber": "642" },
+                                      "OriginLocation": { "LocationCode": "SEA" },
+                                      "ValidityDates":
+                                        {
+                                          "NotValidAfter": "2026-05-03",
+                                          "NotValidBefore": "2026-05-03"
+                                        }
+                                    },
+                                    {
+                                      "ConnectionInd": "O",
+                                      "DepartureDateTime": "05-20T15:15",
+                                      "FlightNumber": "655",
+                                      "ResBookDesigCode": "G",
+                                      "RPH": "04",
+                                      "BaggageAllowance": { "Number": "NIL" },
+                                      "FareBasis": { "Code": "GH2OAVMN" },
+                                      "MarketingAirline": { "Code": "AS", "FlightNumber": "655" },
+                                      "OriginLocation": { "LocationCode": "DFW" },
+                                      "ValidityDates":
+                                        {
+                                          "NotValidAfter": "2026-05-20",
+                                          "NotValidBefore": "2026-05-20"
+                                        }
+                                    },
+                                    {
+                                      "ConnectionInd": "O",
+                                      "DepartureDateTime": "05-20T20:55",
+                                      "FlightNumber": "624",
+                                      "ResBookDesigCode": "G",
+                                      "RPH": "05",
+                                      "BaggageAllowance": { "Number": "NIL" },
+                                      "FareBasis": { "Code": "GH2OAVMN" },
+                                      "MarketingAirline": { "Code": "AS", "FlightNumber": "624" },
+                                      "OriginLocation": { "LocationCode": "PDX" },
+                                      "ValidityDates":
+                                        {
+                                          "NotValidAfter": "2026-05-20",
+                                          "NotValidBefore": "2026-05-20"
+                                        }
+                                    },
+                                    { "OriginLocation": { "LocationCode": "LAS" } }
+                                  ]
+                              },
+                            "ResTicketingRestrictions": [ "02-08" ]
+                          }
+                      },
+                    "ResponseHeader":
+                      {
+                        "Text":
+                          [
+                            "VALIDATING CARRIER SPECIFIED - AS",
+                            "USD401.86 NONREFUNDABLE",
+                            "NONREF/SVCCHGPLUSFAREDIF/CXL BY FLT TIME OR NOVALUE/VALID AS/",
+                            "VALIDATING CARRIER-AS"
+                          ]
+                      }
+                  }
+                ],
+              "Reservation":
+                {
+                  "numberInParty": 1,
+                  "numberOfInfants": 0,
+                  "NumberInSegment": 1,
+                  "BookingDetails":
+                    {
+                      "RecordLocator": "IJNPIE",
+                      "CreationTimestamp": "2026-02-07T05:23:00",
+                      "SystemCreationTimestamp": "2026-02-07T05:23:00",
+                      "CreationAgentID": "ASP",
+                      "UpdateTimestamp": "2026-02-07T05:24:03",
+                      "PNRSequence": 3,
+                      "FlightsRange":
+                        {
+                          "Start": "2026-05-03T06:00:00",
+                          "End": "2026-05-20T23:07:00"
+                        },
+                      "DivideSplitDetails": {},
+                      "EstimatedPurgeTimestamp": "2026-05-20T00:00:00",
+                      "UpdateToken": "1ed40bb6ea9497b02bdb466b379dfcf4971f2504aed52b2d"
+                    },
+                  "POS":
+                    {
+                      "Source":
+                        {
+                          "BookingSource": "G7HE",
+                          "AgentSine": "ASP",
+                          "PseudoCityCode": "G7HE",
+                          "ISOCountry": "US",
+                          "AgentDutyCode": "*",
+                          "AirlineVendorID": "AA",
+                          "HomePseudoCityCode": "G7HE"
+                        }
+                    },
+                  "PassengerReservation":
+                    {
+                      "Passengers":
+                        {
+                          "Passenger":
+                            [
+                              {
+                                "id": "3",
+                                "nameType": "S",
+                                "passengerType": "ADT",
+                                "referenceNumber": "ABC123",
+                                "nameId": "01.01",
+                                "nameAssocId": "1",
+                                "elementId": "pnr-3.1",
+                                "LastName": "SMITH",
+                                "FirstName": "JAMES",
+                                "SpecialRequests":
+                                  {
+                                    "APISRequest":
+                                      [
+                                        {
+                                          "DOCSEntry":
+                                            {
+                                              "id": "16",
+                                              "type": "G",
+                                              "DateOfBirth": "2001-01-01",
+                                              "Gender": "M",
+                                              "Surname": "SMITH",
+                                              "Forename": "JAMES",
+                                              "MiddleName": "",
+                                              "PrimaryHolder": false,
+                                              "FreeText": "",
+                                              "ActionCode": "HK",
+                                              "NumberInParty": 1,
+                                              "VendorCode": "AS"
+                                            }
+                                        }
+                                      ]
+                                  },
+                                "Seats": {}
+                              }
+                            ]
+                        },
+                      "Segments":
+                        {
+                          "Poc": { "Airport": "LAS", "Departure": "2026-05-03T06:00:00" },
+                          "Segment":
+                            [
+                              {
+                                "sequence": 1,
+                                "id": "29",
+                                "Air":
+                                  {
+                                    "id": "29",
+                                    "sequence": 1,
+                                    "segmentAssociationId": 6,
+                                    "isPast": false,
+                                    "DepartureAirport": "LAS",
+                                    "DepartureAirportCodeContext": "IATA",
+                                    "DepartureTerminalName": "TERMINAL 3",
+                                    "DepartureTerminalCode": "3",
+                                    "ArrivalAirport": "PDX",
+                                    "ArrivalAirportCodeContext": "IATA",
+                                    "OperatingAirlineCode": "AS",
+                                    "OperatingAirlineShortName": "ALASKA AIRLINES",
+                                    "OperatingFlightNumber": "0781",
+                                    "EquipmentType": "73J",
+                                    "MarketingAirlineCode": "AS",
+                                    "MarketingFlightNumber": "0781",
+                                    "OperatingClassOfService": "G",
+                                    "MarketingClassOfService": "G",
+                                    "MarriageGrp": { "Ind": "0", "Group": "0", "Sequence": "0" },
+                                    "Seats": {},
+                                    "AirlineRefId": "DCAS*",
+                                    "Eticket": true,
+                                    "DepartureDateTime": "2026-05-03T06:00:00",
+                                    "ArrivalDateTime": "2026-05-03T08:19:00",
+                                    "FlightNumber": "0781",
+                                    "ClassOfService": "G",
+                                    "ActionCode": "HK",
+                                    "NumberInParty": 1,
+                                    "SegmentSpecialRequests": {},
+                                    "inboundConnection": false,
+                                    "outboundConnection": true,
+                                    "ScheduleChangeIndicator": false,
+                                    "SegmentBookedDate": "2026-02-07T05:24:00",
+                                    "ElapsedTime": "02.19",
+                                    "AirMilesFlown": "0763",
+                                    "FunnelFlight": false,
+                                    "ChangeOfGauge": false
+                                  }
+                              },
+                              {
+                                "sequence": 2,
+                                "id": "30",
+                                "Air":
+                                  {
+                                    "id": "30",
+                                    "sequence": 2,
+                                    "segmentAssociationId": 7,
+                                    "isPast": false,
+                                    "DepartureAirport": "PDX",
+                                    "DepartureAirportCodeContext": "IATA",
+                                    "ArrivalAirport": "SEA",
+                                    "ArrivalAirportCodeContext": "IATA",
+                                    "OperatingAirlineCode": "AS",
+                                    "OperatingAirlineShortName": "ALASKA AIRLINES",
+                                    "OperatingFlightNumber": "2172",
+                                    "EquipmentType": "DH4",
+                                    "MarketingAirlineCode": "AS",
+                                    "MarketingFlightNumber": "2172",
+                                    "OperatingClassOfService": "G",
+                                    "MarketingClassOfService": "G",
+                                    "DisclosureCarrier":
+                                      {
+                                        "Code": "AS",
+                                        "DOT": true,
+                                        "Banner": "HORIZON AIR AS ALASKAHORIZON"
+                                      },
+                                    "MarriageGrp": { "Ind": "0", "Group": "0", "Sequence": "0" },
+                                    "Seats": {},
+                                    "AirlineRefId": "DCAS*",
+                                    "Eticket": true,
+                                    "DepartureDateTime": "2026-05-03T09:30:00",
+                                    "ArrivalDateTime": "2026-05-03T10:20:00",
+                                    "FlightNumber": "2172",
+                                    "ClassOfService": "G",
+                                    "ActionCode": "HK",
+                                    "NumberInParty": 1,
+                                    "SegmentSpecialRequests": {},
+                                    "inboundConnection": true,
+                                    "outboundConnection": true,
+                                    "ScheduleChangeIndicator": false,
+                                    "SegmentBookedDate": "2026-02-07T05:24:00",
+                                    "ElapsedTime": "00.50",
+                                    "AirMilesFlown": "0128",
+                                    "FunnelFlight": false,
+                                    "ChangeOfGauge": false
+                                  }
+                              },
+                              {
+                                "sequence": 3,
+                                "id": "31",
+                                "Air":
+                                  {
+                                    "id": "31",
+                                    "sequence": 3,
+                                    "segmentAssociationId": 8,
+                                    "isPast": false,
+                                    "DepartureAirport": "SEA",
+                                    "DepartureAirportCodeContext": "IATA",
+                                    "ArrivalAirport": "DFW",
+                                    "ArrivalAirportCodeContext": "IATA",
+                                    "ArrivalTerminalName": "TERMINAL E",
+                                    "ArrivalTerminalCode": "E",
+                                    "OperatingAirlineCode": "AS",
+                                    "OperatingAirlineShortName": "ALASKA AIRLINES",
+                                    "OperatingFlightNumber": "0642",
+                                    "EquipmentType": "73J",
+                                    "MarketingAirlineCode": "AS",
+                                    "MarketingFlightNumber": "0642",
+                                    "OperatingClassOfService": "G",
+                                    "MarketingClassOfService": "G",
+                                    "MarriageGrp": { "Ind": "0", "Group": "0", "Sequence": "0" },
+                                    "Seats": {},
+                                    "AirlineRefId": "DCAS*",
+                                    "Eticket": true,
+                                    "DepartureDateTime": "2026-05-03T11:45:00",
+                                    "ArrivalDateTime": "2026-05-03T17:30:00",
+                                    "FlightNumber": "0642",
+                                    "ClassOfService": "G",
+                                    "ActionCode": "HK",
+                                    "NumberInParty": 1,
+                                    "SegmentSpecialRequests": {},
+                                    "inboundConnection": true,
+                                    "outboundConnection": false,
+                                    "ScheduleChangeIndicator": false,
+                                    "SegmentBookedDate": "2026-02-07T05:24:00",
+                                    "ElapsedTime": "03.45",
+                                    "AirMilesFlown": "1659",
+                                    "FunnelFlight": false,
+                                    "ChangeOfGauge": false
+                                  }
+                              },
+                              {
+                                "sequence": 4,
+                                "id": "32",
+                                "Air":
+                                  {
+                                    "id": "32",
+                                    "sequence": 4,
+                                    "segmentAssociationId": 9,
+                                    "isPast": false,
+                                    "DepartureAirport": "DFW",
+                                    "DepartureAirportCodeContext": "IATA",
+                                    "DepartureTerminalName": "TERMINAL E",
+                                    "DepartureTerminalCode": "E",
+                                    "ArrivalAirport": "PDX",
+                                    "ArrivalAirportCodeContext": "IATA",
+                                    "OperatingAirlineCode": "AS",
+                                    "OperatingAirlineShortName": "ALASKA AIRLINES",
+                                    "OperatingFlightNumber": "0655",
+                                    "EquipmentType": "73J",
+                                    "MarketingAirlineCode": "AS",
+                                    "MarketingFlightNumber": "0655",
+                                    "OperatingClassOfService": "G",
+                                    "MarketingClassOfService": "G",
+                                    "MarriageGrp": { "Ind": "0", "Group": "0", "Sequence": "0" },
+                                    "Seats": {},
+                                    "AirlineRefId": "DCAS*",
+                                    "Eticket": true,
+                                    "DepartureDateTime": "2026-05-20T15:15:00",
+                                    "ArrivalDateTime": "2026-05-20T17:14:00",
+                                    "FlightNumber": "0655",
+                                    "ClassOfService": "G",
+                                    "ActionCode": "HK",
+                                    "NumberInParty": 1,
+                                    "SegmentSpecialRequests": {},
+                                    "inboundConnection": false,
+                                    "outboundConnection": true,
+                                    "ScheduleChangeIndicator": false,
+                                    "SegmentBookedDate": "2026-02-07T05:24:00",
+                                    "ElapsedTime": "03.59",
+                                    "AirMilesFlown": "1616",
+                                    "FunnelFlight": false,
+                                    "ChangeOfGauge": false
+                                  }
+                              },
+                              {
+                                "sequence": 5,
+                                "id": "33",
+                                "Air":
+                                  {
+                                    "id": "33",
+                                    "sequence": 5,
+                                    "segmentAssociationId": 10,
+                                    "isPast": false,
+                                    "DepartureAirport": "PDX",
+                                    "DepartureAirportCodeContext": "IATA",
+                                    "ArrivalAirport": "LAS",
+                                    "ArrivalAirportCodeContext": "IATA",
+                                    "ArrivalTerminalName": "TERMINAL 3",
+                                    "ArrivalTerminalCode": "3",
+                                    "OperatingAirlineCode": "AS",
+                                    "OperatingAirlineShortName": "ALASKA AIRLINES",
+                                    "OperatingFlightNumber": "0624",
+                                    "EquipmentType": "73J",
+                                    "MarketingAirlineCode": "AS",
+                                    "MarketingFlightNumber": "0624",
+                                    "OperatingClassOfService": "G",
+                                    "MarketingClassOfService": "G",
+                                    "MarriageGrp": { "Ind": "0", "Group": "0", "Sequence": "0" },
+                                    "Seats": {},
+                                    "AirlineRefId": "DCAS*",
+                                    "Eticket": true,
+                                    "DepartureDateTime": "2026-05-20T20:55:00",
+                                    "ArrivalDateTime": "2026-05-20T23:07:00",
+                                    "FlightNumber": "0624",
+                                    "ClassOfService": "G",
+                                    "ActionCode": "HK",
+                                    "NumberInParty": 1,
+                                    "SegmentSpecialRequests": {},
+                                    "inboundConnection": true,
+                                    "outboundConnection": false,
+                                    "ScheduleChangeIndicator": false,
+                                    "SegmentBookedDate": "2026-02-07T05:24:00",
+                                    "ElapsedTime": "02.12",
+                                    "AirMilesFlown": "0763",
+                                    "FunnelFlight": false,
+                                    "ChangeOfGauge": false
+                                  }
+                              }
+                            ]
+                        },
+                      "TicketingInfo":
+                        {
+                          "AlreadyTicketed":
+                            [
+                              {
+                                "id": "22",
+                                "index": 1,
+                                "elementId": "pnr-22",
+                                "Code": "T-07FEB-G7HE*ASP"
+                              }
+                            ],
+                          "ETicketNumber":
+                            [
+                              {
+                                "id": "20",
+                                "index": 2,
+                                "elementId": "pnr-20",
+                                "content": "TE 0277173836173-AT SMITH/J G7HE*ASP 0523/07FEB*"
+                              }
+                            ],
+                          "TicketDetails":
+                            [
+                              {
+                                "id": "20",
+                                "index": 2,
+                                "elementId": "pnr-20",
+                                "OriginalTicketDetails": "TE 0277173836173-AT SMITH/J G7HE*ASP 0523/07FEB*",
+                                "TransactionIndicator": "TE",
+                                "TicketNumber": "0277173836173",
+                                "PassengerName": "SMITH/J",
+                                "AgencyLocation": "G7HE",
+                                "DutyCode": "*",
+                                "AgentSine": "ASP",
+                                "Timestamp": "2026-02-07T05:23:00",
+                                "PaymentType": "*"
+                              }
+                            ]
+                        },
+                      "ItineraryPricing": {}
+                    },
+                  "ReceivedFrom": { "Name": "SP TEST" },
+                  "Addresses":
+                    {
+                      "Address":
+                        [
+                          {
+                            "AddressLines":
+                              {
+                                "AddressLine":
+                                  [
+                                    { "id": "7", "type": "O", "Text": "SABRE TRAVEL" },
+                                    { "id": "8", "type": "O", "Text": "3150 SABRE DRIVE" },
+                                    { "id": "9", "type": "O", "Text": "SOUTHLAKE, TX US" },
+                                    { "id": "10", "type": "O", "Text": "76092" }
+                                  ]
+                              }
+                          }
+                        ]
+                    },
+                  "PhoneNumbers":
+                    {
+                      "PhoneNumber":
+                        [
+                          {
+                            "id": "6",
+                            "index": 1,
+                            "elementId": "pnr-6",
+                            "CityCode": "DFW",
+                            "Number": "817-555-1212-H-1.1"
+                          }
+                        ]
+                    },
+                  "Remarks":
+                    {
+                      "Remark":
+                        [
+                          {
+                            "index": 1,
+                            "id": "17",
+                            "type": "FOP",
+                            "elementId": "pnr-17",
+                            "RemarkLines": { "RemarkLine": [ { "Text": "CHECK" } ] }
+                          },
+                          {
+                            "index": 2,
+                            "id": "21",
+                            "type": "REG",
+                            "elementId": "pnr-21",
+                            "RemarkLines": { "RemarkLine": [ { "Text": "XXTAW/" } ] }
+                          }
+                        ]
+                    },
+                  "EmailAddresses": {},
+                  "AccountingLines":
+                    {
+                      "AccountingLine":
+                        [
+                          {
+                            "id": "19",
+                            "index": 1,
+                            "elementId": "pnr-19",
+                            "FareApplication": "ONE",
+                            "FormOfPaymentCode": "CA",
+                            "AirlineDesignator": {},
+                            "DocumentNumber": "7173836173",
+                            "CommissionAmount": "0.00",
+                            "BaseFare": "1093.96",
+                            "TaxAmount": "128.05",
+                            "PassengerName": "SMITH JAMES",
+                            "NumberOfConjunctedDocuments": "1",
+                            "TarriffBasis": {}
+                          }
+                        ]
+                    },
+                  "GenericSpecialRequests":
+                    [
+                      {
+                        "id": "15",
+                        "type": "G",
+                        "msgType": "S",
+                        "Code": "OTHS",
+                        "FreeText": "CC JAMES SMITH",
+                        "AirlineCode": "YY",
+                        "FullText": "OTHS YY CC JAMES SMITH"
+                      }
+                    ],
+                  "OpenReservationElements":
+                    {
+                      "OpenReservationElement":
+                        [
+                          {
+                            "id": "4",
+                            "type": "INVOICE",
+                            "elementId": "pnr-or-4",
+                            "InvoiceData":
+                              {
+                                "SnapshotId": "9e92c1dd-b810-4370-bab0-ca8ffc6221bf",
+                                "InvoiceId": "18ce8985-0ee1-458e-9dbf-8e8323051b0e",
+                                "InvoiceNumber": 1234,
+                                "InvoiceCreateDate": "2026-02-07T05:23:20",
+                                "TravellerName":
+                                  [
+                                    {
+                                      "LastName": "SMITH",
+                                      "FirstName": "JAMES",
+                                      "NameRefNumber": "01.01"
+                                    }
+                                  ]
+                              }
+                          },
+                          {
+                            "id": "15",
+                            "type": "SRVC",
+                            "elementId": "pnr-15",
+                            "ServiceRequest":
+                              {
+                                "airlineCode": "YY",
+                                "code": "OTHS",
+                                "serviceType": "SSR",
+                                "ssrType": "GFX",
+                                "FreeText": "CC JAMES SMITH",
+                                "FullText": "OTHS YY CC JAMES SMITH"
+                              }
+                          },
+                          {
+                            "id": "16",
+                            "type": "SRVC",
+                            "elementId": "pnr-16",
+                            "ServiceRequest":
+                              {
+                                "actionCode": "HK",
+                                "airlineCode": "AS",
+                                "code": "DOCS",
+                                "serviceCount": "1",
+                                "serviceType": "SSR",
+                                "ssrType": "GFX",
+                                "FreeText": "/DB/01JAN2001/M/SMITH/JAMES",
+                                "FullText": "DOCS AS HK1/DB/01JAN2001/M/SMITH/JAMES",
+                                "TravelDocument":
+                                  {
+                                    "Type": "DB",
+                                    "DateOfBirth": "01JAN2001",
+                                    "Gender": "M",
+                                    "LastName": "SMITH",
+                                    "FirstName": "JAMES",
+                                    "Infant": false,
+                                    "HasDocumentData": false
+                                  }
+                              },
+                            "NameAssociation":
+                              [
+                                {
+                                  "LastName": "SMITH",
+                                  "FirstName": "JAMES",
+                                  "NameRefNumber": 1.01
+                                }
+                              ]
+                          },
+                          {
+                            "id": "17",
+                            "type": "FP",
+                            "displayIndex": "1",
+                            "elementId": "pnr-17",
+                            "FormOfPayment": { "migrated": false, "Check": { "Text": "CHECK" } }
+                          }
+                        ]
+                    }
+                }
+            },
+          "Links":
+            [
+              {
+                "rel": "self",
+                "href": "https://api.cert.platform.sabre.com/v1.1.0/exchange/booking"
+              },
+              {
+                "rel": "linkTemplate",
+                "href": "https://api.cert.platform.sabre.com/<version>/exchange/booking"
+              }
+            ]
+        }
+  schemas:
+    ExchangeBookingRequest:
+      type: object
+      properties:
+        ExchangeBookingRQ:
+          type: object
+          description: Contains the required parameters to make a booking exchange request.
+          required:
+            - Itinerary
+            - AutomatedExchanges
+            - PostProcessing
+          properties:
+            version:
+              type: string
+              example: '1.1.0'
+              description: The version of the payload message.
+            healthCheck:
+              description: |
+                This is for Sabre internal use only.
+
+                If `true`, the API is queried in health check mode and will return a blank success that does not invoke downstream providers.
+              type: boolean
+              example: false
+            targetCity:
+              description: |
+                Specifies whether or not the API should change context to a desired pseudo city code.
+
+                If `targetCity` is empty, or equals the current city, the API does not change the context.
+              example: 'AAA'
+              type: string
+              minLength: 3
+              maxLength: 4
+            multipleExchangesWaitInterval:
+              description: |
+                The delay that the API should wait after each exchange transaction is executed.
+
+                This can range from 1000 to 10000 ms, and will be only used when more than one exchange transaction is requested.
+
+                When the flag is not set and multiple exchanges are invoked, the API will wait 3000 ms after the initial exchange transaction only.
+              example: 2500
+              type: integer
+              format: int32
+              maximum: 10000
+              minimum: 1000
+            Itinerary:
+              type: object
+              description: Contains details of the itinerary associated with the booking exchange.
+              properties:
+                SegmentPricing:
+                  type: object
+                  description: Contains the instructions the system needs to follow to price specific segments during the exchange
+                    comparison step.
+                  properties:
+                    SegmentSelect:
+                      type: array
+                      description: Lists the air segment numbers that will be priced.
+                      items:
+                        properties:
+                          number:
+                            type: integer
+                            format: int32
+                            example: 1
+                            description: Index of the chosen segment.
+                          itemId:
+                            type: integer
+                            format: int32
+                            example: 1
+                            description: Used to specify flight item ID sourced from Booking Management API `getBooking` service. `itemId` cannot be combined with `number`.
+                            minimum: 1
+                      minItems: 1
+                      maxItems: 16
+                  required:
+                    - SegmentSelect
+                id:
+                  type: string
+                  example: 'TNJBGO'
+                  description: The unique record locator ID.
+              required:
+                - id
+            Cancel:
+              type: object
+              description: Contains the segment(s) to cancel.
+              required:
+                - Segment
+              properties:
+                Segment:
+                  type: array
+                  description: Lists the reservation segments to cancel.
+                  items:
+                    type: object
+                    description: Contains the reservation segment(s) to cancel.
+                    properties:
+                      Number:
+                        type: integer
+                        format: int32
+                        example: 1
+                        description: The particular reservation segment number to cancel.
+                      itemId:
+                        type: integer
+                        format: int32
+                        example: 1
+                        description: Used to specify a particular segment number to cancel in case of multiple segments with the same number.
+                        minimum: 1
+            SpecialService:
+              type: object
+              description: Used to add many types of SSRs.
+              properties:
+                SpecialServiceInfo:
+                  type: object
+                  description: The SSR details.
+                  properties:
+                    AdvancePassenger:
+                      description: Used to specify the APIS (Advance Passenger Information).
+                      type: array
+                      items:
+                        properties:
+                          Document:
+                            type: object
+                            description: The document details.
+                            properties:
+                              IssueCountry:
+                                description: The document country of issue.
+                                example: 'PL'
+                                type: string
+                              NationalityCountry:
+                                description: The document nationality.
+                                type: string
+                                example: 'PL'
+                              Visa:
+                                type: object
+                                description: The Visa document details.
+                                properties:
+                                  ApplicableCountry:
+                                    description: |
+                                      The applicable country code.
+
+                                      You must use a valid 2 or 3 character country code (alpha characters only).
+                                    example: 'PL'
+                                    type: string
+                                  PlaceOfBirth:
+                                    description: The place of birth.
+                                    type: string
+                                    example: 'Krakow PL'
+                                  PlaceOfIssue:
+                                    description: The place of issue.
+                                    example: 'Krakow PL'
+                                    type: string
+                                  ExpirationDate:
+                                    description: Used to specify the visa expiration date.
+                                    example: '2026-01-03'
+                                    type: string
+                                    format: date
+                                  IssueDate:
+                                    description: The issue date.
+                                    example: '2026-01-03'
+                                    type: string
+                                    format: date
+                              ExpirationDate:
+                                description: Used to specify the document expiration date.
+                                example: '2026-01-03'
+                                type: string
+                                format: date
+                              Number:
+                                description: Used to specify the document number.
+                                example: '1234567890'
+                                type: string
+                              Type:
+                                description: |
+                                  Used to specify the document type. Acceptable values include:
+
+                                  "A" - Alien resident card
+
+                                  "C" - Permanent resident card
+
+                                  "F" - Facilitation document
+
+                                  "I" - National ID card
+
+                                  "IN" - Nexus Card
+
+                                  Also:
+
+                                  "M" - Military
+
+                                  "N" - Naturalization certificate
+
+                                  "P" - Passport
+
+                                  "T" - Refugee travel document and re-entry permit, US Travel document
+
+                                  "V" - Border crossing card.
+                                example: 'P'
+                                type: string
+                            required:
+                              - Type
+                          PersonName:
+                            type: object
+                            description: The personal details.
+                            properties:
+                              GivenName:
+                                description: The person's first name. The maximum number of characters accepted by Sabre is 29.
+                                example: 'David'
+                                type: string
+                              MiddleName:
+                                description: The middle name.
+                                example: 'Robert'
+                                type: string
+                              Surname:
+                                description: The person's last name. The maximum number of characters accepted by Sabre is 29.
+                                example: 'Johnes'
+                                type: string
+                              DateOfBirth:
+                                description: The date of birth.
+                                example: '1980-01-01'
+                                type: string
+                                format: date
+                              DocumentHolder:
+                                description: Used to identify the primary passport holder when the passport document is issued for multiple passengers.
+                                type: boolean
+                                example: true
+                              Gender:
+                                description: |
+                                  The gender type code.
+                                  `F` denotes FEMALE
+                                  `M` denotes MALE
+                                  `FI` denotes INFANT FEMALE
+                                  `MI` denotes INFANT_MALE
+                                  `U` denotes UNDISCLOSED
+                                  `X` denotes UNDEFINED
+                                  `UI` denotes UNDISCLOSED INFANT
+                                  `XI` denotes UNDEFINED INFANT
+                                type: string
+                                enum:
+                                  - F
+                                  - M
+                                  - FI
+                                  - MI
+                                  - U
+                                  - X
+                                  - UI
+                                  - XI
+                              LapChild:
+                                description: |
+                                  Used to identify information associated with a lap child.
+
+                                  It can only be used together with SpecialServiceInfo.AdvancePassenger.Document.Visa and SpecialServiceInfo.AdvancePassenger.ResidentDestinationAddress.
+                                type: boolean
+                                example: true
+                              NameNumber:
+                                description: |
+                                  The name number.
+
+                                  I. e. 1.1, 2.1 etc.
+                                example: '1.1'
+                                type: string
+                          ResidentDestinationAddress:
+                            type: object
+                            description: Used to pass residence or destination address.
+                            properties:
+                              City:
+                                description: The city name.
+                                example: 'Krakow'
+                                type: string
+                              Country:
+                                description: The country code.
+                                example: 'Poland'
+                                type: string
+                              Street:
+                                description: The street address.
+                                example: 'Wadowicka'
+                                type: string
+                              State:
+                                description: The state code.
+                                example: 'FL'
+                                type: string
+                              Zip:
+                                description: The zip or postal code.
+                                example: '31-334'
+                                type: string
+                              Type:
+                                description: |
+                                  Used to specify the address type.
+
+                                  Acceptable values are "R" - residence address, "D" - destination address.
+                                example: 'D'
+                                type: string
+                            required:
+                              - Country
+                              - Type
+                          VendorPrefs:
+                            type: object
+                            description: Contains airline vendor preferences.
+                            properties:
+                              Airline:
+                                type: object
+                                description: Contains airline vendor preference information.
+                                properties:
+                                  Hosted:
+                                    description: If `true`, the receiving airline is a Sabre-hosted carrier.
+                                    type: boolean
+                                    example: true
+                            required:
+                              - Airline
+                          SegmentNumber:
+                            description: |
+                              Used to specify an itinerary segment number to associate the SSR to.
+
+                              `A` can be specified to associate the SSR to all segments.
+                            type: string
+                            example: 'A'
+                          bookSequence:
+                            description: Used to specify a segment booking sequence.
+                            example: 1
+                            type: integer
+                            format: int32
+                            minimum: 1
+                            maximum: 16
+                      minItems: 0
+                    SecureFlight:
+                      description: Used to specify Secure Flight Passenger Data (SFPD).
+                      type: array
+                      items:
+                        properties:
+                          IssueCountry:
+                            description: Used to pass the country of issue for `KnownTravelerNumber` or `RedressNumber`.
+                            example: 'US'
+                            type: string
+                          KnownTravelerNumber:
+                            description: |
+                              The known traveler number.
+
+                              `KnownTravelerNumber` cannot be combined with `PersonName.DateOfBirth` or  `PersonName.Gender` and `RedressNumber`.
+                            example: '111222333'
+                            type: string
+                          PersonName:
+                            type: object
+                            description: The personal details.
+                            properties:
+                              GivenName:
+                                description: The person`s first name. The maximum number of characters accepted by Sabre is 29.
+                                example: 'SWS'
+                                type: string
+                              Surname:
+                                description: The person`s last name. The maximum number of characters accepted by Sabre is 29.
+                                example: 'Surname'
+                                type: string
+                              DateOfBirth:
+                                description: |
+                                  The date of birth.
+
+                                  `DateOfBirth` accepts dates in the following formats - `YYYY-MM-DD` and `YY-MM-DD`.
+
+                                  `DateOfBirth` and `Gender` cannot be combined with `../RedressNumber` and `../KnownTravelerNumber`.
+                                example: '1980-01-01'
+                                type: string
+                              Gender:
+                                description: |
+                                  The gender type code.
+                                  `F` denotes FEMALE
+                                  `M` denotes MALE
+                                  `FI` denotes INFANT FEMALE
+                                  `MI` denotes INFANT_MALE
+                                  `U` denotes UNDISCLOSED
+                                  `X` denotes UNDEFINED
+                                  `UI` denotes UNDISCLOSED INFANT
+                                  `XI` denotes UNDEFINED INFANT
+                                type: string
+                                enum:
+                                  - F
+                                  - M
+                                  - FI
+                                  - MI
+                                  - U
+                                  - X
+                                  - UI
+                                  - XI
+                              NameNumber:
+                                description: |
+                                  The name number.
+
+                                  Example: 1.1, 2.1. etc.
+                                example: '1.1'
+                                type: string
+                              LapChild:
+                                description: |
+                                  If `true`, the passenger is a lap child.
+
+                                  This can only be used together with `SpecialServiceInfo.AdvancePassenger.Document.Visa` and `SpecialServiceInfo.AdvancePassenger.ResidentDestinationAddress`.
+                                type: boolean
+                                example: true
+                          RedressNumber:
+                            description: |
+                              The redress number.
+
+                              `RedressNumber` cannot be combined with `PersonName.DateOfBirth` or `PersonName.Gender`.
+                            example: '123456789'
+                            type: string
+                          VendorPrefs:
+                            type: object
+                            description: Contains airline vendor preferences.
+                            properties:
+                              Airline:
+                                type: object
+                                description: Contains airline vendor preference information.
+                                properties:
+                                  Hosted:
+                                    description: If `true`, the receiving airline is a Sabre-hosted carrier.
+                                    type: boolean
+                                    example: true
+                            required:
+                              - Airline
+                          SegmentNumber:
+                            description: |
+                              The segment number.
+
+                              Used to specify an itinerary segment to associate the SSR to.
+
+                              `A` can be specified to associate the SSR to all segments.
+                            example: '2'
+                            type: string
+                          bookSequence:
+                            description: Used to specify a segment booking sequence.
+                            example: 1
+                            type: integer
+                            format: int32
+                            minimum: 1
+                            maximum: 16
+                      minItems: 0
+                    Service:
+                      description: Used to specify Special Service Request (SSR).
+                      type: array
+                      items:
+                        properties:
+                          PersonName:
+                            type: object
+                            description: The personal details.
+                            properties:
+                              NameNumber:
+                                description: Used to specify a passenger name number.
+                                example: '3.1'
+                                type: string
+                          Text:
+                            description: Used to specify miscellaneous free text information.
+                            example: 'Any info'
+                            type: string
+                          VendorPrefs:
+                            type: object
+                            description: Contains airline vendor preferences.
+                            properties:
+                              Airline:
+                                type: object
+                                description: Contains airline vendor preference information.
+                                properties:
+                                  Code:
+                                    description: |
+                                      The airline code.
+
+                                      Applicable to the `OSI` SSRCode, and is used to specify the airline that the SSR needs to be sent to.
+                                    example: 'YY'
+                                    type: string
+                                  Hosted:
+                                    description: If `true`, the receiving airline is a Sabre-hosted carrier.
+                                    type: boolean
+                                    example: true
+                            required:
+                              - Airline
+                          SegmentNumber:
+                            description: |
+                              The segment number.
+
+                              Used to specify an itinerary segment to associate the SSR to.
+
+                              If `SSR_Code`=`OSI` `SegmentNumber` cannot be utilized.
+                            example: '2'
+                            type: string
+                          bookSequence:
+                            description: Used to specify a segment booking sequence.
+                            example: 1
+                            type: integer
+                            format: int32
+                            minimum: 1
+                            maximum: 16
+                          SSR_Code:
+                            description: |
+                              The SSR code.
+
+                              Used to specify an SSR code such as `WCHR`, `WGML`, etc.
+                            example: 'WCHR'
+                            type: string
+                        required:
+                          - SSR_Code
+                      minItems: 0
+              required:
+                - SpecialServiceInfo
+            PostProcessing:
+              type: object
+              description: Contains actions that should be taken after the exchange booking process.
+              required:
+                - EndTransaction
+              properties:
+                returnPQRInfo:
+                  type: boolean
+                  example: true
+                  description: If `true`, the system will return generated PQR in the response.
+                redisplayReservation:
+                  type: boolean
+                  example: true
+                  description: If `true`, reservation details will be displayed in the response.
+                EndTransaction:
+                  type: object
+                  description: Contains the changes to the reservation and generates the PQR record.
+                  properties:
+                    Source:
+                      type: object
+                      description: Contains the new flight segment to be added to the reservation.
+                      required:
+                        - ReceivedFrom
+                      properties:
+                        ReceivedFrom:
+                          type: string
+                          example: 'SP TEST'
+                          description: The source the record was received from.
+                    Email:
+                      type: object
+                      description: Contains the email notification to send to any email addresses contained within the particular record when
+                        a transaction ends.
+                      properties:
+                        eTicket:
+                          type: object
+                          description: Contains the option to send a text-based copy of the eTicket. `eTicket` cannot combine with `Invoice`, or
+                            `Itinerary`.
+                          properties:
+                            PDF:
+                              type: object
+                              description: Contains the option to send a PDF-based copy of the eTicket.
+                              properties:
+                                Ind:
+                                  description: If true, a PDF copy of the eTicket will be sent in the email notification.
+                                  example: true
+                                  type: boolean
+                              required:
+                                - Ind
+                            Ind:
+                              description: If true, a text-based copy of the eTicket will be sent in the email notification.
+                              example: true
+                              type: boolean
+                          required:
+                            - Ind
+                        Invoice:
+                          type: object
+                          description: Contains the option to send a text-based copy of the invoice. `Invoice` cannot combine with `eTicket`, or
+                            `Itinerary`.
+                          properties:
+                            Ind:
+                              description: If true, a text-based copy of the invoice will be included in the notification.
+                              example: true
+                              type: boolean
+                          required:
+                            - Ind
+                        Itinerary:
+                          type: object
+                          description: Contains the option to send a text-based copy of the itinerary. `Itinerary` cannot combine with `eTicket`,
+                            or `Invoice`.
+                          properties:
+                            PDF:
+                              type: object
+                              description: Contains the option to send a PDF-based copy of the itinerary.
+                              properties:
+                                Ind:
+                                  description: If true, a PDF copy of the eTicket will be sent in the email notification.
+                                  example: true
+                                  type: boolean
+                              required:
+                                - Ind
+                            Segment:
+                              description: Lists the flight segment numbers present in the itinerary.
+                              type: array
+                              items:
+                                properties:
+                                  EndNumber:
+                                    description: Specifies an ending segment in the range to include in the email message.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                                  Number:
+                                    description: Specifies a segment number to include in the email message.
+                                    example: 2
+                                    type: integer
+                                    format: int32
+                                required:
+                                  - Number
+                              minItems: 0
+                              maxItems: 99
+                            Ind:
+                              description: If true, a text-based copy of the itinerary will be included in the notification.
+                              example: true
+                              type: boolean
+                          required:
+                            - Ind
+                        PersonName:
+                          description: Contains the passenger's name number. This is used to send the email notification.
+                          type: object
+                          properties:
+                            NameNumber:
+                              description: |
+                                The particular passenger name number to send the email notification to.
+                                The email address in the PNR's email field must be the name associated with the specified name number.
+                              example: '2.1'
+                              type: string
+                          required:
+                            - NameNumber
+                        Ind:
+                          description: If true, an email notification will be sent upon end transaction.
+                          example: true
+                          type: boolean
+                      required:
+                        - Ind
+            AirBook:
+              type: object
+              description: Contains specific flight information.
+              required:
+                - OriginDestinationInformation
+              properties:
+                HaltOnStatus:
+                  type: array
+                  description: Lists any status halt codes.
+                  items:
+                    type: object
+                    required:
+                      - Code
+                    properties:
+                      Code:
+                        type: string
+                        example: 'HL'
+                        description: |
+                          Used to specify values that cause subsequent pricing, and beyond processing to stop if they appear.
+
+                          In order to successfully price an air itinerary the status code associated with the individual segments cannot be `NN`, `NO`, `UC`, or `US`.
+
+                          After successfully booking flights, the system will compare the status codes returned from the carrier against the client-specified codes to determine if subsequent pricing, and beyond processing should occur.
+                HaltOnTimeDiscrepancy:
+                  type: object
+                  description: |
+                    Contains the acceptable time discrepancy between the flight departure time defined in the request and the time returned by the airline after the segment has been booked.
+
+                    If at least one flight segment does not meet the acceptable threshold, the Exchange Booking transaction will be terminated.
+                  properties:
+                    acceptableThreshold:
+                      type: integer
+                      format: int32
+                      minimum: 0
+                      exclusiveMinimum: true
+                      maximum: 1439
+                      exclusiveMaximum: true
+                      description: |
+                        The acceptable time discrepancy in minutes.
+
+                        The values range from `0` (no discrepancy accepted) to `1439` (maximum connecting time discrepancy accepted).
+                OriginDestinationInformation:
+                  type: object
+                  description: Contains information specific to the time and date of the flight departure and arrival.
+                  required:
+                    - FlightSegment
+                  properties:
+                    FlightSegment:
+                      type: array
+                      description: Lists details of associated flight segments.
+                      items:
+                        type: object
+                        description: Contains details of the flight segment to be booked.
+                        required:
+                          - FlightNumber
+                          - NumberInParty
+                          - ResBookDesigCode
+                          - Status
+                          - DestinationLocation
+                          - MarketingAirline
+                          - OriginLocation
+                        properties:
+                          Equipment:
+                            type: object
+                            description: Contains the equipment type(s) of the aircraft being booked.
+                            properties:
+                              AirEquipType:
+                                description: The equipment type of the aircraft being booked.
+                                type: string
+                                example: 'standard'
+                            required:
+                              - AirEquipType
+                          MarriageGrp:
+                            description: Identifies whether the flight segment is part of a married connection. Can be `O` for no or `I` for yes.
+                            type: string
+                            enum:
+                              - O
+                              - I
+                          OperatingAirline:
+                            type: object
+                            description: Contains the operating airline code(s).
+                            properties:
+                              Code:
+                                description: The IATA code of the airline that operates the flight and transports the passengers in a codeshare
+                                  scenario.
+                                type: string
+                                example: 'L45'
+                            required:
+                              - Code
+                          ArrivalDateTime:
+                            type: string
+                            example: '2026-06-28T18:30:00'
+                            description: The arrival date and time in YYYY-MM-DDThh:mm format.
+                          DepartureDateTime:
+                            type: string
+                            example: '2026-06-28T17:00:00'
+                            description: The departure date and time in YYYY-MM-DDThh:mm format.
+                          FlightNumber:
+                            type: string
+                            example: '1909'
+                            description: The flight number.
+                          NumberInParty:
+                            type: string
+                            example: '1'
+                            description: Used to specify the number of passengers that need to be booked during this transaction.
+                          ResBookDesigCode:
+                            type: string
+                            example: 'G'
+                            description: The booking class.
+                          Status:
+                            type: string
+                            example: 'NN'
+                            description: The action code used to sell the segment.
+                          DestinationLocation:
+                            type: object
+                            description: Contains the location code of the destination city or airport.
+                            required:
+                              - LocationCode
+                            properties:
+                              LocationCode:
+                                type: string
+                                example: 'SFO'
+                                description: The three-letter IATA city or airport code.
+                          MarketingAirline:
+                            type: object
+                            description: Contains the two-letter IATA designator code of the marketing airline as well as the associated flight
+                              number for the reservation.
+                            required:
+                              - Code
+                              - FlightNumber
+                            properties:
+                              Code:
+                                type: string
+                                example: 'AS'
+                                description: The IATA code of the airline that provides the passenger's booking or reservation.
+                              FlightNumber:
+                                type: string
+                                example: '1909'
+                                description: The numeric ID of the flight.
+                          OriginLocation:
+                            type: object
+                            description: Contains the IATA code representing the city or airport that the flight is departing from.
+                            required:
+                              - LocationCode
+                            properties:
+                              LocationCode:
+                                type: string
+                                example: 'LAS'
+                                description: The three-letter IATA code of the departure airport.
+                          InstantPurchase:
+                            description: If true, sends the request to a downline open system service called `AirBookRQ`.
+                            type: boolean
+                            example: true
+                RedisplayReservation:
+                  type: object
+                  description: Contains parameters used for a redisplay reservation request, which validates if the desired segment status
+                    code remains unaltered.
+                  properties:
+                    NumAttempts:
+                      description: The number of times to attempt to redisplay the itinerary before proceeding to the Automated Exchanges
+                        reprice step.
+                      type: integer
+                      format: int32
+                      example: 2
+                      maximum: 10
+                      minimum: 1
+                    WaitInterval:
+                      description: The time in milliseconds the system should wait before making consecutive redisplay service calls.
+                      type: integer
+                      format: int32
+                      example: 5000
+                      maximum: 10000
+                      minimum: 100
+                  required:
+                    - NumAttempts
+                    - WaitInterval
+                haltOnInvalidMCT:
+                  description: If true, the service checks and stops processing upon encountering an error which indicates the minimum
+                    connection time between air itinerary segments is not met.
+                  example: true
+                  type: boolean
+            AutomatedExchanges:
+              type: array
+              description: Lists automated exchange details to compare prices and establish price tolerance thresholds.
+              items:
+                type: object
+                description: Contains all the options that allow for pricing and exchanging the booking.
+                properties:
+                  PriceComparison:
+                    type: object
+                    description: Contains options related to price validation. With these options, you can specify the price tolerance
+                      threshold for an exchange operation.
+                    required:
+                      - amountSpecified
+                    properties:
+                      amountSpecified:
+                        type: number
+                        format: double
+                        example: 1063.28
+                        description: The price tolerance threshold for a single exchange booking transaction.
+                      AcceptablePriceIncrease:
+                        type: object
+                        description: |
+                          Contains the acceptable price increase percentage.
+
+                          This value is checked against `amountSpecified` and the actual amount returned after pricing the exchange.
+                        oneOf:
+                          - type: object
+                            properties:
+                              Percent:
+                                type: number
+                                format: double
+                                description: The acceptable percent increase of `amountSpecified` as a whole number.
+                                example: 5
+                                minimum: 0
+                                exclusiveMinimum: false
+                              Amount:
+                                type: number
+                                format: double
+                                description: The acceptable amount increase of `amountSpecified` as a whole number.
+                                example: 5
+                                minimum: 0
+                                exclusiveMinimum: false
+                        properties:
+                          haltOnNonAcceptablePrice:
+                            type: boolean
+                            description: If `true`, the system will stop processing if the total amount would be greater than `amountSpecified` plus
+                              the percent or amount increase.
+                            example: true
+                      AcceptablePriceDecrease:
+                        type: object
+                        description: |
+                          Contains the acceptable price decrease percentage.
+
+                          This value is checked against `amountSpecified` and the actual amount returned after pricing the exchange.
+                        oneOf:
+                          - type: object
+                            properties:
+                              Percent:
+                                type: number
+                                format: double
+                                description: The acceptable percent decrease of `amountSpecified` as a whole number.
+                                example: 5
+                                minimum: 0
+                                exclusiveMinimum: false
+                              Amount:
+                                type: number
+                                format: double
+                                description: The acceptable amount decrease of `amountSpecified` as a whole number.
+                                example: 5
+                                minimum: 0
+                                exclusiveMinimum: false
+                        properties:
+                          haltOnNonAcceptablePrice:
+                            type: boolean
+                            description: If `true`, the system will stop processing if the total amount would be lower than `amountSpecified` plus
+                              the percent or amount increase.
+                            default: false
+                  ExchangeComparison:
+                    type: object
+                    description: Contains pricing details used to compare between the current state of the reservation and changes
+                      requested.
+                    required:
+                      - OriginalTicketNumber
+                      - PriceRequestInformation
+                    properties:
+                      OriginalTicketNumber:
+                        type: string
+                        example: '0277132204756'
+                        description: The number assigned to the original ticket.
+                      ExemptPaperSurcharge:
+                        type: boolean
+                        example: false
+                        description: If true, the paper ticket is exempt from surcharge.
+                      TicketMedia:
+                        type: string
+                        example: 'E'
+                        description: Indicates whether the ticket is electronic `E` or paper `P`.
+                        enum:
+                          - E
+                          - P
+                      ExchangeOverrides:
+                        type: object
+                        description: Contains any overrides to be applied to the exchange transaction.
+                        properties:
+                          ExcludeFeeOnPenaltyTax:
+                            type: boolean
+                            example: false
+                            description: If `true`, the fee on the penalty tax will be removed.
+                          ChangeFee:
+                            type: string
+                            example: '100.00'
+                            description: Used to override the change fee.
+                          FeeOnPenalty:
+                            type: object
+                            description: Contains the required parameters to override the tax on a fee.
+                            required:
+                              - Tax
+                            properties:
+                              Tax:
+                                description: Lists tax information to override the penalty amount.
+                                type: array
+                                minItems: 0
+                                maxItems: 3
+                                items:
+                                  type: object
+                                  required:
+                                    - Amount
+                                    - Code
+                                  properties:
+                                    Amount:
+                                      description: The tax amount.
+                                      type: string
+                                      example: '10.00'
+                                    Code:
+                                      description: The tax code.
+                                      type: string
+                                      example: 'XX'
+                      PriceRequestInformation:
+                        type: object
+                        description: Used to define the pricing qualifiers.
+                        required:
+                          - OptionalQualifiers
+                        properties:
+                          OptionalQualifiers:
+                            type: object
+                            required:
+                              - PricingQualifiers
+                            properties:
+                              FlightQualifiers:
+                                description: Contains optional qualifiers related to the airline that controls the ticket.
+                                type: object
+                                required:
+                                  - VendorPrefs
+                                properties:
+                                  VendorPrefs:
+                                    description: Used to pass airline carrier information.
+                                    type: object
+                                    required:
+                                      - Airline
+                                    properties:
+                                      Airline:
+                                        description: Denotes airline code.
+                                        type: object
+                                        required:
+                                          - Code
+                                        properties:
+                                          Code:
+                                            type: string
+                                            example: 'AA'
+                                            description: The code assigned to the validating carrier.
+                              MiscQualifiers:
+                                description: Contains all of the non mandatory miscellaneous qualifiers.
+                                type: object
+                                properties:
+                                  Endorsements:
+                                    description: Used to add free text endorsement information to be printed on the new ticket.
+                                    type: object
+                                    properties:
+                                      Endorsement:
+                                        type: string
+                                        example: 'ABCD1234'
+                                        description: The number assigned to the endorsement.
+                                      EndorsementOverride:
+                                        type: string
+                                        example: '/EFGH5678'
+                                        description: Used to override the endorsement. This is done by adding a slash to the `Endorsement` number prior to
+                                          passing the actual override.
+                                  TourCode:
+                                    description: Used to pass tour code information.
+                                    type: object
+                                    required:
+                                      - Text
+                                    properties:
+                                      Text:
+                                        type: string
+                                        example: 'ITX2022'
+                                        description: Text-based information that describes the tour.
+                                      Type:
+                                        type: string
+                                        example: 'B'
+                                        description: Specifies the tour code application method. Can be `B` (suppress the fare amount on the ticket and replace
+                                          with BT), `I` (suppress the fare amount on the ticket and replace with IT),
+                                          `N` (suppress the IT printed in the tour code box), or `X` (suppress the IT in
+                                          the tour code box and the fare amounts printed on the ticket).
+                                  SpanishDiscountOverride:
+                                    type: boolean
+                                    example: true
+                                    default: false
+                                    description: If `true`, completes the transaction even if the local Formento system cannot validate traveler details
+                                      (`Nonverificado`). Used only for the Spanish market.
+                              PricingQualifiers:
+                                type: object
+                                required:
+                                  - NameSelect
+                                properties:
+                                  AlternateCurrencyCode:
+                                    type: string
+                                    example: 'EUR'
+                                    description: Used to specify an alternate currency code.
+                                  AutoRedirect:
+                                    type: boolean
+                                    example: true
+                                    description: Used to apply Auto Redirect. A successful CAT 31 transaction is dependent on critical pricing and ticketing
+                                      data being available from the exchange ticket. In the event that this critical
+                                      data is not available then CAT 31 processing will fail. However, when possible,
+                                      Refunds and Exchanges will attempt to redirect as a non-CAT 31 pricing request.
+                                      This switch with automatically redirect the non-processed CAT-31 exchange to
+                                      non-CAT 31.
+                                  FareFocusExclude:
+                                    type: boolean
+                                    example: true
+                                    description: Used to ignore/exclude Fare Focus fares. This process moves the most attractive fares to the top across all
+                                      pricing, shopping, and ticketing formats. This qualifier avoids this process to
+                                      let the agency upsell the ticket.
+                                  RoundTheWorld:
+                                    type: boolean
+                                    example: true
+                                    description: Used to specify round the world fare construction. The fare that applies to the so-called round the world
+                                      tickets (one ticket to travel around the world).
+                                  Account:
+                                    description: Contains the account code information applicable to this transaction.
+                                    type: object
+                                    required:
+                                      - Code
+                                    properties:
+                                      Force:
+                                        type: boolean
+                                        example: true
+                                        description: If true, the account code will be forced (override system applied account code).
+                                      Code:
+                                        type: array
+                                        description: The account code.
+                                        items:
+                                          type: string
+                                          example: 'ABC123'
+                                        minItems: 1
+                                        maxItems: 4
+                                  BargainFinder:
+                                    description: This is a pricing instruction to search for the cheapest available fare.
+                                    type: object
+                                    required:
+                                      - Rebook
+                                    properties:
+                                      Rebook:
+                                        type: boolean
+                                        example: true
+                                        description: If true, the API will utilize the `BargainFinder` feature when pricing the exchange.
+                                  Brand:
+                                    type: string
+                                    example: 'AB'
+                                    description: Used to specify a desired brand by the brand code.
+                                  ChangeFeeCollectionOptions:
+                                    description: Contains information on all the fees to be collected by the agency.
+                                    type: object
+                                    properties:
+                                      CollectFee:
+                                        description: Contains information on the fees to be collected by the agency.
+                                        type: object
+                                        properties:
+                                          InTotal:
+                                            type: boolean
+                                            example: true
+                                            description: If true, change fees will be collected as part of the total.
+                                          OnEMD:
+                                            type: boolean
+                                            example: true
+                                            description: If true, Electronic Miscellaneous Document (EMD) fees will be collected as part of the total.
+                                          ReportFeeAsCP:
+                                            type: boolean
+                                            example: true
+                                            description: If true, the fee will be reported as a courtesy payment (CP) fee.
+                                          AsTax:
+                                            type: string
+                                            example: 'XX'
+                                            description: Used to specify the tax code associated with the change fee.
+                                  CommandPricing:
+                                    type: string
+                                    example: 'WPQY'
+                                    description: Used to specify a command pricing string.
+                                  Corporate:
+                                    description: Contains information on the corporate ID applicable to this exchange transaction.
+                                    type: object
+                                    required:
+                                      - ID
+                                    properties:
+                                      Force:
+                                        type: boolean
+                                        example: true
+                                        description: Used to override the system applied corporate ID.
+                                      ID:
+                                        type: array
+                                        description: The unique corporate ID.
+                                        items:
+                                          type: string
+                                          example: 'ABC12'
+                                        minItems: 1
+                                        maxItems: 4
+                                  CountryInformation:
+                                    description: Contains country information related to the traveler.
+                                    type: object
+                                    properties:
+                                      Employment:
+                                        type: string
+                                        example: 'US'
+                                        description: Two-letter country code where the traveler's current employer is located.
+                                      Nationality:
+                                        type: string
+                                        example: 'CA'
+                                        description: The two-letter country code of the nation, whether by birth or naturalization, the traveler is from.
+                                      Residency:
+                                        type: string
+                                        example: 'GB'
+                                        description: The two-letter country code where the traveler currently resides.
+                                  Diagnostic:
+                                    type: string
+                                    example: '804'
+                                    description: This string is for Sabre internal use only - do not use.
+                                  FareOptions:
+                                    description: Contains all the fare options (private/public).
+                                    type: object
+                                    properties:
+                                      Private:
+                                        type: boolean
+                                        example: false
+                                        description: If true, the system will price the itinerary with a private fare.
+                                      Public:
+                                        type: boolean
+                                        example: false
+                                        description: If true, the system will price the itinerary with a public fare.
+                                  NameSelect:
+                                    type: object
+                                    properties:
+                                      NameNumber:
+                                        type: string
+                                        example: '1.1'
+                                      nameAssociationId:
+                                        type: integer
+                                        format: int32
+                                        minimum: 1
+                                        example: 2
+                                        description: Used to specify traveler ID sourced from Booking Management API `getBooking` service. `nameAssociationId` cannot be combined with `NameNumber`.
+                                  Overrides:
+                                    description: Contains all the fare overrides.
+                                    type: object
+                                    properties:
+                                      NoAdvancePurchase:
+                                        description: Used to indicate that fare to be exchanged should be applied without any advance purchase restrictions.
+                                        type: object
+                                        required:
+                                          - Ind
+                                        properties:
+                                          Ind:
+                                            type: boolean
+                                            example: false
+                                            description: If true, the fare does not have any advance purchase restrictions.
+                                      NoFareRestrictions:
+                                        description: Used to indicate that fare to be exchanged should be applied without any fare restrictions.
+                                        type: object
+                                        required:
+                                          - Ind
+                                        properties:
+                                          Ind:
+                                            type: boolean
+                                            example: false
+                                            description: If true, the fare does not have any restrictions tied to it.
+                                      NoMinMaxStay:
+                                        description: Used to indicate that fare to be exchanged should be applied without minimum/maximum stay restrictions.
+                                        type: object
+                                        required:
+                                          - Ind
+                                        properties:
+                                          Ind:
+                                            type: boolean
+                                            example: false
+                                            description: If true, the fare does not have any minimum/maximum stay restrictions.
+                                      NoPenalty:
+                                        description: Contains a boolean that determines whether the fare to be exchanged should be applied without any
+                                          penalties.
+                                        type: object
+                                        required:
+                                          - Ind
+                                        properties:
+                                          Ind:
+                                            type: boolean
+                                            example: false
+                                            description: If true, the fare is not coupled with a penalty. Cannot be combined with `NoFareRestrictions`.
+                                  PlusUp:
+                                    description: Used to price the itinerary adding a mark-up to the returned fare.
+                                    type: object
+                                    properties:
+                                      Amount:
+                                        type: string
+                                        example: '100.00'
+                                        description: The plus up amount. This amount is used to price an itinerary by adding a mark-up to the returned fare.
+                                      TicketDesignator:
+                                        type: string
+                                        example: 'AD75'
+                                        description: The plus up ticket designator.
+                                  SpanishLargeFamilyDiscountLevel:
+                                    type: string
+                                    example: '1'
+                                    description: Used to specify the Spanish large family discount level. This qualifier is only applicable to Spain-based
+                                      subscribers.
+                                    enum:
+                                      - "1"
+                                      - "2"
+                                  Taxes:
+                                    description: Used to pass information on taxes.
+                                    type: object
+                                    properties:
+                                      QuebecSalesTax:
+                                        type: string
+                                        example: 'X'
+                                        description: The provincial Québec Sales Tax (QST) amount. This sales tax only applies to businesses and customers
+                                          located in Québec.
+                                      VAT_TaxCode:
+                                        type: string
+                                        example: 'Y'
+                                        description: The value-added tax (VAT) identification number that determines the method and rate to apply.
+                                      NoTax:
+                                        description: Used to indicate that all taxes should be exempt from this transaction.
+                                        type: object
+                                        required:
+                                          - Ind
+                                        properties:
+                                          Ind:
+                                            type: boolean
+                                            example: true
+                                            description: If true, the fare is exempt from taxation.
+                                      TaxExempt:
+                                        description: Lists any applied tax exemption codes.
+                                        type: array
+                                        minItems: 0
+                                        maxItems: 20
+                                        items:
+                                          type: object
+                                          required:
+                                            - Code
+                                          properties:
+                                            Code:
+                                              type: string
+                                              example: 'UB'
+                                              description: The tax exemption code.
+                                      TaxOverride:
+                                        description: Lists any taxes to be overridden.
+                                        type: array
+                                        minItems: 0
+                                        maxItems: 20
+                                        items:
+                                          type: object
+                                          required:
+                                            - Amount
+                                            - Code
+                                          properties:
+                                            Amount:
+                                              type: string
+                                              example: '3.00'
+                                              description: Used to specify the tax amount to override.
+                                            Code:
+                                              type: string
+                                              example: 'XY'
+                                              description: Used to specify the tax code to override.
+                                  PassengerType:
+                                    description: Denotes the passenger type code applicable to the exchanged ticket number.
+                                    type: object
+                                    properties:
+                                      Code:
+                                        type: string
+                                        example: 'SRC'
+                                        description: The 3-letter passenger type code used to identify passengers according to various types.
+                                      Force:
+                                        type: boolean
+                                        example: true
+                                        description: If true, other passenger type codes may be applied.
+                                  RetailerRuleQualifier:
+                                    description: Contains the exchanges for target fares created with Agency Retailer business rules.
+                                    type: object
+                                    properties:
+                                      Force:
+                                        description: If `true`, the request is limited to only one `RetailerRuleQualifier`.
+                                        type: boolean
+                                        example: false
+                                      Qualifier:
+                                        type: array
+                                        description: |
+                                          Lists the exchanges for target fares created with Agency Retailer business rules.
+
+                                          It can be 2 to 20 alphanumeric characters.
+                                        items:
+                                          type: string
+                                          example: 'ABC123'
+                                        maxItems: 4
+                                        minItems: 0
+                                  SpecificFareBasis:
+                                    description: Used to target a higher applicable fare that would otherwise not have been returned at time of pricing.
+                                    type: string
+                                    example: 'Y123456'
+                                  ExcludeBookingCode:
+                                    description: Used to exclude certain booking codes (RBD) at time of pricing.
+                                    type: string
+                                    example: 'W'
+                                  SpecifyMaxPenalty:
+                                    description: Contains values to help determine the maximum change fee amount on a ticketed fare.
+                                    type: object
+                                    properties:
+                                      maximumPenalty:
+                                        description: Used to specify the amount of maximum changeable or refundable penalty.
+                                        type: string
+                                        example: 'ANY'
+                                      penaltyChangeable:
+                                        description: Used to specify the type and amount of maximum changeable penalty.
+                                        type: string
+                                        example: '100/AFT'
+                                      penaltyRefundable:
+                                        description: Used to specify the type and amount of maximum refundable penalty.
+                                        type: string
+                                        example: 'MXP123456789'
+                      ExchangeSegment:
+                        description: Lists associated data, such as baggage allowances, command pricing, and validity dates for a specific
+                          segment.
+                        type: array
+                        minItems: 0
+                        maxItems: 30
+                        items:
+                          properties:
+                            PriceRequestInformation:
+                              description: Contains a set of pricing exchange related qualifiers which help alter the result of the transaction.
+                              properties:
+                                OptionalQualifiers:
+                                  description: Contains a set of all available optional qualifiers (pricing, flight related, miscellaneous) which allow
+                                    modifying the end result of an exchange booking transaction.
+                                  properties:
+                                    MiscQualifiers:
+                                      description: Contains a set of miscellaneous exchange related qualifiers which help alter the result of the transaction.
+                                      properties:
+                                        BaggageAllowance:
+                                          description: Identifies the type of baggage allowance given to passenger.
+                                          properties:
+                                            Number:
+                                              description: The number of checked bags, or the weight in kilos (for example, 20K) of the checked bags.
+                                              example: '02P'
+                                              type: string
+                                        ValidityDates:
+                                          description: Contains information on the flight validity date range.
+                                          properties:
+                                            NotValidAfter:
+                                              description: Used to specify a not valid after date.
+                                              type: string
+                                              example: '12-24'
+                                              pattern: '(((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-9])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-30)))|(((19|20)(([02468][048])|([13579][26]))-02-29))|((20[0-9][0-9])|(19[0-9][0-9]))-((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-8])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-(29|30)))))'
+                                            NotValidBefore:
+                                              description: Used to specify a not valid before date.
+                                              type: string
+                                              example: '12-21'
+                                              pattern: '(((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-9])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-30)))|(((19|20)(([02468][048])|([13579][26]))-02-29))|((20[0-9][0-9])|(19[0-9][0-9]))-((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-8])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-(29|30)))))'
+                                    PricingQualifiers:
+                                      description: Contains the qualifiers that affect the pricing of the segment.
+                                      properties:
+                                        Brand:
+                                          description: Used to specify a brand.
+                                          example: 'AB'
+                                          type: string
+                                        CommandPricing:
+                                          description: |
+                                            Lets you force the desired fare to be used during the itinerary pricing.
+
+                                            This could mean a fare higher or lower than an auto priced fare.
+                                          example: 'FA3BW'
+                                          type: string
+                                        SpecificFareBasis:
+                                          description: Used to target a higher applicable fare that would otherwise not have been returned at time of pricing.
+                                          example: 'Y123456'
+                                          type: string
+                            SegmentNumber:
+                              description: Used to specify a segment number.
+                              example: 1
+                              type: integer
+                              format: int32
+                            bookSequence:
+                              description: Used to specify a segment booking sequence.
+                              example: 1
+                              type: integer
+                              format: int32
+                              minimum: 1
+                              maximum: 16
+                            id:
+                              description: Used to specify a segment identifier.
+                              example: 1
+                              type: integer
+                              format: int32
+
+                  ExchangeConfirmation:
+                    description: Used to finalize the exchange booking transaction. This includes passing form of payment information.
+                    type: object
+                    properties:
+                      DoNotIssueEMDForChangeFee:
+                        type: boolean
+                        example: true
+                        description: If true, an Electronic Miscellaneous Document (EMD) will not be issued for the change fee.
+                      Print:
+                        type: string
+                        example: 'DP'
+                        description: Identifies the printing option used.
+                        enum:
+                          - DP
+                          - DPB
+                          - DPE
+                          - DPI
+                          - DPO
+                      RemoteCoupon:
+                        type: string
+                        example: 'RA'
+                        description: Identifies the remote coupon code.
+                        enum:
+                          - RA
+                          - RB
+                          - RC
+                          - RE
+                      SelfSaleInd:
+                        type: boolean
+                        example: false
+                        description: For ARC (Airlines Reporting Corporation) customers only. If true, tickets were issued to yourself
+                          (self-sale) as an ARC travel agent. A designator of `/S` will print in the lower right corner
+                          of the ticket.
+                      TicketDeliveryOffice:
+                        type: string
+                        example: 'DFW'
+                        description: Used to specify a ticket delivery office.
+                      WaiverCode:
+                        type: string
+                        example: 'WV236'
+                        description: Used to specify a waiver code.
+                      OptionalQualifiers:
+                        description: Contains all non-mandatory exchange qualifiers.
+                        type: object
+                        properties:
+                          FOP_Qualifiers:
+                            description: Contains all pricing qualifiers that may affect the final stored price quote reissue (PQR) record.
+                            type: object
+                            required:
+                              - BasicFOP
+                            properties:
+                              BasicFOP:
+                                description: Lists single form of payment information. Multiple forms of payment are not supported.
+                                type: array
+                                minItems: 1
+                                maxItems: 30
+                                items:
+                                  properties:
+                                    PayLater:
+                                      type: boolean
+                                      example: true
+                                      description: If true, the form of payment (FOP) details are related to the `PayLaterPlan`.
+                                    Type:
+                                      type: string
+                                      example: 'CK'
+                                      description: The form of payment. Possible values are `CA` (Cash) or `CK` (Check). In order to specify a credit card as
+                                        a form of payment, omit `Type` and populate `CC_Info` instead.
+                                      enum:
+                                        - CA
+                                        - CK
+                                    Virtual:
+                                      type: string
+                                      example: 'SABREAIRONETWOFOUR'
+                                      description: Virtual form of payment information passed as a maximum 18-character string.
+                                    CC_Info:
+                                      description: Contains full details of the payment card used to complete the exchange booking process.
+                                      type: object
+                                      properties:
+                                        Suppress:
+                                          type: boolean
+                                          example: true
+                                          description: If true, suppresses (masks) the payment card number in the API response.
+                                        PaymentCard:
+                                          description: Contains payment card details.
+                                          type: object
+                                          required:
+                                            - Code
+                                            - ExpireDate
+                                            - Number
+                                          properties:
+                                            Code:
+                                              type: string
+                                              example: 'VI'
+                                              description: The credit card vendor code.
+                                            ExpireDate:
+                                              type: string
+                                              example: '2012-12'
+                                              description: The credit card expiration date in YYYY-MM format.
+                                            ManualApprovalCode:
+                                              type: string
+                                              example: '123456'
+                                              description: The manual credit card approval code for credit cards that are accepted, but are not processed
+                                                automatically.
+                                            Number:
+                                              type: string
+                                              example: '4123412341234123'
+                                              description: The credit card number.
+                                    PayLaterPlan:
+                                      description: Contains payment information related to a Pay Later Plan (Parcelado). This information is exclusive to the
+                                        Brazilian market.
+                                      type: object
+                                      properties:
+                                        AirlinePlanCode:
+                                          type: string
+                                          example: 'PLAN01'
+                                          description: The code associated with the payment plan selected.
+                                        InstallmentCount:
+                                          type: string
+                                          example: '03'
+                                          description: The number of payment installments agreed upon in the pay later plan.
+                                    Wallet_Info:
+                                      description: Contains data stored in an FOP Wallet.
+                                      type: object
+                                      properties:
+                                        Index:
+                                          type: integer
+                                          format: int32
+                                          example: 1
+                                          description: Display index of the payment card stored within the FOP Wallet.
+                                        itemId:
+                                          type: integer
+                                          format: int32
+                                          example: 1
+                                          description: |
+                                            
+                                            Used to specify form of payment item Id sourced from Booking Management API `getBooking` service. 
+                                            
+                                            `itemId` cannot be combined with Index.
+                                          minimum: 1
+                                        ManualApprovalCode:
+                                          type: string
+                                          example: '123456'
+                                          description: Manual approval code of the credit card used as payment.
+                                        Suppress:
+                                          type: boolean
+                                          example: true
+                                          description: If `true`, suppresses credit card information.
+
+                          MiscQualifiers:
+                            description: Contains all of the remaining optional qualifiers that apply to the transaction.
+                            type: object
+                            properties:
+                              MiniItin:
+                                type: boolean
+                                example: true
+                                description: If true, a mini-itinerary will be printed.
+                              PNR_Override:
+                                type: string
+                                example: 'ABC123'
+                                description: The PNR override code. This will override the original locator code and will be transmitted to the airline.
+                              ROE_Override:
+                                type: string
+                                example: '1.01'
+                                description: The rate of exchange (ROE) override code.
+                              BaggageAllowance:
+                                description: Contains the baggage allowance applicable to the exchanged ticket number.
+                                type: object
+                                required:
+                                  - Number
+                                properties:
+                                  Number:
+                                    type: string
+                                    example: '02P'
+                                    description: The number of bags allowed to be checked in for free.
+                              Commission:
+                                description: Contains the commission amount applicable to the exchange transaction.
+                                type: object
+                                properties:
+                                  Amount:
+                                    type: string
+                                    example: '0.00'
+                                    description: The commission amount.
+                                  AmountOnPenalty:
+                                    type: string
+                                    example: '0.00'
+                                    description: Used to specify a penalty commission amount.
+                                  Percent:
+                                    type: string
+                                    example: '0'
+                                    description: The percentage of the commission.
+                              EndorsementOverride:
+                                type: string
+                                example: 'TEST0'
+                                description: Code used to override an endorsement within the exchange confirmation.
+                              Hemisphere:
+                                description: Contains the IATA-defined hemisphere code.
+                                type: object
+                                required:
+                                  - Code
+                                properties:
+                                  Code:
+                                    type: integer
+                                    format: int32
+                                    example: 2
+                                    description: The IATA hemisphere code.
+                              Journey:
+                                description: Contains the journey code (also known as the destination and travel code). BSP Canada requires locations in
+                                  Canada and Bermuda to print this information on every ticket.
+                                type: object
+                                required:
+                                  - Code
+                                properties:
+                                  Code:
+                                    type: integer
+                                    format: int32
+                                    example: 1
+                                    description: The journey code.
+                              NewTicketFullCommission:
+                                description: Contains the full commission amount for the new ticket (applicable to ARC locations).
+                                type: object
+                                required:
+                                  - Amount
+                                properties:
+                                  Amount:
+                                    type: string
+                                    example: '125.00'
+                                    description: Used to specify the new ticket full commission amount for ARC locations only.
+                              RefundableAmountOnEMD:
+                                type: string
+                                example: '150.00'
+                                description: Used to pass the refundable amount to an EMD.
+                              Taxes:
+                                description: Contains tax exemption information.
+                                type: object
+                                required:
+                                  - TaxExempt
+                                properties:
+                                  TaxExempt:
+                                    description: Contains tax exemption codes.
+                                    type: object
+                                    required:
+                                      - Code
+                                    properties:
+                                      Code:
+                                        type: string
+                                        example: 'XT'
+                                        description: The tax exemption code.
+                              TourCode:
+                                description: Contains applicable tour code information.
+                                type: object
+                                required:
+                                  - Text
+                                properties:
+                                  Text:
+                                    type: string
+                                    example: 'TEST1212'
+                                    description: Used to specify a tour code during the exchange confirmation step.
+                                  Type:
+                                    type: string
+                                    example: 'B'
+                                    description: Specifies the tour code application method. Can be `B` (suppress the fare amount on the ticket and replace
+                                      with BT), `I` (suppress the fare amount on the ticket and replace with IT), `N`
+                                      (suppress the IT printed in the tour code box), or `X` (suppress the IT in the
+                                      tour code box and the fare amounts printed on the ticket).
+    ExchangeBookingResponse:
+      type: object
+      description: Contains all the elements of the response for Exchange Booking transaction.
+      properties:
+        Links:
+          type: array
+          description: Lists hypertext application language links.
+          items:
+            type: object
+            properties:
+              rel:
+                type: string
+                example: 'self'
+                description: Describes relationship between href and the current request.
+              href:
+                type: string
+                example: 'https://api.cert.platform.sabre.com/v1.1.0/exchange/booking'
+                description: The link to the related API request.
+        ExchangeBookingRS:
+          type: object
+          description: Contains all the elements of the response for Exchange Booking transaction.
+          properties:
+            ApplicationResults:
+              $ref: '#/components/schemas/ApplicationResults'
+            ExchangeConfirmation:
+              type: array
+              description: Used to pass details pertaining to the user specified acceptable price difference.
+              items:
+                type: object
+                properties:
+                  PQR_Number:
+                    type: string
+                    example: '02'
+                    description: Used to pass the PQR number.
+                  AutoRedirect:
+                    type: string
+                    example: 'Y'
+                    description: Used to return information if transaction was auto routed to fare category 16.
+                  PriceComparison:
+                    type: object
+                    properties:
+                      amountReturned:
+                        type: string
+                        example: '-5.99'
+                        description: Used to return the total amount associated with pricing of the exchange. `-200.00` reflects the refund
+                          amount.
+                  RefundableAmountOnEMD:
+                    type: string
+                    example: '199.00'
+                    description: Used to pass information on the refundable amount on EMD.
+                  AdditionalText:
+                    type: string
+                    example: 'CHG FEE AMT MODIFIED - REISSUE GUARANTEE NO LONGER APPLIES'
+                    description: Used to return the additional free text information that applies to the confirmed PQR record.
+                  ChangeFee:
+                    type: string
+                    example: '200.00'
+                    description: When set to `WAIVED`, indicates that the change fee does not apply.
+                  DisruptionWaiver:
+                    type: object
+                    description: Returns disruption waiver details.
+                    properties:
+                      Code:
+                        type: object
+                        description: Returns waiver details.
+                        properties:
+                          Text:
+                            type: string
+                            example: '12D'
+                            description: Returns the waiver code text.
+                      type:
+                        type: string
+                        example: 'Full Exchange Waiver'
+                        description: Returns the waiver type, it can either be `Full Exchange Waiver` or `Unknown`.
+                        enum:
+                          - Full Exchange Waiver
+                          - Unknown
+                      placement:
+                        type: string
+                        example: 'Tour Code'
+                        description: Returns the placement of the waiver rule, it can either be `Tour Code` or `Endorsement`.
+                        enum:
+                          - Tour Code
+                          - Endorsement
+            PriceQuoteReissue:
+              type: array
+              description: Used to pass information on the generated PQR record.
+              items:
+                type: object
+                properties:
+                  PQR_Number:
+                    type: string
+                    example: '2'
+                    description: Used to pass the PQR number.
+                  ResponseHeader:
+                    type: object
+                    properties:
+                      Text:
+                        type: array
+                        example:
+                          - VALIDATING CARRIER SPECIFIED - DL
+                          - USD349.76 NONREFUNDABLE
+                          - NONREF/NOCHGS/NOPRE RSVDSEAT
+                          - VALIDATING CARRIER-DL
+                        items:
+                          type: string
+                  MiscInformation:
+                    type: object
+                    properties:
+                      BaggageFees:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            Text:
+                              type: string
+                              example: 'BAG ALLOWANCE -LASLAX-NIL/DL'
+                              description: Used to return baggage fee related information.
+                      SignatureLine:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            CreationAgent:
+                              type: string
+                              example: 'ASP'
+                              description: Used to return the agent sine that stored the price.
+                            CreateDateTime:
+                              type: string
+                              example: '2026-03-02T09:30'
+                              description: Used to return creation date/time information.
+                            HomePseudoCityCode:
+                              type: string
+                              example: 'G7HE'
+                              description: Used to return the base sine in location associated to the agent sine that stored the price.
+                            PseudoCityCode:
+                              type: string
+                              example: 'G7HE'
+                              description: Used to return the location associated to the agent sine when they stored the price.
+                            Source:
+                              type: string
+                              example: 'SYS'
+                              description: Used to return the pricing source.
+                  PricedItinerary:
+                    type: object
+                    description: Used to collect priced itinerary information.
+                    properties:
+                      InputMessage:
+                        type: string
+                        example: 'WFRF'
+                        description: Used to return the pricing input command associated with the particular price quote record.
+                      AirItineraryPricingInfo:
+                        type: object
+                        description: Used to return the document number.
+                        properties:
+                          ResTicketingRestrictions:
+                            type: array
+                            example:
+                              - 03-03
+                            description: Used to return miscellaneous reservation/ticketing restriction-related text.
+                            items:
+                              type: string
+                          FareCalculation:
+                            type: object
+                            description: Used to fare calculation information.
+                            properties:
+                              Text:
+                                type: array
+                                example:
+                                  - LAS DL LAX134.88DL LAS23.26USD158.14END ZPLASLAX XFLAS4.5LAX
+                                  - "4.5"
+                                description: Used to return the fare calculation line.
+                                items:
+                                  type: string
+                          PassengerTypeQuantity:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                Code:
+                                  type: string
+                                  example: 'ADT'
+                                  description: Used to return the passenger type code used to price the itinerary.
+                                Quantity:
+                                  type: string
+                                  example: '01'
+                                  description: Used to return the passenger name number.
+                          ExchangeDetails:
+                            type: object
+                            description: Used to specify exchange details.
+                            properties:
+                              DocNumber:
+                                type: string
+                                example: '0067026400732'
+                                description: Used to return the document number.
+                              CurrencyCode:
+                                type: string
+                                example: 'USD'
+                                description: Used to return the currency code.
+                              PQR_Status:
+                                type: string
+                                example: 'E'
+                                description: Used to return the PQR indicator if applicable.
+                              TicketValue:
+                                type: string
+                                example: '404.59'
+                                description: Used to return the ticket value.
+                              Text:
+                                type: array
+                                example:
+                                  - RESIDUAL APPLIED TO PENALTY PER RULE 205.99
+                                  - RESIDUAL AMT REFUNDABLE PER RULE 5.99
+                                description: Used to return miscellaneous free text.
+                                items:
+                                  type: string
+                              PersonName:
+                                type: object
+                                properties:
+                                  Surname:
+                                    type: string
+                                    example: 'SMITH/JAMES'
+                                    description: Used to return the passenger's surname.
+                              ChangeFeeInformation:
+                                type: array
+                                description: Used to return change fee-related information.
+                                items:
+                                  type: object
+                                  properties:
+                                    Amount:
+                                      type: string
+                                      example: '200.00'
+                                      description: Used to return the change fee amount.
+                              TransactionInformation:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    Amount:
+                                      type: string
+                                      example: '0.00'
+                                      description: Used to return the amount.
+                                    CurrencyCode:
+                                      type: string
+                                      example: 'USD'
+                                      description: Used to return the currency code.
+                                    Text:
+                                      type: string
+                                      example: 'EVEN'
+                                      description: Used to return miscellaneous free text.
+                          ItinTotalFare:
+                            type: object
+                            description: Used to specify itinerary total fare.
+                            properties:
+                              BaseFare:
+                                type: object
+                                description: Used for base fare.
+                                properties:
+                                  Amount:
+                                    type: string
+                                    example: '158.14'
+                                    description: Used to return the applicable amount.
+                                  CurrencyCode:
+                                    type: string
+                                    example: 'USD'
+                                    description: Used to return the applicable currency code.
+                              TotalFare:
+                                type: object
+                                properties:
+                                  Amount:
+                                    type: string
+                                    example: '198.60'
+                                    description: Used to return the applicable amount.
+                                  CurrencyCode:
+                                    type: string
+                                    example: 'USD'
+                                    description: Used to return the applicable currency code.
+                              Taxes:
+                                type: object
+                                description: Taxes element name.
+                                properties:
+                                  TaxCode:
+                                    type: string
+                                    example: 'XT'
+                                    description: Used to return the tax code.
+                                  TotalAmount:
+                                    type: string
+                                    example: '40.46'
+                                    description: Used to return the applicable amount.
+                                  Tax:
+                                    type: array
+                                    description: Tax element name.
+                                    items:
+                                      type: object
+                                      properties:
+                                        Amount:
+                                          type: string
+                                          example: '11.86'
+                                          description: Used to return the applicable amount.
+                                        TaxCode:
+                                          type: string
+                                          example: 'US'
+                                          description: Used to return the tax code.
+                          PTC_FareBreakdown:
+                            type: object
+                            description: Contains the PTC fare breakdown.
+                            properties:
+                              FlightSegment:
+                                type: array
+                                description: Lists the flight segments.
+                                items:
+                                  type: object
+                                  properties:
+                                    ConnectionInd:
+                                      type: string
+                                      example: 'O'
+                                      description: Used to return the connection indicator associated with the particular flight segment.
+                                    DepartureDateTime:
+                                      type: string
+                                      example: '05-26T12:56'
+                                      description: The scheduled date and time of departure.
+                                    FlightNumber:
+                                      type: string
+                                      example: '4594'
+                                      description: The unique number identifying the flight.
+                                    ResBookDesigCode:
+                                      type: string
+                                      example: 'E'
+                                      description: Used to return the booking class of service.
+                                    RPH:
+                                      type: string
+                                      example: '01'
+                                      description: Used as a reference place holder.
+                                    BaggageAllowance:
+                                      type: object
+                                      description: Contains baggage allowances.
+                                      required:
+                                        - Number
+                                      properties:
+                                        Number:
+                                          type: string
+                                          example: 'NIL'
+                                          description: Used to return the baggage allowance.
+                                    FareBasis:
+                                      type: object
+                                      description: Fare basis.
+                                      properties:
+                                        Code:
+                                          type: string
+                                          example: 'LA0NA0BA'
+                                          description: Used to return the fare basis code used to price the itinerary.
+                                    MarketingAirline:
+                                      type: object
+                                      description: Marketing airline.
+                                      properties:
+                                        Code:
+                                          type: string
+                                          example: 'DL'
+                                          description: Used to return the marketing airline code.
+                                        FlightNumber:
+                                          type: string
+                                          example: '4594'
+                                          description: The unique number identifying the flight.
+                                    OriginLocation:
+                                      type: object
+                                      description: Contains flight departure airport code/city code.
+                                      properties:
+                                        LocationCode:
+                                          type: string
+                                          example: 'LAS'
+                                          description: The three-letter IATA city or airport code.
+                                    ValidityDates:
+                                      type: object
+                                      description: Validity dates.
+                                      properties:
+                                        NotValidAfter:
+                                          type: string
+                                          format: date
+                                          example: '2026-05-26'
+                                          description: Contains date after which the price quote reissue record will not be valid.
+                                        NotValidBefore:
+                                          type: string
+                                          format: date
+                                          example: '2026-05-26'
+                                          description: Contains date before which the price quote reissue record will not be valid.
+
+    ApplicationResults:
+      type: object
+      required:
+        - status
+      properties:
+        Success:
+          type: array
+          maxItems: 99
+          description: Lists details of a successful call.
+          items:
+            $ref: '#/components/schemas/ProblemInformation'
+        Error:
+          type: array
+          maxItems: 99
+          description: Lists details of any errors encountered during processing.
+          items:
+            $ref: '#/components/schemas/ProblemInformation'
+        Warning:
+          type: array
+          maxItems: 99
+          description: |
+            Lists details of any issues encountered during processing.
+
+            Use this information to help troubleshoot further.
+          items:
+            $ref: '#/components/schemas/ProblemInformation'
+        status:
+          type: string
+          example: 'Complete'
+          description: Transaction status.
+          enum:
+            - Complete
+            - Incomplete
+            - NotProcessed
+            - Unknown
+
+    ProblemInformation:
+      type: object
+      properties:
+        SystemSpecificResults:
+          type: array
+          maxItems: 99
+          description: Lists specific information from the system and/or other sub-systems invoked during processing.
+          items:
+            type: object
+            properties:
+              HostCommand:
+                type: object
+                properties:
+                  LNIATA:
+                    type: string
+                    description: |
+                      An abbreviation for Line / Interface Adapter / Terminal Address.
+
+                      It is a 3-byte terminal address, usually seen as a 6-character hexadecimal field.
+                    example: '0358DC'
+                  content:
+                    maxLength: 4096
+                    type: string
+                    description: Sabre host system command.
+                    example: '120MAYDFWLAX'
+              Message:
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                      description: An abbreviated version of the error or warning in textual format.
+                      example: 'WARN.SP.PROVIDER_WARNING'
+                    content:
+                      maxLength: 4096
+                      type: string
+                      description: An indication of the source of error or warning when processing the request.
+                      example: 'No new price quote reissue (PQR) records have been stored, see remaining messages for details.'
+                maxItems: 99
+                type: array
+              ShortText:
+                maxLength: 128
+                minLength: 1
+                type: string
+                description: An abbreviated version of the error or warning in textual format.
+                example: 'WARN.SP.PROVIDER_WARNING'
+              Element:
+                maxLength: 4096
+                type: string
+                description: |
+                  If present, this attribute may identify an unknown or misspelled tag that caused an error in processing.
+
+                  It is recommended that the Tag attribute use XPath notation to identify the location of a tag in the event that more than one tag of the same name is present in the document.
+
+                  Alternatively, the tag name alone can be used to identify missing data [Type=ReqFieldMissing].
+                example: 'Unknown Element'
+              RecordID:
+                maxLength: 255
+                minLength: 1
+                type: string
+                description: |
+                  If present, this attribute allows for batch processing and the identification of the record that failed amongst a group of records.
+
+                  This value may contain a concatenation of a unique failed transaction ID with specific record(s) associated with that transaction.
+                example: 'Unknown RecordID'
+              DocURL:
+                format: uri
+                type: string
+                description: If present, this attribute refers to an online description of the error that occurred.
+                example: 'https://developer.sabre.com'
+              timeStamp:
+                type: string
+                format: date-time
+                description: Transaction time stamp in RFC 3339 date-time with timezone offset format.
+                example: '2026-02-13T04:16:10.174-06:00'
+              reference:
+                type: string
+                description: If present, this attribute provides an XML IDREF to the element for which the results apply.
+                example: 'XML IDREF'
+        type:
+          type: string
+          example: 'BusinessLogic'
+          description: An indication of the source of error or warning when processing the request.
+          enum:
+            - Transport
+            - Validation
+            - Application
+            - BusinessLogic
+        timeStamp:
+          type: string
+          format: date-time
+          example: '2026-02-13T04:16:10.174-06:00'
+          description: Transaction time stamp in RFC 3339 date-time with timezone offset format.
+  securitySchemes:
+    oauth2_authentication:
+      type: oauth2
+      x-base64-encode-client-credentials: true
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.cert.platform.sabre.com/v2/auth/token
+          scopes:
+            {}

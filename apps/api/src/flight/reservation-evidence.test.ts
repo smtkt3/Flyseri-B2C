@@ -28,6 +28,10 @@ describe('reservation evidence before payment and ticketing',()=>{
    expect(hasIssuedTicketEvidence({...view,tickets:[first]},2)).toBe(false);
    expect(hasIssuedTicketEvidence({...view,tickets:[first,first]},2)).toBe(false);
    expect(hasIssuedTicketEvidence({...view,tickets:[first,{...first,number:'1234567890124',travellerIndex:2}]},2)).toBe(true);
+   expect(hasIssuedTicketEvidence({...view,tickets:[first,{...first,number:'1234567890124'}]},2)).toBe(false);
+   expect(hasIssuedTicketEvidence({...view,tickets:[{...first,travellerIndex:0}]},1)).toBe(false);
+   expect(hasIssuedTicketEvidence({...view,tickets:[{...first,travellerIndex:2}]},1)).toBe(false);
+   expect(hasIssuedTicketEvidence({...view,tickets:[{...first,travellerIndex:null}]},1)).toBe(false);
    expect(hasIssuedTicketEvidence({...view,tickets:[{...first,status:'Voided'}]},1)).toBe(false);
  });
 });

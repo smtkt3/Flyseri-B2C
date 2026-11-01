@@ -1,4 +1,5 @@
 import { Translated } from '../travel/language';
+import { PageLoading } from '../components/PageLoading';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CustomerProfile, DocumentSummary, FlightBookingIntent, OrderSummary, PaymentSummary, TravellerProfile, TripSummary, VisaApplicationSummary } from '@flyseri/types';
@@ -104,7 +105,7 @@ export function CustomerDashboard() {
   return <main className="account-page customer-dashboard">
     <header className="dashboard-hero"><div><p className="account-eyebrow">YOUR FLYSERI</p><h1>Welcome back, {name}</h1><p>Your journeys, travel tasks and next steps in one place.</p></div><Link className="btn-primary dashboard-main-action" to="/app/flights"><Translated text="Find a flight" /><span aria-hidden="true">↗</span></Link></header>
     {data.unavailable.length > 0 && !loading && <div className="dashboard-warning" role="alert">Some travel details could not be loaded. Your saved information has not changed. <button type="button" onClick={() => setAttempt((value) => value + 1)}><Translated text="Retry" /></button></div>}
-    {loading ? <div className="dashboard-skeleton-grid" role="status" aria-label="Loading your dashboard"><div /><div /><div /></div> : <>
+    {loading ? <><PageLoading label="Loading your dashboard"/><div className="dashboard-skeleton-grid" aria-hidden="true"><div /><div /><div /></div></> : <>
       <div className="dashboard-main-grid">
         <section className="dashboard-card dashboard-actions" aria-labelledby="dashboard-actions-title"><div className="dashboard-section-heading"><div><p className="account-eyebrow">YOUR NEXT STEPS</p><h2 id="dashboard-actions-title">Action required</h2></div><span>{actions.length ? `${actions.length} to review` : data.unavailable.length ? 'Check incomplete' : 'Up to date'}</span></div>
           {actions.length ? <ul>{actions.map((action) => <li key={action.key}><Link to={action.to}><span className={`dashboard-action-mark ${action.tone}`} aria-hidden="true">{action.tone === 'urgent' ? '!' : '✓'}</span><span><strong>{action.title}</strong><small>{action.detail}</small></span><b aria-hidden="true">→</b></Link></li>)}</ul>

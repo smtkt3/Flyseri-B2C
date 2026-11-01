@@ -18,8 +18,8 @@ export function FlightTicketIssuanceNotice({ booking, paidAt }: {
   const paymentTime = paidAt ? Date.parse(paidAt) : NaN;
   if (!Number.isFinite(paymentTime)) return null;
   const dueAt = paymentTime + issuanceWindowMs;
-  const issued = bookingHasIssuedTickets(booking);
-  const review = !booking.pnr || ['BOOKING_UNKNOWN','BOOKING_FAILED','CANCELLED','PNR_EXPIRED','TICKETING_FAILED','REFUND_REQUIRED'].includes(booking.status) || booking.status === 'TICKETED' && !issued;
+  const issued = booking.status === 'TICKETED' && bookingHasIssuedTickets(booking);
+  const review = !booking.pnr || ['MANUAL_REVIEW_REQUIRED','BOOKING_UNKNOWN','BOOKING_FAILED','CANCELLED','PNR_EXPIRED','TICKETING_FAILED','REFUND_REQUIRED'].includes(booking.status) || booking.status === 'TICKETED' && !issued;
   const delayed = !issued && now >= dueAt;
   const heading = issued ? 'Your ticket is ready' : review ? 'Your booking needs attention' : delayed ? 'Your ticket is taking longer than expected' : 'Your ticket will be ready within 6 hours';
   return <section className={`ticket-issuance-notice${review || delayed ? ' needs-attention' : ''}`} aria-label="Ticket issuance">

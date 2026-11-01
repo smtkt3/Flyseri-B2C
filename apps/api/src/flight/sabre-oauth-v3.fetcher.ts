@@ -1,6 +1,7 @@
 import type { AppConfig } from '@flyseri/config';
 import { ApiException } from '../api-exception.js';
 import type { SabreTokenFetcher } from './sabre-auth.service.js';
+import { validateTicketingPcc } from './ticketing-currency.contract.js';
 
 type HttpFetch = typeof fetch;
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Flight search is temporarily unavailable.', 503);
@@ -12,6 +13,7 @@ export class SabreOAuthV3Fetcher implements SabreTokenFetcher {
   async fetchToken(): Promise<{ accessToken: string; expiresInSeconds: number }> {
     const { SABRE_ENV, SABRE_AUTH_URL, SABRE_CLIENT_ID, SABRE_CLIENT_SECRET, SABRE_USERNAME, SABRE_PASSWORD } = this.config;
     if (SABRE_ENV !== 'CERT' || !SABRE_AUTH_URL || !SABRE_CLIENT_ID || !SABRE_CLIENT_SECRET || !SABRE_USERNAME || !SABRE_PASSWORD) throw unavailable();
+    validateTicketingPcc(this.config.SABRE_PCC,SABRE_USERNAME);
     const endpoint = new URL(SABRE_AUTH_URL);
     if (endpoint.origin !== 'https://api.cert.platform.sabre.com' || endpoint.pathname !== '/v3/auth/token' || endpoint.search || endpoint.hash) throw unavailable();
     const body = new URLSearchParams({ grant_type: 'password', username: SABRE_USERNAME, password: SABRE_PASSWORD });

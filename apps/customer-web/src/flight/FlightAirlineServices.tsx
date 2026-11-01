@@ -157,8 +157,8 @@ export function FlightAirlineServices({ searchId = '', offerId = '', intentId, p
     const key = ancillaryKey(service), selected = selectedExtras.some(extra => ancillaryKey(extra) === key);
     const extra = requestedExtra(service);
     let next = selectedExtras.filter(item => ancillaryKey(item) !== key);
-    // A baggage allowance or seat option replaces the previous option for the same flight and traveler.
-    if (!selected && ['BAGGAGE', 'SEATS'].includes(extra.category)) next = next.filter(item => !(item.category === extra.category && item.segmentLabels.some(label => extra.segmentLabels.includes(label)) && item.passengerIndexes.some(index => extra.passengerIndexes.includes(index))));
+    // One seat per flight/traveler; distinct baggage and services can coexist.
+    if (!selected && extra.category==='SEATS') next = next.filter(item => !(item.category === extra.category && item.segmentLabels.some(label => extra.segmentLabels.includes(label)) && item.passengerIndexes.some(index => extra.passengerIndexes.includes(index))));
     if (!selected) next.push(extra);
     if (next.length > 40) { setSelectionNotice('Choose up to 40 extras for this booking.'); return; }
     setSelectionNotice(''); savingRef.current = true; setSaving(true); onSavingChange?.(true);
@@ -203,11 +203,12 @@ export function FlightAirlineServices({ searchId = '', offerId = '', intentId, p
               const amount = native ? service.amount : display?.prices[index];
               const price = zero ? 'No extra charge' : amount !== null && amount !== undefined ? `${native ? '' : '≈ '}${quoteMoney(amount, currency)}` : convertingKey === conversionKey && service.currency && service.currency !== currency ? 'Converting…' : 'Price to confirm';
               const selected = selectedExtras.some(extra => ancillaryKey(extra) === ancillaryKey(service));
-              const canSelect = !['A', 'B', 'E'].includes(service.rules?.serviceType ?? '') && !!result.quoteId && service.segmentLabels.length > 0 && service.passengerIndexes.length > 0 && (!!intentId && !!onSaved || !!onSelectedExtrasChange);
+              const canSelect = service.sellable!==false && !service.rules?.requiresWeightConfirmation && !['A', 'B', 'E'].includes(service.rules?.serviceType ?? '') && !!result.quoteId && service.segmentLabels.length > 0 && service.passengerIndexes.length > 0 && (!!intentId && !!onSaved || !!onSelectedExtrasChange);
               return <article className={`flight-airline-service${selected ? ' is-selected' : ''}`} key={`${service.offerItemId ?? service.serviceCode}-${index}`}>
                 <div className="flight-airline-service-summary"><span className="flight-airline-service-name"><strong>{service.name}</strong><small>{service.passengerIndexes.length ? `For traveler${service.passengerIndexes.length === 1 ? '' : 's'} ${service.passengerIndexes.map(index => index + 1).join(', ')}` : 'Traveler to confirm'}</small></span><span className="flight-airline-service-price"><strong title={service.amount !== null && service.currency ? `Quoted price: ${quoteMoney(service.amount, service.currency)}` : undefined}>{price}</strong><small>{service.rules?.requiresWeightConfirmation ? selected ? 'Quote requested' : 'Rate · weight to confirm' : selected ? 'Added to your requests' : 'Final price to confirm'}</small></span></div>
                 <div className="flight-airline-service-details">
                   {service.rules?.requiresWeightConfirmation&&<p className="flight-extra-guidance">Tell our team how much extra baggage you need. The price shown is a rate, not your total baggage fee.</p>}
+                  {service.serviceCharge&&Number(service.serviceCharge)>0&&<p className="flight-extra-guidance">Price includes the Flyseri service charge. It is refunded with a verified refund of this extra.</p>}
                   {canSelect?<button type="button" className="flight-airline-service-select" aria-label={`${selected?'Remove':service.rules?.requiresWeightConfirmation?'Request quote for':'Add'} ${service.name}`} aria-pressed={selected} disabled={disabled || saving || busy || !ready} onClick={()=>void toggleService(service)}>{saving?'Saving…':selected ? 'Remove' : service.rules?.requiresWeightConfirmation ? 'Request a quote' : 'Add extra'}</button>:<p className="flight-extra-guidance">{['A','B','E'].includes(service.rules?.serviceType??'')?'Included allowance or restriction · no extra to add.':'Contact Flyseri to arrange this option.'}</p>}
                   <details className="flight-extra-conditions"><summary>Details &amp; conditions</summary><FlightAirlineRules rules={service.rules} baggage={group.id === 'BAGGAGE'}/>{!service.rules&&group.id!=='BAGGAGE'&&<p>Contact Flyseri for the conditions of this option.</p>}</details>
                 </div>

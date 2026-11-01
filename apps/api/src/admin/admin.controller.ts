@@ -13,6 +13,7 @@ import { AdminDashboardService } from './admin-dashboard.service.js';
 import { AdminRecordsService } from './admin-records.service.js';
 import { AdminDocumentsService } from './admin-documents.service.js';
 import { AdminFlightsService } from './admin-flights.service.js';
+import { AdminFlightOperationsService, type OperationKind, type OperationQuote, type OperationAction } from './admin-flight-operations.service.js';
 import { AdminCommerceService } from './admin-commerce.service.js';
 import { AdminCrmService } from './admin-crm.service.js';
 import { AdminVisaService, type VisaStaffStatus, type VisaServiceVersionInput } from './admin-visa.service.js';
@@ -94,6 +95,21 @@ class VisaNoteBody {
   @IsIn(['INTERNAL','CUSTOMER']) visibility!: 'INTERNAL' | 'CUSTOMER';
   @IsString() @MinLength(1) @MaxLength(4000) note!: string;
 }
+class FlightCaseBody {
+  @IsIn(['ISSUE','CANCEL','VOID','REFUND','EXCHANGE','MODIFY']) kind!: OperationKind;
+  @IsString() @MinLength(3) @MaxLength(2000) reason!: string;
+}
+class FlightCaseActionBody implements OperationAction {
+  @IsIn(['CHECK','RESHOP','PREPARE_CONTACT','QUOTE','APPROVE','EXECUTE','SEND_EXCHANGE_QUOTATION','FULFILL_EXCHANGE','RECONCILE','REFUND_CUSTOMER','PREPARE_REMAINING_CANCEL','EXECUTE_REMAINING_CANCEL','NOTE','CANCEL','RECORD_SUPPORT_EVIDENCE']) action!: OperationAction['action'];
+  @IsInt() @Min(1) version!: number;
+  @IsOptional() @IsString() @MaxLength(2000) note?: string;
+  @IsOptional() @IsString() @Matches(/^[A-Z0-9]{5,16}$/) confirmedPnr?: string;
+  @IsOptional() @IsString() @MaxLength(300) consentReference?: string;
+  @IsOptional() @IsObject() quote?: OperationQuote;
+  @IsOptional() @IsArray() @ArrayMaxSize(10) journeys?: OperationAction['journeys'];
+  @IsOptional() @IsObject() contact?: OperationAction['contact'];
+  @IsOptional() @IsObject() supportEvidence?: OperationAction['supportEvidence'];
+}
 const response = <T>(request: ContextRequest, data: T): ApiSuccess<T> => ({ success: true, data, requestId: request.requestId });
 
 class AssistanceFeeBody {
@@ -109,6 +125,7 @@ export class AdminController {
     @Inject(AdminRecordsService) private readonly records: AdminRecordsService,
     @Inject(AdminDocumentsService) private readonly documents: AdminDocumentsService,
     @Inject(AdminFlightsService) private readonly flights: AdminFlightsService,
+    @Inject(AdminFlightOperationsService) private readonly flightOperations: AdminFlightOperationsService,
     @Inject(AdminCommerceService) private readonly commerce: AdminCommerceService,
     @Inject(AdminCrmService) private readonly crm: AdminCrmService,
     @Inject(AdminVisaService) private readonly visaOperations: AdminVisaService,
@@ -252,7 +269,21 @@ export class AdminController {
     return response(request, await this.flights.checkoutAttempt(id));
   }
   @Get('flights/bookings') @RequireAdminPermission('flights')
-  async flightBookings(@Query() query: ListQuery, @Req() request: ContextRequest) { return response(request, await this.flights.bookings(query)); }
+  async flightBookings(@Query(validateListQuery) query: ListQuery, @Req() request: ContextRequest) { return response(request, await this.flights.bookings(query)); }
+  @Get('flights/operations-capabilities') @RequireAdminPermission('flights')
+  async flightOperationsCapabilities(@Req() request: ContextRequest) {return response(request,await this.flightOperations.capabilities());}
+  @Get('flights/booking-summary') @RequireAdminPermission('flights')
+  async flightBookingSummary(@Req() request: ContextRequest) {return response(request,await this.flightOperations.summary());}
+  @Get('flights/servicing-cases') @RequireAdminPermission('flights')
+  async flightCases(@Query('bookingId',new ParseUUIDPipe({optional:true})) bookingId:string|undefined,@Req() request:ContextRequest){return response(request,await this.flightOperations.list(bookingId));}
+  @Get('flights/servicing-queue') @RequireAdminPermission('flights')
+  async flightServicingQueue(@Query(validateListQuery) query:ListQuery,@Req() request:ContextRequest){return response(request,await this.flightOperations.queue(query));}
+  @Get('flights/servicing-cases/:id') @RequireAdminPermission('flights')
+  async flightCase(@Param('id',new ParseUUIDPipe()) id:string,@Req() request:ContextRequest){return response(request,await this.flightOperations.detail(id));}
+  @Post('flights/bookings/:id/servicing-cases') @RequireAdminPermission('flights')
+  async createFlightCase(@Param('id',new ParseUUIDPipe()) id:string,@Body(new ValidationPipe({expectedType:FlightCaseBody,whitelist:true,forbidNonWhitelisted:true})) body:FlightCaseBody,@CurrentStaff() staff:AdminIdentity,@Req() request:ContextRequest){return response(request,await this.flightOperations.create(id,body.kind,body.reason,staff,request.requestId));}
+  @Post('flights/servicing-cases/:id/actions') @RequireAdminPermission('flights')
+  async actionFlightCase(@Param('id',new ParseUUIDPipe()) id:string,@Body(new ValidationPipe({expectedType:FlightCaseActionBody,whitelist:true,forbidNonWhitelisted:true})) body:FlightCaseActionBody,@CurrentStaff() staff:AdminIdentity,@Req() request:ContextRequest){return response(request,await this.flightOperations.action(id,body,staff,request.requestId));}
   @Get('flights/bookings/:id') @RequireAdminPermission('flights')
   async flightBooking(@Param('id', new ParseUUIDPipe()) id: string, @Req() request: ContextRequest) {
     return response(request, await this.flights.booking(id));
@@ -260,6 +291,8 @@ export class AdminController {
   @Post('flights/bookings/:id/refresh') @RequireAdminPermission('flights')
   async refreshFlightBooking(@Param('id', new ParseUUIDPipe()) id: string, @CurrentStaff() staff: AdminIdentity,
     @Req() request: ContextRequest) { return response(request, await this.flights.refresh(id, staff, request.requestId)); }
+  @Post('flights/bookings/:id/revalidate-payment') @RequireAdminPermission('flights')
+  async revalidatePaidFlight(@Param('id',new ParseUUIDPipe()) id:string,@CurrentStaff() staff:AdminIdentity,@Req() request:ContextRequest){return response(request,await this.flightOperations.revalidatePaidBooking(id,staff,request.requestId));}
   @Get('orders') @RequireAdminPermission('orders')
   async orders(@Query() query: ListQuery, @Req() request: ContextRequest) { return response(request, await this.commerce.orders(query)); }
   @Get('orders/:id') @RequireAdminPermission('orders')

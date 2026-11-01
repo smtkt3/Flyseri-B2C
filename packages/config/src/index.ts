@@ -8,6 +8,13 @@ const urlWithProtocol = (protocols: string[]) => z.string().url().refine(
 const configSchema = z.object({
   APP_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+  TICKET_EMAIL_ENABLED: z.enum(['true','false']).default('false').transform(value=>value==='true'),
+  SMTP_HOST: z.string().regex(/^[a-zA-Z0-9.-]+$/).optional(),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
+  SMTP_SECURE: z.enum(['true','false']).default('true').transform(value=>value==='true'),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASSWORD: z.string().min(1).optional(),
+  SMTP_FROM_EMAIL: z.string().email().optional(),
   WEB_ORIGIN: urlWithProtocol(['http:', 'https:']).refine(
     (value) => new URL(value).origin === value,
     { message: 'Expected an origin without a path' },
@@ -29,10 +36,12 @@ const configSchema = z.object({
   SABRE_USERNAME: z.string().min(1).optional(),
   SABRE_PASSWORD: z.string().min(1).optional(),
   SABRE_PCC: z.string().min(2).max(8).optional(),
+  SABRE_CURRENCY_POLICY: z.string().min(1).optional(),
   SABRE_TOKEN_EXPIRY_SKEW_SECONDS: z.coerce.number().int().min(5).max(600).default(60),
   SABRE_BFM_CACHE_TTL_SECONDS: z.coerce.number().int().min(15).max(300).default(60),
   SABRE_SEARCH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(3600).default(900),
   SABRE_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(15000).default(12000),
+  SABRE_SERVICING_TIMEOUT_MS: z.coerce.number().int().min(15000).max(180000).default(120000),
   SABRE_SEARCH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(120).default(12),
   SABRE_PROVIDER_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(10000).default(120),
   SABRE_PROVIDER_MAX_CONCURRENT: z.coerce.number().int().min(1).max(100).default(12),
@@ -47,6 +56,11 @@ const configSchema = z.object({
   FLIGHT_BOOKING_EXECUTION_ENABLED: z.enum(['true', 'false']).default('false'),
   SABRE_BOOKING_AGENCY: z.string().min(1).optional(),
   FLIGHT_TICKETING_EXECUTION_ENABLED: z.enum(['true', 'false']).default('false'),
+  FLIGHT_AUTOMATIC_TICKETING_ENABLED: z.enum(['true', 'false']).default('false'),
+  FLIGHT_CUSTOMER_TICKETING_ENABLED: z.enum(['true', 'false']).default('false'),
+  FLIGHT_TICKET_SERVICING_EXECUTION_ENABLED: z.enum(['true','false']).default('false'),
+  SABRE_SERVICING_PRINTER: z.string().regex(/^[A-Z0-9]{6}$/).optional(),
+  FLIGHT_REFUND_SETTLEMENT_ENABLED: z.enum(['true','false']).default('false'),
   SABRE_TICKETING_PROFILE: z.string().min(1).optional(),
   FLIGHT_ANCILLARY_EXECUTION_ENABLED: z.enum(['true', 'false']).default('false'),
   // Approved merchant checkout rates, not the public display-only FX feed.
@@ -111,6 +125,11 @@ export function parseConfig(input: Record<string, unknown>): AppConfig {
   if (parsed.data.FLIGHT_TICKETING_EXECUTION_ENABLED === 'true' && (parsed.data.SABRE_ENV !== 'CERT' || configured.length !== sabreFields.length || !parsed.data.SABRE_TICKETING_PROFILE || parsed.data.APP_ENV === 'production')) {
     throw new Error('Invalid Flyseri configuration: ticket issuance requires CERT credentials, an approved ticketing profile and a non-production environment');
   }
+  if ((parsed.data.FLIGHT_AUTOMATIC_TICKETING_ENABLED === 'true' || parsed.data.FLIGHT_CUSTOMER_TICKETING_ENABLED === 'true') && parsed.data.FLIGHT_TICKETING_EXECUTION_ENABLED !== 'true') {
+    throw new Error('Invalid Flyseri configuration: automatic or customer ticketing requires ticket issuance to be enabled explicitly');
+  }
+  if(parsed.data.FLIGHT_TICKET_SERVICING_EXECUTION_ENABLED==='true'&&(!parsed.data.SABRE_SERVICING_PRINTER||!parsed.data.SABRE_CLIENT_ID||!parsed.data.SABRE_CLIENT_SECRET||!parsed.data.SABRE_USERNAME||!parsed.data.SABRE_PASSWORD||parsed.data.SABRE_ENV!=='CERT'||parsed.data.APP_ENV==='production'))throw new Error('Invalid Flyseri configuration: ticket servicing requires CERT credentials and a verified servicing printer');
+  if(parsed.data.FLIGHT_REFUND_SETTLEMENT_ENABLED==='true'&&(parsed.data.PAYMENT_PROVIDER!=='STRIPE_TEST'||!parsed.data.STRIPE_SECRET_KEY||parsed.data.APP_ENV==='production'||parsed.data.SABRE_ENV!=='CERT'))throw new Error('Invalid Flyseri configuration: refund settlement requires Stripe test and Sabre CERT configuration');
   if (parsed.data.FLIGHT_ANCILLARY_EXECUTION_ENABLED === 'true' && (parsed.data.FLIGHT_BOOKING_EXECUTION_ENABLED !== 'true' || parsed.data.FLIGHT_TICKETING_EXECUTION_ENABLED !== 'true' || parsed.data.SABRE_ENV !== 'CERT' || parsed.data.APP_ENV === 'production')) {
     throw new Error('Invalid Flyseri configuration: ancillary execution requires approved CERT reservation and non-cash ticketing configuration');
   }

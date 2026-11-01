@@ -7,11 +7,13 @@ import { parseConfig } from '@flyseri/config';
 import { createLogger } from '@flyseri/logging';
 import { AppModule } from './app.module.js';
 import { configureApp } from './configure-app.js';
+import {installApiTraceFetch} from './developer/api-trace.js';
 
 loadDotEnv({ path: fileURLToPath(new URL('../../../.env', import.meta.url)) });
 
 async function bootstrap(): Promise<void> {
   const config = parseConfig(process.env);
+  installApiTraceFetch(config.APP_ENV !== 'production');
   const logger = createLogger(config.APP_ENV);
   const app = await NestFactory.create(AppModule, new ExpressAdapter(), { logger: false, rawBody: true, abortOnError: false });
   configureApp(app, config, logger);

@@ -112,6 +112,7 @@ export interface FlightAncillaryResponse {
   context?: 'SHOPPING_OFFER' | 'PRICED_OFFER' | 'NDC_ORDER' | 'ATPCO_SHOPPING';
   bookingAvailable: boolean;
   services: { offerItemId: string | null; sellable?: boolean | null; serviceCode: string; name: string;
+    serviceCharge?: string; chargeRefundable?: boolean;
     /** Airline service group, when supplied by Sabre (for example BG or ML). */
     groupCode?: string | null;
     rules?: FlightAncillaryRules;
@@ -120,6 +121,10 @@ export interface FlightAncillaryResponse {
 }
 export interface FlightAncillarySelectionInput { quoteId: string; serviceIndex: number }
 export interface FlightAncillaryPurchaseItem {
+  refundStatus?: 'REFUNDED'|'PENDING'|'REVIEW';
+  refundedAmount?: string;
+  serviceCharge?: string;
+  chargeRefundable?: boolean;
   requestId: string;
   name: string;
   segmentLabels: string[];
@@ -130,6 +135,7 @@ export interface FlightAncillaryPurchaseItem {
   providerAncillaryIds: string[];
 }
 export interface FlightAncillaryPurchase {
+  documentIssuanceAvailable?: boolean;
   id: string;
   status: 'PREPARED' | 'ADDING' | 'CONFIRMED' | 'PRICE_CHANGED' | 'UNAVAILABLE' | 'SKIPPED' | 'UNKNOWN' | 'FULFILLMENT_PENDING' | 'FULFILLED';
   currency: string;
@@ -142,6 +148,8 @@ export interface FlightAncillaryPurchase {
 }
 /** A selected airline quote saved with the booking; it is not an airline purchase. */
 export interface FlightAncillaryRequest {
+  serviceCharge?: string;
+  chargeRefundable?: boolean;
   id: string;
   name: string;
   serviceCode: string;
@@ -232,6 +240,8 @@ export interface FlightBookingIntent {
 
 export type OrderStatus = 'PENDING_PAYMENT' | 'PAYMENT_PROCESSING' | 'PAID' | 'PAYMENT_FAILED' | 'EXPIRED' | 'CANCELLED';
 export interface FlightBooking {
+  ticketDocumentAvailable?:boolean;
+  exchangeQuotations?: FlightExchangeQuotation[];
   ancillaryPurchase?: FlightAncillaryPurchase;
   ancillaryRequests?: FlightAncillaryRequest[];
   reconciliation?: {checkedAt:string;result:'NO_ACTIVE_MATCH'};
@@ -259,7 +269,7 @@ export interface FlightBookingProviderView {
   retrievedAt: string;
   flights: Array<{airlineCode: string; flightNumber: string; origin: string; destination: string; departureDate: string; departureTime: string; arrivalDate: string; arrivalTime: string; status: string}>;
   travellers: Array<{givenName: string; surname: string}>;
-  tickets: Array<{number: string; status: string; travellerIndex: number | null}>;
+  tickets: Array<{number: string; status: string; travellerIndex: number | null; couponStatuses?:string[]}>;
   cancellationCheckComplete: boolean;
 }
 export interface FlightReservationInput {
@@ -271,11 +281,14 @@ export interface FlightReservationInput {
 }
 export type FlightIdentityDocumentType = 'PASSPORT' | 'NATIONAL_ID_CARD' | 'VISA' | 'ALIEN_RESIDENT' | 'BORDER_CROSSING_CARD' | 'REFUGEE_REENTRY_PERMIT';
 export interface OrderSummary {
+  /** Lightweight, owned booking information for the order history. */
+  overview?: OrderOverview;
   id: string;
   orderNumber: string;
   tripId: string | null;
   bookingIntentId: string | null;
   visaApplicationId?: string | null;
+  flightServicingCaseId?: string | null;
   status: OrderStatus;
   fulfillmentStatus: 'NOT_STARTED' | 'REVALIDATION_REQUIRED' | 'COMPLETED';
   currency: string;
@@ -284,6 +297,21 @@ export interface OrderSummary {
   expiresAt: string | null;
   paidAt: string | null;
   createdAt: string;
+}
+export interface OrderOverview {
+  kind: 'FLIGHT' | 'FLIGHT_EXCHANGE' | 'VISA' | 'OTHER';
+  title: string;
+  journeys?: Array<{ origin: string; destination: string; departureDate: string }>;
+  airlineCodes?: string[];
+  travelerCount?: number;
+  travelDate?: string;
+  tripType?: 'ONE_WAY' | 'ROUND_TRIP' | 'MULTI_CITY';
+  cabin?: FlightOffer['cabin'];
+  destinationCountryCode?: string;
+  reference?: { label: 'PNR' | 'Application'; value: string };
+  bookingStatus?: string;
+  ticketIssued?: boolean;
+  extrasCount?: number;
 }
 export interface OrderItem {
   id: string;
@@ -307,11 +335,26 @@ export interface PaymentSummary {
 }
 export interface PaymentStartResult { payment: PaymentSummary; redirectUrl: string | null; actionRequired: boolean }
 export interface OrderDetail extends OrderSummary {
+  exchangeQuotation?: FlightExchangeQuotation | null;
+  refunds?: {status:'REQUESTED'|'PROCESSING'|'SUCCEEDED'|'FAILED'|'CANCELLED';amount:string;currency:string;completedAt:string|null;scope?:'FLIGHT'|'ANCILLARY'}[];
   coupon?: { code: string; discountAmount: string; currency: string } | null;
   flightBookingId?: string | null;
   visaAssistanceRequestId?: string | null;
   items: OrderItem[];
   payment: PaymentSummary | null;
+}
+/** Customer-safe exchange collection; supplier payloads and internal notes are excluded. */
+export interface FlightExchangeQuotation {
+  id: string;
+  bookingId: string;
+  orderId: string;
+  orderNumber: string;
+  amount: string;
+  currency: string;
+  sentAt: string | null;
+  expiresAt: string | null;
+  status: 'PAYMENT_REQUIRED' | 'PAYMENT_PROCESSING' | 'PAID' | 'COMPLETED' | 'EXPIRED' | 'REVIEW_REQUIRED';
+  flights: Array<{airline: string; number: string; origin: string; destination: string; departureDate: string; departureTime: string; arrivalDate: string; arrivalTime: string}>;
 }
 export interface OrderReceipt {
   orderNumber: string;

@@ -2,6 +2,7 @@ import type { VisaApplicationDetail, VisaApplicationSummary, VisaAssistanceReque
 import { apiClient } from '../lib/api/client';
 
 export const visaService = {
+  async archiveAssistance(id: string): Promise<void> { await apiClient.delete('/visa-assistance-requests/' + encodeURIComponent(id)); },
   async publicCatalogue(countryCode: string): Promise<VisaType[]> { return (await apiClient.get<VisaType[]>(`/public/visa-services?countryCode=${encodeURIComponent(countryCode)}`, {anonymous:true})).data; },
   async catalogue(countryCode: string): Promise<VisaType[]> { return (await apiClient.get<VisaType[]>(`/visa-services?countryCode=${encodeURIComponent(countryCode)}`)).data; },
   async createAssistanceRequest(input: VisaAssistanceRequestInput): Promise<VisaAssistanceRequestSummary> {

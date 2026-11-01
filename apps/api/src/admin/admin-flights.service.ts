@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
-import { adminAuditEvents, customers, flightBookingIntents, flightBookings, guestFlightCheckoutAttempts, orders, payments, type DatabaseConnection } from '@flyseri/database';
-import type { FlightOffer } from '@flyseri/types';
+import {publicAncillaryPurchase,type AncillarySnapshot} from '../flight/ancillary-purchase.contract.js';
+import {sanitizedTicketingErrors} from '../flight/ticketing-currency.contract.js';
+import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
+import { adminAuditEvents, customers, flightBookingIntents, flightBookings, guestFlightCheckoutAttempts, orders, payments, refunds, type DatabaseConnection } from '@flyseri/database';
+import type { FlightBookingProviderView, FlightOffer } from '@flyseri/types';
+import { hasCurrentIssuedTicketEvidence } from '../flight/reservation-evidence.js';
 import { ApiException } from '../api-exception.js';
 import { DATABASE_CONNECTION, FLIGHT_TELEMETRY, SABRE_BOOKING_CLIENT } from '../tokens.js';
 import type { FlightTelemetry } from '../flight/flight.telemetry.js';
@@ -10,6 +13,10 @@ import type { AdminListQuery } from './admin-records.service.js';
 import type { AdminIdentity } from './admin-auth.js';
 
 const unavailable = () => new ApiException('DEPENDENCY_UNAVAILABLE', 'Flyseri booking records are unavailable.', 503);
+const ancillaryDiagnostic=(snapshot:AncillarySnapshot)=>{
+  const value=snapshot.checkoutAncillaryPurchase?.documentAttempt?.diagnostic;
+  return value?{...value,errors:sanitizedTicketingErrors(value.errors),warnings:sanitizedTicketingErrors(value.warnings)}:undefined;
+};
 const routeOf = (snapshot: unknown): string | null => {
   const offer = snapshot as Partial<FlightOffer> | null;
   const first = offer?.outbound?.segments?.[0];
@@ -19,10 +26,19 @@ const routeOf = (snapshot: unknown): string | null => {
   return first?.origin && last?.destination ? `${first.origin} → ${last.destination}` : null;
 };
 const actionRequired = (status: string): string | null => {
-  if (['BOOKING_UNKNOWN', 'MANUAL_REVIEW_REQUIRED'].includes(status)) return 'Reconcile with Sabre before another Create Booking attempt';
+  if (['BOOKING_UNKNOWN', 'MANUAL_REVIEW_REQUIRED'].includes(status)) return 'Reconcile the current airline outcome before repeating an operation';
+  if(status==='REFUND_REQUIRED')return 'Customer refund settlement review';
   if (['AWAITING_STAFF_TICKETING', 'TICKETING_FAILED'].includes(status)) return 'Staff ticketing review';
   if (['BOOKING_FAILED', 'FARE_CHANGED', 'PNR_EXPIRED', 'REFUND_REQUIRED'].includes(status)) return 'Manual booking review';
   return null;
+};
+const ticketEvidenceStatus = (value:unknown,bookingStatus:string):string => {
+  const view=value as FlightBookingProviderView|null;
+  if(!Array.isArray(view?.tickets))return bookingStatus==='TICKETED'?'RECORDED_TICKETED':'NOT_VERIFIED';
+  if(!view.tickets.length)return bookingStatus==='TICKETED'?'AIRLINE_REVIEW_REQUIRED':view.cancellationCheckComplete?'NO_TICKETS_REPORTED':'NOT_VERIFIED';
+  if(view.tickets.every(ticket=>ticket.status==='Voided'))return 'VOIDED';
+  if(view.tickets.every(ticket=>ticket.status==='Refunded/Exchanged'&&Boolean(ticket.couponStatuses?.length)&&ticket.couponStatuses!.every(status=>status==='Refunded')))return 'REFUNDED';
+  return hasCurrentIssuedTicketEvidence(view,Array.isArray(view.travellers)?view.travellers.length:0)?'ISSUED':'AIRLINE_REVIEW_REQUIRED';
 };
 
 @Injectable()
@@ -79,12 +95,18 @@ export class AdminFlightsService {
     const filters: SQL[] = [];
     if (query.customerId) filters.push(eq(flightBookings.customerId, query.customerId));
     if (query.tripId) filters.push(eq(flightBookings.tripId, query.tripId));
-    if (query.status) filters.push(eq(flightBookings.status, query.status));
-    if (query.search) filters.push(or(ilike(flightBookings.pnrLocator, `%${query.search}%`), ilike(customers.displayName, `%${query.search}%`))!);
+    if (query.status === 'READY_FOR_TICKETING') filters.push(inArray(flightBookings.status,['PAID','AWAITING_STAFF_TICKETING']));
+    else if (query.status) filters.push(eq(flightBookings.status, query.status));
+    if (query.search) filters.push(or(ilike(flightBookings.pnrLocator, `%${query.search}%`), ilike(customers.displayName, `%${query.search}%`),sql`${flightBookings.id}::text ilike ${'%'+query.search+'%'}`)!);
+    if(query.paymentStatus)filters.push(eq(payments.status,query.paymentStatus));
+    if(query.createdFrom)filters.push(gte(flightBookings.createdAt,new Date(query.createdFrom)));
+    if(query.createdTo)filters.push(lte(flightBookings.createdAt,new Date(query.createdTo)));
+    if(query.actionRequired)filters.push(inArray(flightBookings.status,['BOOKING_UNKNOWN','MANUAL_REVIEW_REQUIRED','TICKETING_FAILED','REFUND_REQUIRED','FARE_CHANGED','PNR_EXPIRED','BOOKING_FAILED']));
     const where = filters.length ? and(...filters) : undefined;
     const [rows, total] = await Promise.all([
       this.db.select({ booking: flightBookings, customerName: customers.displayName,
-        offer: flightBookingIntents.selectedOfferSnapshot, currency: flightBookingIntents.currency,
+        providerView:sql<unknown>`to_jsonb(${flightBookings})->'provider_view_snapshot'`,
+        offer:sql<FlightOffer>`coalesce(${flightBookingIntents.searchRequestSnapshot}->'servicedOffer',${flightBookingIntents.selectedOfferSnapshot})`, currency: flightBookingIntents.currency,
         amount: flightBookingIntents.validatedTotalAmount, shoppingAmount: flightBookingIntents.searchTotalAmount,
         orderId: orders.id, orderStatus: orders.status, paymentStatus: payments.status, paidAt: payments.paidAt })
         .from(flightBookings).innerJoin(customers, eq(flightBookings.customerId, customers.id))
@@ -92,15 +114,15 @@ export class AdminFlightsService {
         .leftJoin(orders, eq(orders.bookingIntentId, flightBookings.bookingIntentId))
         .leftJoin(payments, eq(payments.orderId, orders.id)).where(where)
         .orderBy(desc(flightBookings.createdAt), desc(flightBookings.id)).limit(query.limit).offset((query.page - 1) * query.limit),
-      this.db.select({ count: count() }).from(flightBookings).innerJoin(customers, eq(flightBookings.customerId, customers.id)).where(where),
+      this.db.select({ count: count() }).from(flightBookings).innerJoin(customers, eq(flightBookings.customerId, customers.id)).leftJoin(orders,eq(orders.bookingIntentId,flightBookings.bookingIntentId)).leftJoin(payments,eq(payments.orderId,orders.id)).where(where),
     ]);
-    return { items: rows.map(({ booking, customerName, offer, currency, amount, shoppingAmount, orderId, orderStatus, paymentStatus, paidAt }) => ({
+    return { items: rows.map(({ booking, customerName, providerView, offer, currency, amount, shoppingAmount, orderId, orderStatus, paymentStatus, paidAt }) => ({
       id: booking.id, bookingIntentId: booking.bookingIntentId, orderId, customerId: booking.customerId, customerName,
       tripId: booking.tripId, route: routeOf(offer), pnr: booking.pnrLocator, status: booking.status,
       amount: amount ?? shoppingAmount, amountKind: amount ? 'VALIDATED' : 'SHOPPING', currency,
       orderStatus: orderStatus ?? 'NOT_STARTED', paymentStatus: paymentStatus ?? 'NOT_STARTED',
       paidAt: paymentStatus === 'SUCCEEDED' ? paidAt?.toISOString() ?? null : null,
-      ticketStatus: booking.status === 'TICKETED' ? 'TICKETED' : 'NOT_VERIFIED',
+      ticketStatus: ticketEvidenceStatus(providerView,booking.status),
       createdAt: booking.createdAt.toISOString(), lastSabreRefreshAt: booking.lastSabreRefreshAt?.toISOString() ?? null,
       actionRequired: actionRequired(booking.status),
     })), total: total[0]?.count ?? 0, page: query.page, limit: query.limit };
@@ -109,7 +131,10 @@ export class AdminFlightsService {
   async booking(id: string) {
     // A direct, permission-guarded lookup keeps the detail endpoint independent of queue pagination.
     const [row] = await this.db.select({ booking: flightBookings, customerName: customers.displayName,
-      offer: flightBookingIntents.selectedOfferSnapshot, currency: flightBookingIntents.currency, checkoutSnapshot: flightBookingIntents.searchRequestSnapshot,
+      offer:sql<FlightOffer>`coalesce(${flightBookingIntents.searchRequestSnapshot}->'servicedOffer',${flightBookingIntents.selectedOfferSnapshot})`, currency: flightBookingIntents.currency, checkoutSnapshot: flightBookingIntents.searchRequestSnapshot,
+      passengerNames:sql<string[]|null>`to_jsonb(${flightBookings})->'booked_passenger_names'`,
+      providerView:sql<unknown>`to_jsonb(${flightBookings})->'provider_view_snapshot'`,
+      orderTotal:orders.totalAmount,orderCurrency:orders.currency,orderNumber:orders.orderNumber,fulfillmentStatus:orders.fulfillmentStatus,
       serviceRequests: flightBookingIntents.serviceRequests,
       amount: flightBookingIntents.validatedTotalAmount, shoppingAmount: flightBookingIntents.searchTotalAmount,
       orderId: orders.id, orderStatus: orders.status, paymentStatus: payments.status, paidAt: payments.paidAt })
@@ -119,14 +144,21 @@ export class AdminFlightsService {
       .leftJoin(payments, eq(payments.orderId, orders.id)).where(eq(flightBookings.id, id)).limit(1);
     if (!row) throw new ApiException('NOT_FOUND', 'Booking not found.', 404);
     const { booking, customerName, offer, currency, amount, shoppingAmount, orderId, orderStatus, paymentStatus, paidAt } = row;
+    const settlements=orderId?await this.db.select({id:refunds.id,amount:refunds.amount,currency:refunds.currency,status:refunds.status,providerRefundId:refunds.providerRefundId,createdAt:refunds.createdAt,completedAt:refunds.completedAt}).from(refunds).where(eq(refunds.orderId,orderId)).orderBy(desc(refunds.createdAt)).limit(50):[];
     return { id: booking.id, bookingIntentId: booking.bookingIntentId, orderId, customerId: booking.customerId, customerName,
+      refunds:settlements,
+      ancillaryPurchase:publicAncillaryPurchase((row.checkoutSnapshot as AncillarySnapshot).checkoutAncillaryPurchase),
+      ancillaryDocumentDiagnostic:ancillaryDiagnostic(row.checkoutSnapshot as AncillarySnapshot),
+      passengerNames:row.passengerNames??[],passengerNamesSource:row.passengerNames?.length?'BOOKED_SNAPSHOT':'UNAVAILABLE',providerView:row.providerView,selectedOffer:offer,
+      enhancedTicketingEligible:!offer.ndcContext,
+      orderTotal:row.orderTotal,orderCurrency:row.orderCurrency,orderNumber:row.orderNumber,fulfillmentStatus:row.fulfillmentStatus,
       serviceRequests: Array.isArray(row.serviceRequests) && row.serviceRequests.length ? row.serviceRequests
         : (row.checkoutSnapshot as { checkoutServiceRequests?: unknown[] }).checkoutServiceRequests ?? [],
       tripId: booking.tripId, route: routeOf(offer), pnr: booking.pnrLocator, sabreBookingId: booking.sabreBookingId,
       status: booking.status, amount: amount ?? shoppingAmount, amountKind: amount ? 'VALIDATED' : 'SHOPPING', currency,
       orderStatus: orderStatus ?? 'NOT_STARTED', paymentStatus: paymentStatus ?? 'NOT_STARTED',
       paidAt: paymentStatus === 'SUCCEEDED' ? paidAt?.toISOString() ?? null : null,
-      ticketStatus: booking.status === 'TICKETED' ? 'TICKETED' : 'NOT_VERIFIED',
+      ticketStatus: ticketEvidenceStatus(row.providerView,booking.status),
       createdAt: booking.createdAt.toISOString(), updatedAt: booking.updatedAt.toISOString(),
       lastSabreRefreshAt: booking.lastSabreRefreshAt?.toISOString() ?? null, actionRequired: actionRequired(booking.status) };
   }
@@ -146,7 +178,7 @@ export class AdminFlightsService {
     await this.db.transaction(async (tx) => {
       const [updated] = await tx.update(flightBookings).set({ sabreBookingId: sabreResult.bookingId,
         lastSabreRefreshAt: new Date(), updatedAt: new Date() })
-        .where(and(eq(flightBookings.id, id), eq(flightBookings.pnrLocator, booking.pnrLocator!)))
+        .where(and(eq(flightBookings.id, id), eq(flightBookings.pnrLocator, booking.pnrLocator!),eq(flightBookings.updatedAt,booking.updatedAt)))
         .returning({ id: flightBookings.id });
       if (!updated) throw new ApiException('CONFLICT', 'This booking changed during the Sabre refresh.', 409);
       const evidence = await tx.execute(sql`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'flight_bookings' AND column_name = 'provider_view_snapshot') AS ready`);

@@ -34,6 +34,9 @@ export class VisaService {
     try { return await this.required().createAssistanceRequest(customerId, input); } catch (error) { return map(error); }
   }
   assistanceList(customerId: string) { return this.required().assistanceList(customerId); }
+  async archiveAssistance(customerId: string, id: string): Promise<{ archived: true }> {
+    try { if (!await this.required().archiveAssistance(customerId, id)) throw missing(); return { archived: true }; } catch (error) { return map(error); }
+  }
   async saveAssistanceForm(customerId: string, id: string, input: VisaAssistanceRequestInput) {
     try { return await this.required().saveAssistanceForm(customerId, id, input) ?? Promise.reject(missing()); } catch (error) { return map(error); }
   }

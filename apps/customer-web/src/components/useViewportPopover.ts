@@ -1,9 +1,9 @@
 import { useLayoutEffect, useState, type CSSProperties, type RefObject } from 'react';
 
 /** Portal popovers stay outside transformed/glass cards and inside the keyboard viewport. */
-export function useViewportPopover(open: boolean, anchor: RefObject<HTMLElement | null>, options: { width: number; height: number; mobileHeight?: number; mobileSheet?: boolean; align?: 'start' | 'end' }) {
+export function useViewportPopover(open: boolean, anchor: RefObject<HTMLElement | null>, options: { width: number; height: number; mobileHeight?: number; mobileSheet?: boolean; align?: 'start' | 'end'; preferFullHeight?: boolean }) {
   const [style, setStyle] = useState<CSSProperties>({ visibility: 'hidden' });
-  const { width: preferredWidth, height: preferredHeight, mobileHeight, mobileSheet, align } = options;
+  const { width: preferredWidth, height: preferredHeight, mobileHeight, mobileSheet, align, preferFullHeight } = options;
   useLayoutEffect(() => {
     if (!open) return;
     let frame = 0;
@@ -25,7 +25,7 @@ export function useViewportPopover(open: boolean, anchor: RefObject<HTMLElement 
       const below = Math.max(0, y + viewportHeight - rect.bottom - 20);
       const above = Math.max(0, rect.top - y - 20);
       const useBelow = below >= Math.min(maxPopoverHeight, 160) || below >= above;
-      const height = Math.max(60, Math.min(maxPopoverHeight, useBelow ? below : above, viewportHeight - 24));
+      const height = Math.max(60, Math.min(maxPopoverHeight, preferFullHeight ? viewportHeight - 24 : useBelow ? below : above, viewportHeight - 24));
       const top = Math.max(y + 12, Math.min(useBelow ? rect.bottom + 8 : rect.top - height - 8, y + viewportHeight - height - 12));
       setStyle({ position: 'fixed', left, right: 'auto', top, bottom: 'auto', width, maxHeight: height, visibility: 'visible' });
     };
@@ -42,6 +42,6 @@ export function useViewportPopover(open: boolean, anchor: RefObject<HTMLElement 
       viewport?.removeEventListener('resize', schedule);
       viewport?.removeEventListener('scroll', schedule);
     };
-  }, [open, anchor, preferredWidth, preferredHeight, mobileHeight, mobileSheet, align]);
+  }, [open, anchor, preferredWidth, preferredHeight, mobileHeight, mobileSheet, align, preferFullHeight]);
   return style;
 }

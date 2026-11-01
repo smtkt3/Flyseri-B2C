@@ -1,4 +1,13 @@
 import type { FlightAncillaryPurchase, FlightAncillaryRequest } from '@flyseri/types';
+import type {AncillaryRetailPricing} from '../pricing/ancillary-pricing.contract.js';
+import type {CheckoutFx} from '../pricing/checkout-fx.contract.js';
+import type {SanitizedTicketingError} from './ticketing-currency.contract.js';
+
+export type AncillaryDocumentApi='BOOKING_MANAGEMENT'|'ENHANCED_AIR_TICKET';
+export interface AncillaryDocumentDiagnostic {
+ api:AncillaryDocumentApi;recordedAt:string;reason:'SUPPLIER_RESPONSE_RECORDED'|'SUPPLIER_RESPONSE_UNCONFIRMED';
+ errors:SanitizedTicketingError[];warnings:SanitizedTicketingError[];httpStatus?:number;supplierRequestId?:string;requestSha256?:string;
+}
 
 export interface AtpcoPurchaseOption {
   commercialName: string;
@@ -20,6 +29,8 @@ export interface AncillaryPurchasePlan {
   ndcOfferItemId?: string;
 }
 export interface StoredAncillaryPurchase extends FlightAncillaryPurchase {
+  documentAttempt?:{status:'NOT_STARTED'|'CLAIMED'|'UNKNOWN'|'VERIFIED';claimedAt?:string;api?:AncillaryDocumentApi;requestId?:string;diagnostic?:AncillaryDocumentDiagnostic};
+  items:(FlightAncillaryPurchase['items'][number]&{ancillaryPricing?:AncillaryRetailPricing;checkoutSupplierAmount?:string;checkoutFx?:CheckoutFx})[];
   plans: AncillaryPurchasePlan[];
   bookingId: string;
   requestKey: string;
@@ -33,8 +44,8 @@ export interface AncillarySnapshot {
 export const requestKey = (requests: FlightAncillaryRequest[]) => JSON.stringify(requests.map(({ id: _id, ...request }) => request));
 export function publicAncillaryPurchase(purchase?: StoredAncillaryPurchase): FlightAncillaryPurchase | undefined {
   if (!purchase) return undefined;
-  const { plans: _plans, bookingId: _bookingId, requestKey: _requestKey, ...publicValue } = purchase;
-  return publicValue;
+  const { plans: _plans, bookingId: _bookingId, requestKey: _requestKey,documentAttempt, ...publicValue } = purchase;
+  return {...publicValue,documentIssuanceAvailable:documentAttempt?.status==='NOT_STARTED',items:publicValue.items.map(({ancillaryPricing:_pricing,checkoutSupplierAmount:_supplier,checkoutFx:_fx,...item})=>item)};
 }
 export function cents(amount: string): bigint {
   if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(amount)) throw new Error('Invalid airline amount');
@@ -96,7 +107,7 @@ export function confirmedAncillaryItems(booking: PurchaseBooking, plans: Ancilla
     const matching = entries.filter((entry): entry is Record<string, unknown> => {
       if (!entry || typeof entry !== 'object') return false;
       const flights = (entry as Record<string, unknown>).flights;
-      return (entry as Record<string, unknown>).commercialName === request.name && (entry as Record<string, unknown>).statusName === 'Confirmed' && Array.isArray(flights) && flights.length === expectedFlights.length && new Set(flights.map(flight => flight && typeof flight === 'object' ? String(flight.itemId) : '')).size === expectedFlights.length && flights.every(flight => flight && typeof flight === 'object' && expectedFlights.includes(String(flight.itemId)));
+      return (entry as Record<string, unknown>).commercialName === request.name && (!(entry as Record<string,unknown>).subcode||(entry as Record<string,unknown>).subcode===request.serviceCode) && ['Confirmed','Confirmed with EMD issued','Confirmed with pending payment'].includes(String((entry as Record<string,unknown>).statusName)) && Array.isArray(flights) && flights.length === expectedFlights.length && new Set(flights.map(flight => flight && typeof flight === 'object' ? String(flight.itemId) : '')).size === expectedFlights.length && flights.every(flight => flight && typeof flight === 'object' && expectedFlights.includes(String(flight.itemId)));
     });
     if (matching.length !== 1) throw new Error('One confirmed ancillary per selection is required');
     const ancillary = matching[0]!, itemId = String(ancillary.itemId ?? '');

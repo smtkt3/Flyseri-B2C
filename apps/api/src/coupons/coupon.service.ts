@@ -47,6 +47,7 @@ export class CouponService {
       await client.query('BEGIN');
       const order=(await client.query(`SELECT * FROM orders WHERE id=$1 AND customer_id=$2 FOR UPDATE`,[orderId,customerId])).rows[0];
       if(!order)throw new ApiException('NOT_FOUND','Order not found.',404);
+      if(order.flight_servicing_case_id)throw couponConflict('Additional flight-change payments use the approved airline quote and cannot be discounted.');
       if(!['PENDING_PAYMENT','PAYMENT_FAILED'].includes(order.status)||order.expires_at&&order.expires_at<=new Date())throw couponConflict('Discounts cannot be changed on this order.');
       if((await client.query('SELECT id FROM payments WHERE order_id=$1 LIMIT 1',[orderId])).rowCount)throw couponConflict('Payment has already started. Discounts cannot be changed.');
       const prior=(await client.query(`SELECT * FROM coupon_redemptions WHERE order_id=$1 AND state <> 'RELEASED'`,[orderId])).rows[0];

@@ -3,6 +3,8 @@ import { apiClient, ApiClientError, type RequestOptions } from '../lib/api/clien
 import {flightSearchPerformance} from '../flight/flightSearchPerformance';
 
 export const flightService = {
+  async ticketPdf(id:string):Promise<Blob>{return apiClient.pdf('/flights/bookings/'+encodeURIComponent(id)+'/ticket.pdf');},
+  async ticketDelivery(id:string):Promise<{available:boolean;emailStatus:string;sentAt:string|null}>{return (await apiClient.get<{available:boolean;emailStatus:string;sentAt:string|null}>('/flights/bookings/'+encodeURIComponent(id)+'/ticket-delivery')).data;},
   async seatMap(intentId:string,segment:number,passenger:number,signal?:AbortSignal):Promise<import('@flyseri/types').FlightSeatMapResponse> {
     return (await apiClient.get<import('@flyseri/types').FlightSeatMapResponse>(`/flights/booking-intents/${encodeURIComponent(intentId)}/seat-map?${new URLSearchParams({segment:String(segment),passenger:String(passenger)})}`,{signal,timeoutMs:25000})).data;
   },
@@ -22,7 +24,7 @@ export const flightService = {
     return (await apiClient.post<FlightAncillaryResponse>('/flights/ancillaries', input, { timeoutMs: 40000 })).data;
   },
   async reviewExtras(id: string, refresh = false): Promise<import('@flyseri/types').FlightAncillaryPurchase | undefined> { return (await apiClient.post<import('@flyseri/types').FlightAncillaryPurchase>('/flights/bookings/' + encodeURIComponent(id) + '/extras/review', {refresh}, {timeoutMs: 60000})).data; },
-  async confirmExtras(id: string, reviewId: string): Promise<import('@flyseri/types').FlightAncillaryPurchase> { return (await apiClient.post<import('@flyseri/types').FlightAncillaryPurchase>('/flights/bookings/' + encodeURIComponent(id) + '/extras/confirm', {reviewId}, {timeoutMs: 60000})).data; },
+  async confirmExtras(id: string, reviewId: string): Promise<import('@flyseri/types').FlightAncillaryPurchase> { return (await apiClient.post<import('@flyseri/types').FlightAncillaryPurchase>('/flights/bookings/' + encodeURIComponent(id) + '/extras/confirm', {reviewId}, {timeoutMs: 180000})).data; },
   async skipExtras(id: string): Promise<import('@flyseri/types').FlightAncillaryPurchase> { return (await apiClient.post<import('@flyseri/types').FlightAncillaryPurchase>('/flights/bookings/' + encodeURIComponent(id) + '/extras/skip', undefined)).data; },
   async reconcileExtras(id: string): Promise<import('@flyseri/types').FlightAncillaryPurchase> { return (await apiClient.post<import('@flyseri/types').FlightAncillaryPurchase>('/flights/bookings/' + encodeURIComponent(id) + '/extras/reconcile', undefined, {timeoutMs: 40000})).data; },
   async bookings(): Promise<FlightBooking[]> { return (await apiClient.get<FlightBooking[]>('/flights/bookings')).data; },
@@ -34,10 +36,10 @@ export const flightService = {
   async booking(id: string): Promise<FlightBooking> { return (await apiClient.get<FlightBooking>('/flights/bookings/' + encodeURIComponent(id))).data; },
   async refreshBooking(id: string): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/bookings/' + encodeURIComponent(id) + '/refresh', undefined, {timeoutMs: 20000})).data; },
   async refreshCheckout(id: string): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/bookings/' + encodeURIComponent(id) + '/refresh-checkout', undefined, {timeoutMs: 60000})).data; },
-  async cancelBooking(id: string, confirmedPnr: string): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/bookings/' + encodeURIComponent(id) + '/cancel', {confirmedPnr}, {timeoutMs: 50000})).data; },
+  async cancelBooking(id: string, confirmedPnr: string): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/bookings/' + encodeURIComponent(id) + '/cancel', {confirmedPnr}, {timeoutMs: 180000})).data; },
   async bookingCapabilities(): Promise<{reservationAvailable: boolean; ticketIssuanceAvailable: boolean; environment: string; message: string; ticketingMessage: string}> { return (await apiClient.get<{reservationAvailable: boolean; ticketIssuanceAvailable: boolean; environment: string; message: string; ticketingMessage: string}>('/flights/bookings/capabilities')).data; },
-  async issueTickets(id: string, confirmedPnr: string): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/bookings/' + encodeURIComponent(id) + '/issue-tickets', {confirmedPnr}, {timeoutMs: 50000})).data; },
-  async reserve(id: string, input: FlightReservationInput): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/booking-intents/' + encodeURIComponent(id) + '/reserve', input, {timeoutMs: 40000})).data; },
+  async issueTickets(id: string, confirmedPnr: string): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/bookings/' + encodeURIComponent(id) + '/issue-tickets', {confirmedPnr}, {timeoutMs: 180000})).data; },
+  async reserve(id: string, input: FlightReservationInput): Promise<FlightBooking> { return (await apiClient.post<FlightBooking>('/flights/booking-intents/' + encodeURIComponent(id) + '/reserve', input, {timeoutMs: 180000})).data; },
   async submitCheckoutAttempt(input: { searchId: string; offerId: string; idempotencyKey: string;
     contactName: string; contactEmail: string; contactPhone: string; passengerNames: string[] }): Promise<{ id: string; status: string; createdAt: string }> {
     return (await apiClient.post<{ id: string; status: string; createdAt: string }>('/flights/checkout-attempts', input)).data;

@@ -81,14 +81,14 @@ export function readAtpcoAncillaries(xml: string, offer: FlightOffer, adultCount
       text(fee.DisplayOnly) !== 'true' && text(item.PaperTicketRequired) !== 'true' && !needsSsr &&
       /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(basePrice) && cents(rawAmount) >= cents(basePrice) &&
       /^[A-Z0-9]{2,3}$/.test(airlineCode) && /^[A-Z0-9]{2}$/.test(groupCode) &&
-      reasonForIssuanceName.length > 0 && reasonForIssuanceName.length <= 60 && /^[A-Z_]{1,60}$/.test(emd)) {
+      reasonForIssuanceName.length > 0 && reasonForIssuanceName.length <= 60 && ['FLIGHT_COUPON_ASSOCIATED','STANDALONE'].includes(emd)) {
       purchase = { commercialName: name, subcode: serviceCode, airlineCode, groupCode, reasonForIssuanceName,
         electronicMiscellaneousDocumentType: emd, basePrice, currencyCode: rawCurrency,
         totals: { subtotal: basePrice, taxes: fromCents(cents(rawAmount) - cents(basePrice)), total: rawAmount, currencyCode: rawCurrency },
         segmentIndexes: segmentRefs.map(ref => Number(/^seg_([1-9]\d*)$/.exec(ref)![1]) - 1) };
     }
     purchaseOptions?.push(purchase);
-    services.push({ offerItemId: text(item.OfferItemId) || null, sellable: false, serviceCode, name, rules,
+    services.push({ offerItemId: text(item.OfferItemId) || null, sellable: purchase!==null, serviceCode, name, rules,
       ...(/^[A-Z0-9]{2}$/.test(groupCode) ? { groupCode } : {}),
       amount: priced ? rawAmount : null, currency: priced ? rawCurrency : null,
       segmentLabels: associatedSegments.map(segment => `${segment!.origin} → ${segment!.destination} · ${segment!.marketingCarrier} ${segment!.flightNumber}`), passengerIndexes });

@@ -8,8 +8,9 @@ import { CommerceService } from './commerce.service.js';
 import { PaymentEngineService } from './payment-engine.service.js';
 import { PaymentReconciliationPoller } from './payment-reconciliation.poller.js';
 import { StripeTestPaymentProvider } from './stripe-test-payment.provider.js';
+import { FlightModule } from '../flight/flight.module.js';
 
-@Module({ controllers: [CommerceController, PaymentWebhookController], providers: [CommerceService, PaymentEngineService, PaymentReconciliationPoller,
+@Module({ imports: [FlightModule], controllers: [CommerceController, PaymentWebhookController], providers: [CommerceService, PaymentEngineService, PaymentReconciliationPoller,
   { provide: PAYMENT_PROVIDER, useFactory: (config: AppConfig) => config.PAYMENT_CHECKOUT_ENABLED === 'true' &&
     config.PAYMENT_PROVIDER === 'STRIPE_TEST' ? new StripeTestPaymentProvider(config) : undefined, inject: [APP_CONFIG] },
   { provide: COMMERCE_REPOSITORY, useFactory: (db: DatabaseConnection | undefined) => db ? new CommerceRepository(db) : undefined,

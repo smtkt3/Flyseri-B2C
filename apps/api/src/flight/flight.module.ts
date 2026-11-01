@@ -19,6 +19,8 @@ import { SabreBfmClient } from './sabre-bfm.client.js';
 import { buildSabreBfmV5Request, mapSabreV5Offers } from './sabre-v5.contract.js';
 import { SabreRevalidateClient } from './sabre-revalidate.client.js';
 import { SabreBookingManagementClient } from './sabre-booking-management.client.js';
+import {openCertServicingSession} from './sabre-cert-session.js';
+import {TicketDocumentsService} from './ticket-documents.service.js';
 import { GuestCheckoutAttemptsService } from './guest-checkout-attempts.service.js';
 import { FlightBookingsService } from './flight-bookings.service.js';
 import { FlightAncillariesService } from './flight-ancillaries.service.js';
@@ -31,6 +33,7 @@ import {AirportDirectoryController} from './airport-directory.controller.js';
 import {FlightWarmupService} from './flight-warmup.service.js';
 import { FlightDisplayCurrencyService } from './flight-display-currency.service.js';
 import { FlightDisplayCurrencyController } from './flight-display-currency.controller.js';
+import {FlightPricingService} from '../pricing/flight-pricing.service.js';
 
 const configured = (config: AppConfig) => config.SABRE_ENV === 'CERT' &&
   config.SABRE_BASE_URL === 'https://api.cert.platform.sabre.com' &&
@@ -41,7 +44,7 @@ const configured = (config: AppConfig) => config.SABRE_ENV === 'CERT' &&
   imports: [CustomerModule],
   controllers: [FlightSeatMapsController, PublicFlightController, FlightController,AirportDirectoryController, FlightDisplayCurrencyController],
   providers: [
-    AirportDirectoryService,FlightWarmupService, FlightDisplayCurrencyService,
+    TicketDocumentsService,FlightPricingService,AirportDirectoryService,FlightWarmupService, FlightDisplayCurrencyService,
     FlightService, FlightRateGuard, BookingIntentService, FlightOfferValidationService, GuestCheckoutAttemptsService, FlightBookingsService, FlightAncillariesService, FlightTicketingService, FlightAncillaryPurchaseService, FlightFulfillmentPoller,
     { provide: SabreAtpcoAncillariesClient, useFactory: (config: AppConfig, auth: SabreAuthService | undefined) =>
       configured(config) && auth ? new SabreAtpcoAncillariesClient(config, auth) : undefined, inject: [APP_CONFIG, SabreAuthService] },
@@ -59,9 +62,9 @@ const configured = (config: AppConfig) => config.SABRE_ENV === 'CERT' &&
       configured(config) && auth ? new BookingFlightValidationProvider(new SabreRevalidateClient(config, auth, fetch, telemetry, redis), new SabreBookingManagementClient(config, auth), config) : undefined,
       inject: [APP_CONFIG, SabreAuthService, FLIGHT_TELEMETRY, REDIS_STORE] },
     { provide: SABRE_BOOKING_CLIENT, useFactory: (config: AppConfig, auth: SabreAuthService | undefined) =>
-      configured(config) && auth ? new SabreBookingManagementClient(config, auth) : undefined,
+      configured(config) && auth ? new SabreBookingManagementClient(config, auth,fetch,()=>openCertServicingSession(config)) : undefined,
       inject: [APP_CONFIG, SabreAuthService] },
   ],
-  exports: [AirportDirectoryService, SabreAuthService, FLIGHT_TELEMETRY, SABRE_BOOKING_CLIENT, FlightService, BookingIntentService, FlightBookingsService],
+  exports: [TicketDocumentsService,FlightAncillaryPurchaseService,FlightPricingService,AirportDirectoryService, SabreAuthService, FLIGHT_TELEMETRY, SABRE_BOOKING_CLIENT, FlightService, BookingIntentService, FlightBookingsService, FlightTicketingService],
 })
 export class FlightModule {}

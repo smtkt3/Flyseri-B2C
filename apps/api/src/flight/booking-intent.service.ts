@@ -47,7 +47,7 @@ export class BookingIntentService {
     try {
       const saved = await this.store.create({ customerId, tripId: selection.tripId, searchId: input.searchId,
         offerId: input.offerId, idempotencyKey: input.idempotencyKey, travellerIds: input.travellerIds,
-        offer: selection.offer, search: selection.search, serviceRequests, ancillaryRequests });
+        offer: selection.offer, search: selection.search, serviceRequests, ancillaryRequests,retailPricing:selection.retailPricing });
       if (saved.created) this.telemetry.increment('booking_intent_created_total');
       return saved.intent;
     } catch (error) {

@@ -275,6 +275,7 @@ export const visaAssistanceRequests = pgTable('visa_assistance_requests', {
   contactPhone: varchar('contact_phone', { length: 32 }),
   customerMessage: text('customer_message'),
   status: varchar('status', { length: 20 }).notNull().default('NEW'),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
@@ -527,6 +528,46 @@ export const flightBookings = pgTable('flight_bookings', {
   check('flight_bookings_status_valid', sql`${table.status} in ('BOOKING_PENDING', 'BOOKING_IN_PROGRESS', 'BOOKING_UNKNOWN', 'PNR_CREATED', 'AWAITING_PAYMENT', 'PAYMENT_PENDING', 'PAID', 'AWAITING_STAFF_TICKETING', 'TICKETING_IN_PROGRESS', 'TICKETED', 'BOOKING_FAILED', 'PNR_EXPIRED', 'FARE_CHANGED', 'PAYMENT_FAILED', 'MANUAL_REVIEW_REQUIRED', 'TICKETING_FAILED', 'CANCELLED', 'REFUND_REQUIRED')`),
 ]);
 
+/** Staff servicing cases are separate from airline and payment execution evidence. */
+export const flightServicingCases = pgTable('flight_servicing_cases', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  bookingId: uuid('booking_id').notNull().references(() => flightBookings.id),
+  kind: varchar('kind', { length: 16 }).notNull(),
+  status: varchar('status', { length: 24 }).notNull().default('OPEN'),
+  version: integer('version').notNull().default(1),
+  reason: text('reason').notNull(),
+  quote: jsonb('quote'),
+  approval: jsonb('approval'),
+  result: jsonb('result'),
+  createdByStaffId: uuid('created_by_staff_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index('flight_servicing_booking_idx').on(t.bookingId, t.createdAt),
+  index('flight_servicing_queue_idx').on(t.status, t.updatedAt),
+  uniqueIndex('flight_servicing_active_kind_unique').on(t.bookingId, t.kind).where(sql`${t.status} not in ('COMPLETED','CANCELLED')`),
+  check('flight_servicing_cases_kind_check', sql`${t.kind} in ('ISSUE','CANCEL','VOID','REFUND','EXCHANGE','MODIFY')`),
+  check('flight_servicing_cases_status_check', sql`${t.status} in ('OPEN','QUOTED','APPROVED','EXECUTING','COMPLETED','FAILED','OUTCOME_UNKNOWN','CANCELLED')`),
+  check('flight_servicing_cases_version_check', sql`${t.version} > 0`),
+]);
+export const flightServicingEvents = pgTable('flight_servicing_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  caseId: uuid('case_id').notNull().references(() => flightServicingCases.id),
+  staffUserId: uuid('staff_user_id').notNull(),
+  event: varchar('event', { length: 40 }).notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [index('flight_servicing_events_case_idx').on(t.caseId, t.createdAt)]);
+
+/** Append-only pricing revisions; customer-facing prices use frozen selection snapshots. */
+export const flightPricingPolicies = pgTable('flight_pricing_policies', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  revision: integer('revision').notNull().unique(),
+  rules: jsonb('rules').$type<unknown[]>().notNull(),
+  createdByStaffId: uuid('created_by_staff_id').notNull(),
+  createdAt: timestamp('created_at', {withTimezone:true}).notNull().defaultNow(),
+}, t=>[check('flight_pricing_policies_revision_check',sql`${t.revision}>0`),check('flight_pricing_policies_rules_check',sql`jsonb_typeof(${t.rules})='array' AND jsonb_array_length(${t.rules})<=200`)]);
+
 /** A guest's submitted checkout details, before a reservation or payment exists. No ID documents are stored here. */
 export const guestFlightCheckoutAttempts = pgTable('guest_flight_checkout_attempts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -557,6 +598,7 @@ export const orders = pgTable('orders', {
   tripId: uuid('trip_id').references(() => trips.id),
   bookingIntentId: uuid('booking_intent_id').references(() => flightBookingIntents.id),
   visaApplicationId: uuid('visa_application_id').references(() => visaApplications.id),
+  flightServicingCaseId: uuid('flight_servicing_case_id').references(() => flightServicingCases.id),
   orderNumber: varchar('order_number', { length: 32 }).notNull(),
   status: varchar('status', { length: 24 }).notNull().default('PENDING_PAYMENT'),
   fulfillmentStatus: varchar('fulfillment_status', { length: 32 }).notNull().default('NOT_STARTED'),
@@ -575,11 +617,12 @@ export const orders = pgTable('orders', {
   uniqueIndex('orders_number_unique').on(table.orderNumber),
   uniqueIndex('orders_booking_intent_unique').on(table.bookingIntentId),
   uniqueIndex('orders_visa_application_unique').on(table.visaApplicationId),
+  uniqueIndex('orders_flight_servicing_case_unique').on(table.flightServicingCaseId),
   index('orders_customer_created_idx').on(table.customerId, table.createdAt),
   index('orders_trip_idx').on(table.tripId),
   check('orders_status_valid', sql`${table.status} in ('PENDING_PAYMENT', 'PAYMENT_PROCESSING', 'PAID', 'PAYMENT_FAILED', 'EXPIRED', 'CANCELLED')`),
   check('orders_fulfillment_valid', sql`${table.fulfillmentStatus} in ('NOT_STARTED', 'REVALIDATION_REQUIRED', 'COMPLETED')`),
-  check('orders_source_valid', sql`${table.bookingIntentId} is null or ${table.visaApplicationId} is null`),
+  check('orders_source_valid', sql`num_nonnulls(${table.bookingIntentId},${table.visaApplicationId},${table.flightServicingCaseId}) <= 1`),
   check('orders_currency_valid', sql`${table.currency} ~ '^[A-Z]{3}$'`),
   check('orders_amounts_valid', sql`${table.subtotalAmount} >= 0 and ${table.feesAmount} >= 0 and ${table.discountAmount} >= 0 and ${table.taxAmount} >= 0 and ${table.totalAmount} >= 0 and ${table.totalAmount} = ${table.subtotalAmount} + ${table.feesAmount} + ${table.taxAmount} - ${table.discountAmount}`),
 ]);

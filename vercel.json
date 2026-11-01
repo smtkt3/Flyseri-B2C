@@ -7,7 +7,7 @@
       "entrypoint": "apps/api/src/main.mts",
       "functions": {
         "apps/api/src/main.mts": {
-          "includeFiles": "certs/supabase-root-2021.crt",
+          "includeFiles": "{certs/supabase-root-2021.crt,apps/api/assets/tickets/**}",
           "regions": ["sin1"]
         }
       },

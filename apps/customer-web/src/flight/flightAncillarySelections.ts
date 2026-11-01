@@ -9,7 +9,7 @@ export function ancillaryKey(service: Pick<Service, 'name' | 'serviceCode' | 'gr
 export function requestedExtra(service: Service): FlightAncillaryRequest {
   return { id: ancillaryKey(service), name: service.name, serviceCode: service.serviceCode, groupCode: service.groupCode,
     category: airlineServiceCategory(service), segmentLabels: service.segmentLabels, passengerIndexes: service.passengerIndexes,
-    amount: service.amount, currency: service.currency, ...(service.rules ? { rules: service.rules } : {}), status: 'REQUESTED' };
+    amount: service.amount, currency: service.currency, ...(service.serviceCharge!==undefined?{serviceCharge:service.serviceCharge,chargeRefundable:service.chargeRefundable}:{}), ...(service.rules ? { rules: service.rules } : {}), status: 'REQUESTED' };
 }
 export function ancillarySelectionInputs(selected: FlightAncillaryRequest[], quote: FlightAncillaryResponse): FlightAncillarySelectionInput[] {
   if (!selected.length) return [];

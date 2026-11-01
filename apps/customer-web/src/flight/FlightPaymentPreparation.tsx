@@ -35,12 +35,12 @@ export function FlightPaymentPreparation({ booking: initial }: { booking: Flight
     if (value.order) return { booking: value, orderId: value.order.id };
     if (refresh) value = await verifiedCheckout(value);
     let purchase = value.ancillaryPurchase;
-    if (value.ancillaryRequests?.length && !purchase) purchase = await flightService.reviewExtras(value.id);
+    if (value.ancillaryRequests?.length && (!purchase||purchase.status==='CONFIRMED'&&Date.parse(purchase.expiresAt)<=Date.now())) purchase = await flightService.reviewExtras(value.id,!!purchase);
     // Only the exact selected airline prices may be accepted automatically.
     // Changed prices, unavailable services and uncertain additions need a buyer decision.
     if (automaticallyConfirm && purchase?.status === 'PREPARED' && purchase.items.length === value.ancillaryRequests?.length && purchase.items.every(item => {
       const selected = value.ancillaryRequests?.find(extra => extra.id === item.requestId);
-      return selected?.amount != null && selected.currency === item.airlineCurrency && Number(selected.amount) === Number(item.airlineAmount);
+      return selected?.amount != null && selected.currency === purchase!.currency && Number(selected.amount) === Number(item.checkoutAmount);
     })) purchase = await flightService.confirmExtras(value.id, purchase.id);
     const updated = { ...value, ancillaryPurchase: purchase };
     if (!value.ancillaryRequests?.length || purchase && ['CONFIRMED', 'SKIPPED'].includes(purchase.status)) {

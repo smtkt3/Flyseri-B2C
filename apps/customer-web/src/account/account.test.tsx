@@ -77,7 +77,7 @@ describe('customer account screens', () => {
   it('renders profile loading failure and retry', async () => {
     customer.me.mockRejectedValue(new Error('offline'));
     render(<MemoryRouter><ProfilePage /></MemoryRouter>);
-    expect(screen.getByRole('status').textContent).toContain('Loading');
+    expect(screen.getByRole('status', { name: 'Loading your profile…' })).toBeTruthy();
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByText('Retry')).toBeTruthy();
   });
@@ -96,7 +96,7 @@ describe('customer account screens', () => {
   it('shows traveller loading failures', async () => {
     traveller.list.mockRejectedValue(new Error('offline'));
     render(<MemoryRouter><TravellersPage /></MemoryRouter>);
-    expect(screen.getByRole('status').textContent).toContain('Loading');
+    expect(screen.getByRole('status', { name: 'Loading travellers…' })).toBeTruthy();
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByText('No travellers yet')).toBeNull();
   });

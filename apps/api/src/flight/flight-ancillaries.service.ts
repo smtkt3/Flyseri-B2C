@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import {FlightPricingService} from '../pricing/flight-pricing.service.js';
+import {ancillaryPrice,ancillaryCategory,type AncillaryRetailPricing} from '../pricing/ancillary-pricing.contract.js';
+import type {FlightOffer} from '@flyseri/types';
+import {FlightDisplayCurrencyService} from './flight-display-currency.service.js';
+import {convertCheckoutAmount,type CheckoutFx} from '../pricing/checkout-fx.contract.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FlightAncillaryResponse, FlightAncillaryRequest, FlightAncillarySelectionInput } from '@flyseri/types';
 import { ApiException } from '../api-exception.js';
@@ -71,9 +76,9 @@ export function readSabreAncillaries(value: unknown, passengerIds: string[], con
 
 @Injectable()
 export class FlightAncillariesService {
-  private readonly receipts = new Map<string, { owner: string | null; searchId?: string; offerId?: string; intentId?: string; until: number; result: FlightAncillaryResponse }>();
+  private readonly receipts = new Map<string, { owner: string | null; searchId?: string; offerId?: string; intentId?: string; until: number; result: FlightAncillaryResponse;pricing?: (AncillaryRetailPricing|undefined)[];checkoutFx?:(CheckoutFx|undefined)[];selectable?:boolean[] }>();
   private readonly quotes = new Map<string, { until: number; promise: Promise<FlightAncillaryResponse> }>();
-  private cachedQuote(scope: unknown[], expiresAt: string | undefined, lookup: () => Promise<FlightAncillaryResponse>) {
+  private cachedQuote(scope: unknown[], expiresAt: string | undefined, lookup: () => Promise<FlightAncillaryResponse>,pricingContext?:{offer:FlightOffer;cabin:string}) {
     for (const [id, entry] of this.quotes) if (entry.until <= Date.now()) this.quotes.delete(id);
     const key = createHash('sha256').update(JSON.stringify(scope)).digest('hex');
     const previous = this.quotes.get(key);
@@ -81,15 +86,26 @@ export class FlightAncillariesService {
     while (this.quotes.size >= 100) this.quotes.delete(this.quotes.keys().next().value!);
     const expiry = expiresAt ? Date.parse(expiresAt) : Infinity;
     const until = Math.min(Date.now() + 120000, expiry);
-    const entry = { until, promise: lookup().then(result => {
+    const entry = { until, promise: lookup().then(async result => {
       for (const [id, receipt] of this.receipts) if (receipt.until <= Date.now()) this.receipts.delete(id);
       while (this.receipts.size >= 100) this.receipts.delete(this.receipts.keys().next().value!);
       const quoteId = randomUUID();
       const source = String(scope[0]);
       const quoted = { ...result, quoteId, expiresAt: new Date(until).toISOString() };
+      const policy=pricingContext&&this.pricing?await this.pricing.policy():null;
+      const checkoutFx:(CheckoutFx|undefined)[]=result.services.map(()=>undefined);
+      const checkoutServices=await Promise.all(result.services.map(async(service,index)=>{
+        if(!pricingContext||service.amount===null||!service.currency||service.currency===pricingContext.offer.currency||service.rules?.requiresWeightConfirmation)return service;
+        try{
+          const fx=await this.display!.checkoutRate(service.currency,pricingContext.offer.currency);
+          checkoutFx[index]=fx;
+          return {...service,amount:convertCheckoutAmount(service.amount,service.currency,fx.to,fx),currency:fx.to};
+        }catch{return {...service,amount:null,currency:pricingContext.offer.currency,sellable:false};}
+      }));
+      const pricing=policy?checkoutServices.map(service=>ancillaryPrice(service,pricingContext!.offer,pricingContext!.cabin,policy)):undefined;
       this.receipts.set(quoteId, { owner: scope[1] as string | null,
-        ...(source.startsWith('shopping') ? { searchId: String(scope[2]), offerId: String(scope[3]) } : { intentId: String(scope[2]) }), until, result: quoted });
-      return quoted;
+        ...(source.startsWith('shopping') ? { searchId: String(scope[2]), offerId: String(scope[3]) } : { intentId: String(scope[2]) }), until, result: quoted,pricing,checkoutFx,selectable:checkoutServices.map(service=>service.sellable!==false&&!service.rules?.requiresWeightConfirmation) });
+      return {...quoted,services:checkoutServices.map((service,index)=>pricing?.[index]?{...service,amount:pricing[index]!.sellingTotal,serviceCharge:pricing[index]!.chargeAmount,chargeRefundable:pricing[index]!.refundCharge}:service)};
     }) };
     this.quotes.set(key, entry);
     void entry.promise.catch(() => { if (this.quotes.get(key) === entry) this.quotes.delete(key); });
@@ -102,23 +118,18 @@ export class FlightAncillariesService {
       if (!receipt || receipt.until <= Date.now()) throw new ApiException('OFFER_EXPIRED', 'Refresh airline extras before saving your selection.', 410);
       if (receipt.owner !== customerId || receipt.searchId !== scope.searchId || receipt.offerId !== scope.offerId || receipt.intentId !== scope.intentId) throw new ApiException('CONFLICT', 'These extras belong to a different flight selection.', 409);
       const service = receipt.result.services[selection.serviceIndex];
+      if(receipt.selectable?.[selection.serviceIndex]===false)throw new ApiException('VALIDATION_ERROR','This extra needs airline assistance or a verified checkout price. Choose an available online extra or continue with ticket only.',400);
       if (service?.rules && ['A', 'B', 'E'].includes(service.rules.serviceType ?? '')) throw new ApiException('VALIDATION_ERROR', 'This airline entry describes an allowance or restriction, not an extra to add.', 400);
       const id = `${selection.quoteId}:${selection.serviceIndex}`;
       const serviceKey = service ? JSON.stringify([service.name, service.serviceCode, service.groupCode, service.segmentLabels, service.passengerIndexes]) : '';
       if (!service || seen.has(serviceKey) || !service.segmentLabels.length || !service.passengerIndexes.length) throw new ApiException('VALIDATION_ERROR', 'Choose each airline extra once with its flight and traveler association.', 400);
       seen.add(serviceKey);
-      const group = service.groupCode;
-      const name = service.name.toUpperCase().replace(/[^A-Z0-9]+/g, ' ');
-      const category: FlightAncillaryRequest['category'] = group === 'BG' ? 'BAGGAGE' : group === 'SA' ? 'SEATS' : group === 'ML' ? 'FOOD' : group ? 'OTHER' :
-        /\b(BAGGAGE|LUGGAGE|BAG|BAGS|EXCESS WEIGHT|EXTRA WEIGHT|SPORTS EQUIPMENT)\b/.test(name) ? 'BAGGAGE' :
-        /\b(SEAT|SEATS|SEATING|LEGROOM|LEG ROOM)\b/.test(name) ? 'SEATS' :
-        /\b(MEAL|MEALS|FOOD|DRINK|DRINKS|BEVERAGE|BEVERAGES|SNACK|SNACKS|COFFEE|TEA|JUICE|WATER|COCONUTWATER|SODA|COLA|WINE|BEER|SANDWICH|CHICKEN|RICE|NOODLES|PASTA|BREAKFAST|LUNCH|DINNER|VEGETARIAN|VEGAN)\b/.test(name) ? 'FOOD' : 'OTHER';
-      return { id, name: service.name, serviceCode: service.serviceCode, groupCode: service.groupCode, category, ...(service.rules ? { rules: service.rules } : {}),
+      return { id, name: service.name, serviceCode: service.serviceCode, groupCode: service.groupCode, category:ancillaryCategory(service), ...(service.rules ? { rules: service.rules } : {}),...(receipt.pricing?.[selection.serviceIndex]?{ancillaryPricing:receipt.pricing[selection.serviceIndex]}:{}),...(receipt.checkoutFx?.[selection.serviceIndex]?{checkoutFx:receipt.checkoutFx[selection.serviceIndex]}:{}),
         segmentLabels: [...service.segmentLabels], passengerIndexes: [...service.passengerIndexes], amount: service.amount, currency: service.currency, status: 'REQUESTED' as const };
     });
     for (let index = 0; index < requests.length; index++) {
       const extra = requests[index]!;
-      if (['BAGGAGE', 'SEATS'].includes(extra.category) && requests.slice(0, index).some(previous => previous.category === extra.category && previous.segmentLabels.some(label => extra.segmentLabels.includes(label)) && previous.passengerIndexes.some(passenger => extra.passengerIndexes.includes(passenger)))) throw new ApiException('VALIDATION_ERROR', 'Choose one baggage or seat option per flight and traveler.', 400);
+      if (extra.category==='SEATS' && requests.slice(0, index).some(previous => previous.category === extra.category && previous.segmentLabels.some(label => extra.segmentLabels.includes(label)) && previous.passengerIndexes.some(passenger => extra.passengerIndexes.includes(passenger)))) throw new ApiException('VALIDATION_ERROR', 'Choose one seat option per flight and traveler.', 400);
     }
     return requests;
   }
@@ -126,7 +137,9 @@ export class FlightAncillariesService {
     @Inject(SABRE_BOOKING_CLIENT) private readonly sabre: SabreBookingManagementClient | undefined,
     @Inject(SabreAtpcoAncillariesClient) private readonly atpco: SabreAtpcoAncillariesClient | undefined,
     @Inject(BookingIntentService) private readonly intents: BookingIntentService,
-    @Inject(DATABASE_CONNECTION) private readonly connection: DatabaseConnection | undefined) {}
+    @Inject(DATABASE_CONNECTION) private readonly connection: DatabaseConnection | undefined,
+    @Optional() @Inject(FlightPricingService) private readonly pricing?:FlightPricingService,
+    @Optional() @Inject(FlightDisplayCurrencyService) private readonly display?:FlightDisplayCurrencyService) {}
   async lookupIntent(customerId: string, intentId: string): Promise<FlightAncillaryResponse> {
     const intent = await this.intents.detail(customerId, intentId);
     if (intent.status !== 'READY_FOR_PAYMENT' || !intent.expiresAt || Date.parse(intent.expiresAt) <= Date.now() || !intent.searchRequest) throw new ApiException('CONFLICT', 'Check and accept the latest fare before checking airline services.', 409);
@@ -134,7 +147,7 @@ export class FlightAncillariesService {
     if (!context) {
       if (intent.searchRequest.children || intent.searchRequest.infants) throw new ApiException('CONFLICT', 'Additional service quotes for children and infants need Flyseri assistance. Your requests can still be saved.', 409);
       if (!this.atpco) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Airline service lookup is temporarily unavailable.', 503);
-      try { return await this.cachedQuote(['intent-atpco', customerId, intentId, intent.validatedAt, intent.selectedOffer], intent.expiresAt, () => this.atpco!.lookup(intent.selectedOffer, intent.searchRequest!.adults)); }
+      try { return await this.cachedQuote(['intent-atpco', customerId, intentId, intent.validatedAt, intent.selectedOffer], intent.expiresAt, () => this.atpco!.lookup(intent.selectedOffer, intent.searchRequest!.adults),{offer:intent.selectedOffer,cabin:intent.searchRequest!.cabin}); }
       catch { throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Additional airline offers could not be retrieved. Your saved requests are kept.', 503); }
     }
     if (!this.sabre || !this.connection) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Additional airline offers are temporarily unavailable.', 503);
@@ -156,7 +169,7 @@ export class FlightAncillariesService {
       return await this.cachedQuote(['intent-ndc', customerId, intentId, context.offerId, passengers], context.expiresAt, async () => {
         const response = await this.sabre!.getAncillaryOffers({ requestType: 'offerId', request: { offerId: context.offerId, passengers } });
         return readSabreAncillaries(response, passengers.map(person => person.passengerId), 'PRICED_OFFER');
-      });
+      },{offer:intent.selectedOffer,cabin:intent.searchRequest!.cabin});
     } catch { throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Additional airline offers could not be confirmed for these travelers. Your fare and saved requests are kept.', 503); }
   }
   async lookup(customerId: string | null, input: { searchId: string; offerId: string; passengers: { givenName: string; surname: string }[] }) {
@@ -165,7 +178,7 @@ export class FlightAncillariesService {
     if (!context) {
       if (selection.search.children || selection.search.infants || selection.search.adults !== input.passengers.length) throw new ApiException('CONFLICT', 'Additional service lookup currently supports adult travelers. Your requests can still be saved.', 409);
       if (!this.atpco) throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Airline service lookup is temporarily unavailable. Your requests can still be saved.', 503);
-      try { return await this.cachedQuote(['shopping-atpco', customerId, input.searchId, input.offerId, selection.search.adults], undefined, () => this.atpco!.lookup(selection.offer, selection.search.adults)); }
+      try { return await this.cachedQuote(['shopping-atpco', customerId, input.searchId, input.offerId, selection.search.adults], undefined, () => this.atpco!.lookup(selection.offer, selection.search.adults),{offer:selection.offer,cabin:selection.search.cabin}); }
       catch { throw new ApiException('DEPENDENCY_UNAVAILABLE', 'Sabre could not confirm additional services for this fare. You can still save your requests for Flyseri review.', 503); }
     }
     if (!context || !context.passengers.length) throw new ApiException('CONFLICT', 'Ancillary lookup needs an NDC offer with passenger references. This fare has no supported NDC context.', 409);
@@ -179,7 +192,7 @@ export class FlightAncillariesService {
         const response = await this.sabre!.getAncillaryOffers({ requestType: 'offerId', request: { offerId: context.offerId,
           passengers: context.passengers.map((person, index) => ({ ...person, ...input.passengers[index]! })) } });
         return readSabreAncillaries(response, context.passengers.map((person) => person.passengerId));
-      });
+      },{offer:selection.offer,cabin:selection.search.cabin});
     } catch { throw new ApiException('DEPENDENCY_UNAVAILABLE', 'The airline additional services could not be confirmed. Please try again or contact Flyseri.', 503); }
   }
 }

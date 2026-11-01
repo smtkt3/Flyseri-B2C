@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient } from './client';
+vi.mock('../../services/authService',()=>({authService:{accessToken:async()=>undefined,refreshToken:async()=>undefined}}));
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('ApiClient', () => {
+  it('accepts only actual PDF responses for document downloads',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('%PDF-test',{headers:{'Content-Type':'application/pdf'}})));
+    expect((await new ApiClient().pdf('/flights/bookings/id/ticket.pdf')).type).toBe('application/pdf');
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('<html>Login page</html>',{headers:{'Content-Type':'text/html'}})));
+    await expect(new ApiClient().pdf('/flights/bookings/id/ticket.pdf')).rejects.toMatchObject({code:'INVALID_RESPONSE'});
+  });
   it('delivers complete stream events immediately even when JSON lines cross network chunks', async () => {
     let push!: ReadableStreamDefaultController<Uint8Array>;
     const stream = new ReadableStream<Uint8Array>({ start(controller) { push = controller; } });
@@ -21,7 +28,7 @@ describe('ApiClient', () => {
   });
   it('reports an unavailable service when the gateway returns a non-JSON error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Bad Gateway', { status: 502 })));
-    await expect(new ApiClient().get('/visa-services?countryCode=MY')).rejects.toMatchObject({ code: 'DEPENDENCY_UNAVAILABLE', status: 502, message: 'The service is temporarily unavailable. Please try again shortly.' });
+    await expect(new ApiClient().get('/visa-services?countryCode=MY')).rejects.toMatchObject({ code: 'DEPENDENCY_UNAVAILABLE', status: 502, message: 'This service is temporarily unavailable. Please try again shortly.' });
   });
   it('reads a typed response and propagates a request ID', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data: { status: 'ok' }, requestId: 'id' }), { status: 200 }));

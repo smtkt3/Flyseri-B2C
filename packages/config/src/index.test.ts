@@ -15,6 +15,10 @@ describe('parseConfig', () => {
   it('keeps Sabre settings server-side, rejects partial setup and bounds supplier traffic controls', () => {
     expect(() => parseConfig({ SABRE_CLIENT_SECRET: 'secret' })).toThrow('incomplete Sabre configuration');
     expect(() => parseConfig({ SABRE_REQUEST_TIMEOUT_MS: 60000 })).toThrow('SABRE_REQUEST_TIMEOUT_MS');
+    expect(parseConfig({})).toMatchObject({SABRE_SERVICING_TIMEOUT_MS:120000});
+    expect(parseConfig({SABRE_SERVICING_TIMEOUT_MS:150000}).SABRE_SERVICING_TIMEOUT_MS).toBe(150000);
+    expect(()=>parseConfig({SABRE_SERVICING_TIMEOUT_MS:12000})).toThrow('SABRE_SERVICING_TIMEOUT_MS');
+    expect(()=>parseConfig({SABRE_SERVICING_TIMEOUT_MS:180001})).toThrow('SABRE_SERVICING_TIMEOUT_MS');
     expect(parseConfig({})).toMatchObject({ SABRE_ENV: 'CERT', SABRE_BFM_CACHE_TTL_SECONDS: 60, SABRE_PROVIDER_MAX_CONCURRENT: 12 });
   });
   it('requires a Stripe test secret before enabling checkout and rejects production mode', () => {
@@ -29,5 +33,12 @@ describe('parseConfig', () => {
     expect(parseConfig({ PAYMENT_PROVIDER: 'STRIPE_TEST', PAYMENT_CHECKOUT_ENABLED: 'true',
       STRIPE_SECRET_KEY: 'sk_test_123456789' }))
       .toMatchObject({ PAYMENT_PROVIDER: 'STRIPE_TEST', PAYMENT_CHECKOUT_ENABLED: 'true' });
+  });
+  it('enables CERT ticket servicing independently from new-ticket settlement, with a verified printer',()=>{
+    const credentials={APP_ENV:'test',SABRE_ENV:'CERT',SABRE_BASE_URL:'https://api.cert.platform.sabre.com',SABRE_AUTH_URL:'https://api.cert.platform.sabre.com/v3/auth/token',SABRE_CLIENT_ID:'fixture-client',SABRE_CLIENT_SECRET:'fixture-secret',SABRE_USERNAME:'123456-TEST-AA',SABRE_PASSWORD:'fixture-password',SABRE_PCC:'TEST',FLIGHT_TICKET_SERVICING_EXECUTION_ENABLED:'true'};
+    expect(()=>parseConfig(credentials)).toThrow('verified servicing printer');
+    expect(parseConfig({...credentials,SABRE_SERVICING_PRINTER:'ABC123'})).toMatchObject({FLIGHT_TICKET_SERVICING_EXECUTION_ENABLED:'true',FLIGHT_TICKETING_EXECUTION_ENABLED:'false',FLIGHT_AUTOMATIC_TICKETING_ENABLED:'false',FLIGHT_CUSTOMER_TICKETING_ENABLED:'false'});
+    expect(()=>parseConfig({...credentials,SABRE_SERVICING_PRINTER:'ABC123',SABRE_BASE_URL:'https://api.platform.sabre.com'})).toThrow('CERT endpoints only');
+    expect(()=>parseConfig({...credentials,SABRE_SERVICING_PRINTER:'invalid'})).toThrow('SABRE_SERVICING_PRINTER');
   });
 });

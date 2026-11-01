@@ -1,3 +1,4 @@
+import {TicketDownloadActions} from './TicketDownloadActions';
 import { CheckoutPageHeader } from './CheckoutPageHeader';
 import { Translated } from '../travel/language';
 import { useEffect, useState } from 'react';
@@ -10,6 +11,7 @@ import { bookingDisplayStatus, bookingLegs, bookingRoute, bookingNeedsAttention,
 import './booking-management.css';
 import { BookingStatusSummary } from './BookingStatusSummary';
 import { BookingLoading } from './BookingLoading';
+import {FlightExchangeQuotationCard} from './FlightExchangeQuotationCard';
 
 export function BookingList({embedded=false}:{embedded?:boolean}={}) {
   const [items, setItems] = useState<FlightBooking[]>([]);
@@ -18,6 +20,7 @@ export function BookingList({embedded=false}:{embedded?:boolean}={}) {
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
+  useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible')setAttempt(value=>value+1);};window.addEventListener('focus',refresh);return()=>window.removeEventListener('focus',refresh);},[]);
   useEffect(() => {
     let active = true; setLoading(true); setError('');
     void flightService.bookings().then(value => { if (active) setItems(value); }, () => { if (active) setError('We could not load your bookings.'); }).finally(() => { if (active) setLoading(false); });
@@ -45,6 +48,8 @@ export function BookingList({embedded=false}:{embedded?:boolean}={}) {
       <div className="booking-management-card-top"><AirlineIdentity codes={booking.selectedOffer.airlineCodes}/><span className={bookingNeedsAttention(booking) ? 'booking-status needs-attention' : 'booking-status'}>{bookingDisplayStatus(booking)}</span></div>
       <div className="booking-management-route"><div className="booking-card-journeys">{bookingLegs(booking).map((leg,index)=>{const first=leg.segments[0],last=leg.segments.at(-1);if(!first||!last)return null;return <div className="booking-card-journey" key={index}><div className="booking-card-journey-label"><span>{booking.selectedOffer.multiCityLegs ? `Flight ${index+1}` : index===0 ? 'Outbound' : 'Return'}</span><time dateTime={first.departureAt.slice(0,10)}>{new Intl.DateTimeFormat('en',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(first.departureAt.slice(0,10)+'T12:00:00Z'))}</time></div><h2>{first.origin} <span aria-hidden="true">→</span> {last.destination}</h2><p><strong>{first.departureAt.slice(11,16)} – {last.arrivalAt.slice(11,16)}</strong><span> · Local airport times</span>{first.departureAt.slice(0,10)!==last.arrivalAt.slice(0,10)&&<span> · Arrives {last.arrivalAt.slice(0,10)}</span>}</p></div>;})}<span className="booking-card-traveler-count">{booking.passengerNames.length} {booking.passengerNames.length===1?'traveler':'travelers'}</span></div><div className="booking-card-fare"><span>Accepted airfare</span><strong>{formatMoney(booking.amount, booking.currency)}</strong></div></div>
       <BookingStatusSummary booking={booking} compact />
+      <TicketDownloadActions booking={booking} compact/>
+      {booking.exchangeQuotations?.map(quotation=><FlightExchangeQuotationCard key={quotation.id} quotation={quotation}/>)}
       {!!booking.ancillaryRequests?.length && <p className="account-muted">{booking.ancillaryRequests.length} selected extras - {booking.ancillaryPurchase?.status === 'SKIPPED' ? 'ticket only selected' : ['CONFIRMED', 'FULFILLMENT_PENDING', 'FULFILLED'].includes(booking.ancillaryPurchase?.status ?? '') ? 'attached to the airline reservation' : 'review in Manage booking'}</p>}
       <div className="booking-management-card-bottom"><div><small>Airline reference (PNR)</small><strong>{booking.pnr ?? 'Awaiting confirmation'}</strong></div><Link className="booking-card-manage" aria-label={`Manage booking ${booking.pnr ?? bookingRoute(booking)}`} to={'/app/bookings/' + booking.id}>Manage booking <span aria-hidden="true">→</span></Link></div>
     </article>)}

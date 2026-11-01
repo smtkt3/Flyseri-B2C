@@ -46,6 +46,9 @@ export class VisaController {
   @Get('visa-assistance-requests/:id')
   @Header('Cache-Control', 'no-store')
   async assistanceDetail(@CurrentUser() user: AuthenticatedUserContext, @Param('id', new ParseUUIDPipe()) id: string, @Req() request: ContextRequest) { return response(request, await this.service.assistanceDetail(user.customerId, id)); }
+  @Delete('visa-assistance-requests/:id')
+  @UseGuards(CustomerRateLimitGuard)
+  async archiveAssistance(@CurrentUser() user: AuthenticatedUserContext, @Param('id', new ParseUUIDPipe()) id: string, @Req() request: ContextRequest) { return response(request, await this.service.archiveAssistance(user.customerId, id)); }
   @Post('visa-assistance-requests/:id/applicants/:travellerId/documents')
   @UseGuards(CustomerRateLimitGuard)
   async assistanceLink(@CurrentUser() user: AuthenticatedUserContext, @Param('id', new ParseUUIDPipe()) id: string, @Param('travellerId', new ParseUUIDPipe()) travellerId: string, @Body(validated(LinkDocumentDto)) body: LinkDocumentDto, @Req() request: ContextRequest) { return response(request, await this.service.assistanceAction(user.customerId, id, 'LINK', { travellerId, ...body })); }

@@ -1,0 +1,2331 @@
+# https://developer.sabre.com/rest-api/enhanced-air-ticket/1.3.0
+---
+openapi: 3.0.0
+info:
+  title: Enhanced Air Ticket
+  version: 1.3.0
+  description: The Enhanced Air Ticket API is used to issue one or multiple air tickets and/or EMDs (Electronic Miscellaneous Documents) within a single API call.
+paths:
+  /v1.3.0/air/ticket:
+    post:
+      tags:
+        - Enhanced Air Ticket
+      operationId: enhancedAirTicket
+      description: The Enhanced Air Ticket (AirTicketRQ) API is used to issue air tickets, and electronic miscellaneous documents (EMDs) in one request.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnhancedAirTicketRequest"
+            examples:
+              1. Ticket using a credit card:
+                $ref: '#/components/examples/requestExample'
+      responses:
+        "200":
+          description: HTTP 200 OK success status response code indicates that the request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnhancedAirTicketResponse"
+              examples:
+                1. Tickets using a credit card:
+                  $ref: '#/components/examples/responseExample'
+        "400":
+          description: |
+            Bad Request
+
+            - The request wasn't valid.
+security:
+  - oauth2_authentication: []
+tags:
+  - name: Enhanced Air Ticket
+    description: The Enhanced Air Ticket API is used to issue one or multiple air tickets and/or EMDs (Electronic Miscellaneous Documents) within a single API call.
+servers:
+  - url: https://api.cert.platform.sabre.com
+components:
+  securitySchemes:
+    oauth2_authentication:
+      type: oauth2
+      x-base64-encode-client-credentials: true
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.cert.platform.sabre.com/v2/auth/token
+          scopes: {}
+  schemas:
+    EnhancedAirTicketRequest:
+      type: object
+      properties:
+        AirTicketRQ:
+          type: object
+          description: Orchestrated Air Ticket API request.
+          properties:
+            DesignatePrinter:
+              type: object
+              description: Used to control printer designation process.
+              properties:
+                Printers:
+                  description: Used to designate printers.
+                  properties:
+                    BagTag:
+                      description: Used to specify bag tag printer.
+                      properties:
+                        LNIATA:
+                          description: Used to specify a bag tag printer address.
+                          example: 'XXXXX9'
+                          type: string
+                    BoardingPass:
+                      description: Used to specify boarding pass of printer.
+                      properties:
+                        HostedCarrier:
+                          description: If `true`, indicates a request for an airline-based boarding pass printer. Used by airline customers.
+                          example: true
+                          type: boolean
+                        LNIATA:
+                          description: Used to specify a boarding pass printer address.
+                          example: 'XXXXX9'
+                          type: string
+                    Hardcopy:
+                      description: Used to specify the hardcopy printer.
+                      properties:
+                        Spacing:
+                          description: Used to specify the spacing, either 1, or 2.
+                          example: '1'
+                          type: string
+                          enum:
+                            - '1'
+                            - '2'
+                        LNIATA:
+                          description: Used to specify a hardcopy printer address.
+                          example: 'XXXXX9'
+                          type: string
+                    InvoiceItinerary:
+                      description: Used to specify invoice/itinerary printer.
+                      properties:
+                        LNIATA:
+                          description: Used to specify an invoice/itinerary printer address.
+                          example: 'XXXXX9'
+                          type: string
+                    ListLabel:
+                      description: Used to specify list/label printer.
+                      properties:
+                        LNIATA:
+                          description: Used to specify a list/label printer address.
+                          example: 'XXXXX9'
+                          type: string
+                    MiniItinerary:
+                      description: Used to specify mini itinerary printer.
+                      properties:
+                        LNIATA:
+                          description: Used to specify a mini itinerary printer address.
+                          example: 'XXXXX9'
+                          type: string
+                    Report:
+                      description: Used to specify report printer.
+                      properties:
+                        LNIATA:
+                          description: |
+                            Used to specify a report printer address.
+                            The user account attempting to designate to a report printer must be signed in under duty code `9`.
+                            To set duty code `9`, the client application can utilize the ContextChangeLLSRQ service.
+                          example: 'XXXXX9'
+                          type: string
+                    Ticket:
+                      description: Used to specify ticket printer.
+                      properties:
+                        MiniItinerary:
+                          description: Used by ATB1 or ATB2 customers to also designate a mini itinerary printer at the same time they're designating their ticket printer.
+                          properties:
+                            LNIATA:
+                              description: Used by ATB1 or ATB2 customers to also designate a mini itinerary printer at the same time they're designating their ticket printer.
+                              example: 'XXXXX9'
+                              type: string
+                        Remote:
+                          description: Used by customers to designate an ATB or ATB2 ticket printer along with a remote printer.
+                          properties:
+                            LNIATA:
+                              description: Used by customers to designate an ATB or ATB2 ticket printer along with a remote printer.
+                              example: 'XXXXX9'
+                              type: string
+                        CountryCode:
+                          description: Used to specify country code associated with the airport code.
+                          example: 'AB'
+                          type: string
+                        LNIATA:
+                          description: |
+                            Used to specify a ticket printer address.
+                            Clients should only associate 255 sessions to a single printer address.
+                            Additional sessions beyond the initial 255 need to be designated to a different printer address.
+                          example: 'XXXXX9'
+                          type: string
+                Profile:
+                  type: object
+                  description: Used to pass printer profile information.
+                  properties:
+                    Number:
+                      description: Used to specify a previously established printer number.
+                      example: 1
+                      type: integer
+                      format: int32
+            Itinerary:
+              type: object
+              description: Used to pass record locator of the reservation to issue tickets from.
+              properties:
+                ID:
+                  description: Used to specify a record locator.
+                  example: 'YYABHF'
+                  type: string
+                  pattern: '[0-9a-zA-Z]{1,6}'
+              required:
+                - ID
+            AccountingLines:
+              type: object
+              description: |
+                Used to control accounting line deletion prior ticketing. 
+                
+                As a default logic, the API will always attempt to delete all accounting lines prior ticketing. 
+                
+                However, if you wish the system to behave differently you may request to delete specific accounting line numbers only (`Number`, `EndNumber`) or prevent the deletion altogether: (`None`).
+              properties:
+                Delete:
+                  description: Used to specify accounting line numbers to be deleted.
+                  type: array
+                  items:
+                    properties:
+                      EndNumber:
+                        description: Used with @Number to specify a range of accounting lines to delete.
+                        example: 2
+                        type: integer
+                        format: int32
+                      Number:
+                        description: Used to specify particular accounting lines.
+                        example: 1
+                        type: integer
+                        format: int32
+                    required:
+                      - Number
+                  minItems: 0
+                All:
+                  description: If `true`, deletes all accounting lines. Can't be combined with `None`.
+                  example: true
+                  type: boolean
+                None:
+                  description: If `true`, doesn't delete any of the accounting lines. Can't be combined with `All`.
+                  example: false
+                  type: boolean
+            Ticketing:
+              description: Used to repeat the node as many times as many tickets/ ticket types/EMDs are to be issued.
+              type: array
+              items:
+                properties:
+                  FlightQualifiers:
+                    description: Used to pass flight related qualifiers.
+                    properties:
+                      VendorPrefs:
+                        description: Used to pass an airline code to issue tickets for - optional.
+                        properties:
+                          Airline:
+                            description: Used to specify the airline.
+                            properties:
+                              Code:
+                                description: Used to specify a particular vendor code.
+                                example: 'XX'
+                                type: string
+                            required:
+                              - Code
+                        required:
+                          - Airline
+                  FOP_Qualifiers:
+                    description: Used to pass form of payment related qualifiers.
+                    properties:
+                      BasicFOP:
+                        description: Can't be combined with `.../BSP_Ticketing`, `.../SabreSonicTicketing`, or `.../Multiple CC_FOP`.
+                        properties:
+                          CC_Info:
+                            description: Used to specify payment card details.
+                            properties:
+                              PaymentCard:
+                                description: Used to specify payment card details.
+                                properties:
+                                  Code:
+                                    description: Used to specify the credit card vendor code.
+                                    example: 'VI'
+                                    type: string
+                                  CardSecurityCode:
+                                    description: Used to specify the credit card security code.
+                                    example: '123'
+                                    type: string
+                                  ExpireDate:
+                                    description: |
+                                      ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                    example: '2012-12'
+                                    type: string
+                                    pattern: '\d{4}-\d{2}'
+                                  ExtendedPayment:
+                                    description: Used to specify extended payment if applicable.
+                                    example: 12
+                                    type: integer
+                                    format: int32
+                                  ManualApprovalCode:
+                                    description: Used to specify a manual credit card approval code if applicable.
+                                    example: '1234'
+                                    type: string
+                                  ManualOBFee:
+                                    description: Used to indicate that the manual OB fee should be associated with the card.
+                                    example: '10.00'
+                                    type: string
+                                  Number:
+                                    description: Used to specify the credit card number.
+                                    example: 4123412341234123
+                                    type: integer
+                                    format: int64
+                              Suppress:
+                                description: If `true`, suppresses credit card information on an itinerary.
+                                example: true
+                                type: boolean
+                            required:
+                              - PaymentCard
+                          CostCenter:
+                            description: Used to pass cost center information. Can't be combined with `Reference` and `Virtual`.
+                            example: '123456789123'
+                            type: string
+                          Reference:
+                            description: |
+                              Used to refer a line number from PNR Form of Payment (FOP) field.
+                              This capability is only available once the agency has activated Sabre's new FOP functionality in the corresponding PCC (TJR setting: PNAPNR),
+                              for additional information please contact your Sabre Account Team.
+                            example: 1
+                            type: integer
+                            format: int32
+                          Type:
+                            description: |
+                              Used to specify the payment type.
+                              Acceptable values are `CA` (cash), `CK` (check), `CQ` (cheque).
+                              If utilizing a credit card please omit @Type, and populate the .../CC_Info child node.
+                            example: 'CK'
+                            type: string
+                          Virtual:
+                            description: Used to pass virtual form of payment information.
+                            example: 'SABREAIRONETWOFOUR'
+                            type: string
+                      BSP_Ticketing:
+                        description: Used to specify valid for BSP-based clients.
+                        properties:
+                          MultipleFOP:
+                            description: Can't be combined with `.../MultipleMiscFOP` or `.../PayLaterPlan`.
+                            properties:
+                              Fare:
+                                description: Used to specify the amount to be applied to the second FOP.
+                                properties:
+                                  Amount:
+                                    description: Used to specify the amount to be applied to the second FOP.
+                                    example: '100.00'
+                                    type: string
+                                required:
+                                  - Amount
+                              FOP_One:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'AX'
+                                            type: string
+                                          CardSecurityCode:
+                                            description: Used to specify the credit card security code.
+                                            example: '123'
+                                            type: string
+                                          ExpireDate:
+                                            description: |
+                                              ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                            example: '2012-11'
+                                            type: string
+                                            pattern: '\d{4}-\d{2}'
+                                          ExtendedPayment:
+                                            description: Used to specify extended payment if applicable.
+                                            example: 12
+                                            type: integer
+                                            format: int32
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '1234'
+                                            type: string
+                                          ManualOBFee:
+                                            description: |
+                                              Used to indicate that the manual OB fee should be associated with the card.
+                                              A manual OB fee can ONLY be added to a ticketing entry that references a PQ that has the PRICE-MANUAL tag at the bottom of the *PQ.
+                                            example: '10.00'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 373912345621003
+                                            type: integer
+                                            format: int64
+                                      Suppress:
+                                        description: If `true`, suppresses credit card information on an itinerary.
+                                        example: true
+                                        type: boolean
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CA'
+                                    type: string
+                                  Reference:
+                                    description: Used to refer a line number from PNR FOP field.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                              FOP_Two:
+                                description: Used to specify second form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'AX'
+                                            type: string
+                                          CardSecurityCode:
+                                            description: Used to specify the credit card security code.
+                                            example: '123'
+                                            type: string
+                                          ExpireDate:
+                                            description: |
+                                              ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                            example: '2012-11'
+                                            type: string
+                                            pattern: '\d{4}-\d{2}'
+                                          ExtendedPayment:
+                                            description: Used to specify extended payment if applicable.
+                                            example: 12
+                                            type: integer
+                                            format: int32
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '5678'
+                                            type: string
+                                          ManualOBFee:
+                                            description: |
+                                              Used to indicate that the manual OB fee should be associated with the card.
+                                              A manual OB fee can ONLY be added to a ticketing entry that references a PQ that has the PRICE-MANUAL tag at the bottom of the *PQ.
+                                            example: '5.00'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 373912345621003
+                                            type: integer
+                                            format: int64
+                                      Suppress:
+                                        description: If `true`, suppresses credit card information on an itinerary.
+                                        example: true
+                                        type: boolean
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CK'
+                                    type: string
+                                  Reference:
+                                    description: Used to refer a line number from PNR FOP field.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                              Taxes:
+                                description: Used to pass tax details.
+                                properties:
+                                  Tax:
+                                    description: Used to specify individual tax details.
+                                    type: array
+                                    items:
+                                      properties:
+                                        Amount:
+                                          description: Used to specify the tax amount.
+                                          example: '5.00'
+                                          type: string
+                                        TaxCode:
+                                          description: Used to specify the tax code.
+                                          example: 'GB'
+                                          type: string
+                                      required:
+                                        - Amount
+                                        - TaxCode
+                                    minItems: 1
+                                    maxItems: 3
+                                required:
+                                  - Tax
+                            required:
+                              - Fare
+                              - FOP_One
+                              - FOP_Two
+                          MultipleMiscFOP:
+                            description: Can't be combined with `.../MultipleFOP` or `.../PayLaterPlan`.
+                            properties:
+                              Fare:
+                                description: Used to specify the amount to be applied to the second FOP.
+                                properties:
+                                  Amount:
+                                    description: Used to specify the fare amount to be applied to the second FOP.
+                                    example: '300.00'
+                                    type: string
+                                required:
+                                  - Amount
+                              FOP_One:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'MC'
+                                            type: string
+                                          ExpireDate:
+                                            description: |
+                                              ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                            example: '2012-11'
+                                            type: string
+                                            pattern: '\d{4}-\d{2}'
+                                          ExtendedPayment:
+                                            description: Used to specify extended payment if applicable.
+                                            example: 12
+                                            type: integer
+                                            format: int32
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '1234'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 12345678999001
+                                            type: integer
+                                            format: int64
+                                        required:
+                                          - Code
+                                          - ExpireDate
+                                          - Number
+                                      Suppress:
+                                        description: If `true`, suppresses credit card information on an itinerary.
+                                        example: true
+                                        type: boolean
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CK'
+                                    type: string
+                                  Reference:
+                                    description: Used to refer a line number from PNR FOP field.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                              FOP_Two:
+                                description: Used to specify second form of payment.
+                                properties:
+                                  ExtendedPayment:
+                                    description: Used to pass number of months for extended payment.
+                                    properties:
+                                      NumMonths:
+                                        description: Used to pass number of months.
+                                        example: 11
+                                        type: integer
+                                        format: int32
+                                    required:
+                                      - NumMonths
+                                  Type:
+                                    description: Used to specify the misc payment.
+                                    example: 'PL189947'
+                                    type: string
+                                  Reference:
+                                    description: Used to reference a line number from PNR FOP field.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                              Taxes:
+                                description: Used to pass tax details.
+                                properties:
+                                  Tax:
+                                    description: Used to specify individual tax details.
+                                    type: array
+                                    items:
+                                      properties:
+                                        Amount:
+                                          description: Used to specify the tax amount.
+                                          example: '30.00'
+                                          type: string
+                                        TaxCode:
+                                          description: Used to specify the tax code.
+                                          example: 'XT'
+                                          type: string
+                                      required:
+                                        - Amount
+                                        - TaxCode
+                                    minItems: 1
+                                    maxItems: 2
+                                required:
+                                  - Tax
+                            required:
+                              - Fare
+                              - FOP_One
+                              - FOP_Two
+                          PayLaterPlan:
+                            description: Only applicable to Brazil. Can't be combined with `MultipleFOP` or `MultipleMiscFOP`.
+                            properties:
+                              Fare:
+                                description: Used to specify the amount to be applied to the second FOP.
+                                properties:
+                                  Amount:
+                                    description: Used to specify the remaining fare amount.
+                                    example: '200.00'
+                                    type: string
+                                required:
+                                  - Amount
+                              FOP:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'AX'
+                                            type: string
+                                          ExpireDate:
+                                            description: |
+                                              ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                            example: '2012-11'
+                                            type: string
+                                            pattern: '\d{4}-\d{2}'
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '23'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 376422221000
+                                            type: integer
+                                            format: int64
+                                        required:
+                                          - Code
+                                          - ExpireDate
+                                          - Number
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CA'
+                                    type: string
+                                  Reference:
+                                    description: Used to refer a line number from PNR FOP field.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                              Installment:
+                                description: Used to specify the number of installments.
+                                properties:
+                                  Count:
+                                    description: Used to specify the number of installments.
+                                    example: '03'
+                                    type: string
+                                  PayLaterReferenceNumber:
+                                    description: Used to specify the pay later reference number.
+                                    example: 'XRG065'
+                                    type: string
+                                  Value:
+                                    description: Used to specify the value of the installments. Decimals aren't permitted.
+                                    example: '10000'
+                                    type: string
+                                required:
+                                  - Count
+                                  - PayLaterReferenceNumber
+                                  - Value
+                            required:
+                              - Fare
+                              - FOP
+                              - Installment
+                      MultipleCC_FOP:
+                        description: Can't be combined with `.../BSP_Ticketing` or `.../SabreSonicTicketing`.
+                        properties:
+                          Fare:
+                            description: Used to specify the amount to be applied to the second FOP.
+                            properties:
+                              Amount:
+                                description: Used to specify the amount to be applied to the second CC.
+                                example: '100.00'
+                                type: string
+                            required:
+                              - Amount
+                          CC_One:
+                            description: Used to specify first payment card details.
+                            properties:
+                              CC_Info:
+                                description: Used to specify payment card details.
+                                properties:
+                                  PaymentCard:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      Code:
+                                        description: Used to specify the credit card vendor code.
+                                        example: 'AX'
+                                        type: string
+                                      CardSecurityCode:
+                                        description: Used to specify the credit card security code.
+                                        example: '123'
+                                        type: string
+                                      ExpireDate:
+                                        description: |
+                                          ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                        example: '2012-11'
+                                        type: string
+                                        pattern: '\d{4}-\d{2}'
+                                      ExtendedPayment:
+                                        description: Used to specify extended payment if applicable.
+                                        example: 12
+                                        type: integer
+                                        format: int32
+                                      ManualApprovalCode:
+                                        description: Used to specify a manual credit card if applicable.
+                                        example: '1234'
+                                        type: string
+                                      ManualOBFee:
+                                        description: |
+                                          Used to indicate that the manual OB fee should be associated with the card.
+                                          A manual OB fee can ONLY be added to a ticketing entry that references a PQ that has the PRICE-MANUAL tag at the bottom of the *PQ.
+                                        example: '10.00'
+                                        type: string
+                                      Number:
+                                        description: Used to specify the credit card number.
+                                        example: 373912345621003
+                                        type: integer
+                                        format: int64
+                                    required:
+                                      - Code
+                                      - ExpireDate
+                                      - Number
+                                  Suppress:
+                                    description: If `true`, suppresses credit card information on an itinerary.
+                                    example: true
+                                    type: boolean
+                                required:
+                                  - PaymentCard
+                          CC_Two:
+                            description: Used to specify second payment card details.
+                            properties:
+                              CC_Info:
+                                description: Used to specify payment card details.
+                                properties:
+                                  PaymentCard:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      Code:
+                                        description: Used to specify the credit card vendor code.
+                                        example: 'VI'
+                                        type: string
+                                      CardSecurityCode:
+                                        description: Used to specify the credit card security code.
+                                        example: '123'
+                                        type: string
+                                      ExpireDate:
+                                        description: |
+                                          ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                        example: '2016-12'
+                                        type: string
+                                        pattern: '\d{4}-\d{2}'
+                                      ExtendedPayment:
+                                        description: Used to specify extended payment if applicable.
+                                        example: 12
+                                        type: integer
+                                        format: int32
+                                      ManualApprovalCode:
+                                        description: Used to specify a manual credit card if applicable.
+                                        example: '5678'
+                                        type: string
+                                      ManualOBFee:
+                                        description: |
+                                          Used to indicate that the manual OB fee should be associated with the card.
+                                          A manual OB fee can ONLY be added to a ticketing entry that references a PQ that has the ''PRICE-MANUAL'' tag at the bottom of the *PQ.
+                                        example: '5.00'
+                                        type: string
+                                      Number:
+                                        description: Used to specify the credit card number.
+                                        example: 4537156488578956
+                                        type: integer
+                                        format: int64
+                                    required:
+                                      - Code
+                                      - ExpireDate
+                                      - Number
+                                  Suppress:
+                                    description: If `true`, suppresses credit card information on an itinerary.
+                                    example: true
+                                    type: boolean
+                                required:
+                                  - PaymentCard
+                        required:
+                          - Fare
+                          - CC_One
+                          - CC_Two
+                      SabreSonicTicketing:
+                        description: Only valid for SabreSonic-based airlines. Can't be combined with `.../BSP_Ticketing` or `.../Multiple CC_FOP`.
+                        properties:
+                          BasicFOP:
+                            description: Can't be combined with `.../EnhancedMultipleFOP` or `.../MultipleFOP`.
+                            properties:
+                              CC_Info:
+                                description: Used to specify payment card details.
+                                properties:
+                                  PaymentCard:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      CardSecurityCode:
+                                        description: Used to specify the credit card security code.
+                                        example: 123
+                                        type: integer
+                                        format: int32
+                                      Code:
+                                        description: Used to specify the credit card vendor code.
+                                        example: 'VI'
+                                        type: string
+                                      ExpireDate:
+                                        description: |
+                                          ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                        example: '2012-12'
+                                        type: string
+                                        pattern: '\d{4}-\d{2}'
+                                      ExtendedPayment:
+                                        description: Used to specify extended payment if applicable.
+                                        example: 12
+                                        type: integer
+                                        format: int32
+                                      ManualApprovalCode:
+                                        description: Used to specify a manual credit card approval code if applicable.
+                                        example: '1234'
+                                        type: string
+                                      Number:
+                                        description: Used to specify the credit card number.
+                                        example: 4123412341234123
+                                        type: integer
+                                        format: int64
+                                    required:
+                                      - Code
+                                      - ExpireDate
+                                      - Number
+                                  Suppress:
+                                    description: If `true`, suppresses credit card information on an itinerary.
+                                    example: true
+                                    type: boolean
+                                required:
+                                  - PaymentCard
+                              ManualApprovalCode:
+                                description: Used to specify a manual approval code for non-credit card forms of payment.
+                                example: '1234'
+                                type: string
+                              Type:
+                                description: |
+                                  Used to specify the payment type. Can be `CA` (cash), `CK` (check), `CQ` (cheque), `PT`, `PTACA` (PTA cash), `PTAGTCK` (PTA agency check), or `PTCK` (PTA check).
+                                  If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node, unless you need to specify a PTA credit card form of payment.
+                                  To use a `PTA` credit card please pass `Type` as `PT` and populate the `../CC_Info` child object with the relevant credit card information.
+                                example: 'CK'
+                                type: string
+                          EnhancedMultipleFOP:
+                            description: Only valid for SabreSonic-based airlines who have activated the enhanced multiple form of payment option. Can't be combined with `.../MultipleFOP`.
+                            properties:
+                              Fare:
+                                description: Used to specify the amount to be applied to the second FOP.
+                                properties:
+                                  Amount:
+                                    description: Used to specify the fare amount to be applied to the second FOP.
+                                    example: '90.00'
+                                    type: string
+                                required:
+                                  - Amount
+                              FOP_One:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          CardSecurityCode:
+                                            description: Used to specify the credit card security code.
+                                            example: '123'
+                                            type: string
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'VI'
+                                            type: string
+                                          ExpireDate:
+                                            description: |
+                                              ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                            example: '2012-12'
+                                            type: string
+                                            pattern: '\d{4}-\d{2}'
+                                          ExtendedPayment:
+                                            description: Used to specify extended payment if applicable.
+                                            example: 12
+                                            type: integer
+                                            format: int32
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '1234'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 4123412341234123
+                                            type: integer
+                                            format: int64
+                                        required:
+                                          - Code
+                                          - ExpireDate
+                                          - Number
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CK'
+                                    type: string
+                              FOP_Two:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          CardSecurityCode:
+                                            description: Used to specify the credit card security code.
+                                            example: '123'
+                                            type: string
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'VI'
+                                            type: string
+                                          ExpireDate:
+                                            description: |
+                                              ExpireDate is used to specify the credit card expiration date, follows this format: YYYY-MM.
+                                            example: '2012-12'
+                                            type: string
+                                            pattern: '\d{4}-\d{2}'
+                                          ExtendedPayment:
+                                            description: Used to specify extended payment if applicable.
+                                            example: 12
+                                            type: integer
+                                            format: int32
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '1234'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 4123412341234123
+                                            type: integer
+                                            format: int64
+                                        required:
+                                          - Code
+                                          - ExpireDate
+                                          - Number
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CK'
+                                    type: string
+                              Taxes:
+                                description: Used to pass tax details.
+                                properties:
+                                  Tax:
+                                    description: Used to specify individual tax details.
+                                    properties:
+                                      Amount:
+                                        description: Used to specify the tax amount.
+                                        example: '30.00'
+                                        type: string
+                                      TaxCode:
+                                        description: Used to specify the tax code.
+                                        example: 'XT'
+                                        type: string
+                                    required:
+                                      - Amount
+                                      - TaxCode
+                                required:
+                                  - Tax
+                            required:
+                              - Fare
+                              - FOP_One
+                              - FOP_Two
+                              - Taxes
+                          MultipleFOP:
+                            description: Can't be combined with `.../EnhancedMultipleFOP`.
+                            properties:
+                              Fare:
+                                description: Used to specify the amount to be applied to the second FOP.
+                                properties:
+                                  Amount:
+                                    description: Used to specify the fare amount to be applied to the second FOP.
+                                    example: '90.00'
+                                    type: string
+                                required:
+                                  - Amount
+                              FOP_One:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'VI'
+                                            type: string
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '1234'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 4123412341234123
+                                            type: integer
+                                            format: int64
+                                        required:
+                                          - Code
+                                          - Number
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA` (cash), `CK` (check), `CQ` (cheque), `PT`, `PTACA` (PTA cash), `PTAGTCK` (PTA agency check), or `PTCK` (PTA check).
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node, unless you need to specify a PTA credit card form of payment.
+                                      To use a `PTA` credit card please pass `Type` as `PT` and populate the `../CC_Info` child object with the relevant credit card information.
+                                    example: 'CK'
+                                    type: string
+                              FOP_Two:
+                                description: Used to specify form of payment.
+                                properties:
+                                  CC_Info:
+                                    description: Used to specify payment card details.
+                                    properties:
+                                      PaymentCard:
+                                        description: Used to specify payment card details.
+                                        properties:
+                                          Code:
+                                            description: Used to specify the credit card vendor code.
+                                            example: 'VI'
+                                            type: string
+                                          ManualApprovalCode:
+                                            description: Used to specify a manual credit card approval code if applicable.
+                                            example: '1234'
+                                            type: string
+                                          Number:
+                                            description: Used to specify the credit card number.
+                                            example: 4123412341234123
+                                            type: integer
+                                            format: int64
+                                        required:
+                                          - Code
+                                          - Number
+                                    required:
+                                      - PaymentCard
+                                  Type:
+                                    description: |
+                                      Used to specify the payment type. Can be `CA`, `CK`, or `CQ`.
+                                      If utilizing a credit card, omit `Type` and populate the `.../CC_Info` child node.
+                                    example: 'CK'
+                                    type: string
+                              Taxes:
+                                description: Used to pass tax details.
+                                properties:
+                                  Tax:
+                                    description: Used to specify individual tax details.
+                                    properties:
+                                      Amount:
+                                        description: Used to specify the tax amount.
+                                        example: '30.00'
+                                        type: string
+                                      TaxCode:
+                                        description: Used to specify the tax code.
+                                        example: 'XT'
+                                        type: string
+                                    required:
+                                      - Amount
+                                      - TaxCode
+                                required:
+                                  - Tax
+                            required:
+                              - Fare
+                              - FOP_One
+                              - FOP_Two
+                  MiscQualifiers:
+                    description: Used to pass miscellaneous qualifiers.
+                    properties:
+                      AirExtras:
+                        description: Used to specify EMD numbers to be issued.
+                        type: array
+                        items:
+                          properties:
+                            EndNumber:
+                              description: Used to specify the final EMD number when specifying a range.
+                              example: 3
+                              type: integer
+                              format: int32
+                            Number:
+                              description: Used to specify an EMD number.
+                              example: 1
+                              type: integer
+                              format: int32
+                            itemId:
+                              type: integer
+                              format: int32
+                              example: 1
+                              description: |
+                              
+                                Used to specify air extra/ancillary item ID sourced from Booking Management API getBooking service.
+                                
+                                `itemId` cannot be combined with `Number` and/or `EndNumber`.
+                              minimum: 1
+                        minItems: 0
+                      BaggageAllowance:
+                        description: Can't be combined with `PhaseIV`.
+                        type: array
+                        items:
+                          properties:
+                            SegmentSelect:
+                              description: Used to instruct the system to price specified itinerary segments.
+                              properties:
+                                EndNumber:
+                                  description: Used to identify end of range for specified itinerary segments.
+                                  example: 3
+                                  type: integer
+                                  format: int32
+                                Number:
+                                  description: Used to instruct the system to price specified itinerary segments.
+                                  example: 1
+                                  type: integer
+                                  format: int32
+                              required:
+                                - Number
+                            Number:
+                              description: Used to specify the quantity of checked bags if applicable.
+                              example: '01'
+                              type: string
+                            Weight:
+                              description: Used to specify the weight in kilos of checked bags if applicable.
+                              example: '20'
+                              type: string
+                        minItems: 0
+                        maxItems: 99
+                      Certificate:
+                        description: Used to pss certificate numbers.
+                        type: array
+                        items:
+                          properties:
+                            Number:
+                              description: Used to specify a ticket number. Only applicable to Sabre Sonic-hosted carriers.
+                              example: '123456789'
+                              type: string
+                          required:
+                            - Number
+                        minItems: 0
+                        maxItems: 2
+                      Commission:
+                        description: Used to pass details of the commission being claimed.
+                        properties:
+                          Amount:
+                            description: Used to specify the numeric amount of commission being claimed if applicable.
+                            example: 25
+                            type: number
+                            format: int32
+                          Net:
+                            description: If `true`, claims commission on the net fare. Must be combined with `Percent`.
+                            example: true
+                            type: boolean
+                          Percent:
+                            description: Used to specify the percentage of commission being claimed if applicable.
+                            example: 5
+                            type: number
+                            format: int32
+                      Discount:
+                        description: Used to specify the discount.
+                        properties:
+                          Code:
+                            description: Used to specify an 8 digit discount approval code.
+                            type: string
+                      DateOfBirth:
+                        description: |
+                          Used to instruct the system to take the passenger's date of birth-related information from the SSR PNR field
+                          and pass it into the host-based ticketing application. This is required for clients based in the Russian Federation.
+                        example: '2024-01-01'
+                        type: string
+                      Endorsement:
+                        description: Used to pass miscellaneous text in the endorsements field.
+                        properties:
+                          Text:
+                            description: Used to pass miscellaneous text in the endorsements field.
+                            example: 'TEST0'
+                            type: string
+                          Override:
+                            description: If `true`, overrides existing endorsement.
+                            example: true
+                            type: boolean
+                        required:
+                          - Text
+                      FutureTicket:
+                        description: Used to issue tickets from specific FP lines.
+                        properties:
+                          Line:
+                            description: Line and its associated attributes are used to issue tickets from specific FP lines.
+                            type: array
+                            items:
+                              properties:
+                                EndNumber:
+                                  description: Used to select a range of name numbers.
+                                  example: 3
+                                  type: integer
+                                  format: int32
+                                NameNumber:
+                                  description: Used to select name number.
+                                  example: '1.1'
+                                  type: string
+                                Number:
+                                  description: Used to select line number.
+                                  example: 1
+                                  type: integer
+                                  format: int32
+                              required:
+                                - Number
+                            minItems: 1
+                        required:
+                          - Line
+                      Invoice:
+                        description: |
+                          Used to specify to print invoice at time of ticketing.
+                          Both parameters will print a passenger electronic ticketing receipt as well as an invoice.
+                        properties:
+                          Ind:
+                            description: If `true`, prints the invoice.
+                            example: true
+                            type: boolean
+                          ETReceipt:
+                            description: If `true`, prints a passenger electronic ticketing receipt at time of ticketing.
+                            example: true
+                            type: boolean
+                      MISF:
+                        description: |
+                          Used to issue a paperless service fee request, using the service fee amount stored in the TJR.
+                          This attribute can be combined with form of payment details .../OptionalQualifiers/FOP_Qualifiers/BasicFOP.
+                        properties:
+                          Override:
+                            properties:
+                              Amount:
+                                description: Used to issue a paperless service fee request and specify a service fee amount override.
+                                example: '5.00'
+                                type: string
+                              CurrencyCode:
+                                description: Used to specify currency.
+                                example: 'USD'
+                                type: string
+                              ServiceFeeDescription:
+                                description: Used to add service fee description.
+                                example: 'HANN'
+                                type: string
+                              CustomerReference:
+                                description: Used to add customer reference. Applies only to BSP Canada customers.
+                                example: 'MBAYE'
+                                type: string
+                              BackOfficeInfo:
+                                description: Used to provide extra back-office information. Equivalent Sabre host command `MISF‡O*ABC123`.
+                                type: string
+                                example: 'ABC123'
+                              DocumentReferenceCode:
+                                description: Used to assign a document, reference number, or free text to the transaction. Can't be combined with `TicketNumber`. Equivalent to Sabre host command `MISF‡TM1234567890`.
+                                type: string
+                                example: '1234567890'
+                              TicketNumber:
+                                description: Used to assign a ticket number to the transaction. Can't be combined with `DocumentReferenceCode`. Equivalent to Sabre host command `MISF‡T0061234567890`.
+                                type: string
+                                example: '0061234567890'
+                          Ind:
+                            description: |
+                              If `true`, issues a paperless service fee request using the service fee amount stored in the TJR.
+                              Can be combined with form of payment details `/AirTicketRQ/OptionalQualifiers/FOP_Qualifiers/BasicFOP`.
+                            example: true
+                            type: boolean
+                      NeedPrint:
+                        description: Only two of the three parameters can be set to `true` simultaneously.
+                        properties:
+                          AuditorCoupon:
+                            description: If `true`, prints an auditor coupon. Only applicable to Sabre Sonic-hosted carriers.
+                            example: true
+                            type: boolean
+                          Itinerary:
+                            description: If `true`, prints an itinerary. Only applicable to Sabre Sonic-hosted carriers.
+                            example: true
+                            type: boolean
+                          PassengerReceipt:
+                            description: If `true`, prints a passenger receipt. Only applicable to Sabre Sonic-hosted carriers.
+                            example: true
+                            type: boolean
+                        required:
+                          - AuditorCoupon
+                          - Itinerary
+                          - PassengerReceipt
+                      NetRemit:
+                        description: Used to pass net remit amount/codes.
+                        properties:
+                          Amount:
+                            description: Used to enter manual/NET amount.
+                            example: '600'
+                            type: string
+                          DiscountAmount:
+                            description: Used to enter discount amount.
+                            example: '100'
+                            type: string
+                          SellingFareAmount:
+                            description: Used to enter total selling amount.
+                            example: '875.28'
+                            type: string
+                          ContractAgreementCode:
+                            description: Used to enter manual NET/net code with contract agreement reference code.
+                            example: 'ABCDEFGHIJ'
+                            type: string
+                          NetCreditAmount:
+                            description: Used to enter credit card amount.
+                            example: 20051.6
+                            type: number
+                            format: decimal
+                          TourCode:
+                            description: Used to pass tour code details.
+                            example: 'TEST1212'
+                            type: string
+                          ValueCode:
+                            description: Used to enter manual NET/net code with value code.
+                            example: 'D2469'
+                            type: string
+                      Ticket:
+                        description: Used to specify ticket types to issue.
+                        properties:
+                          Action:
+                            description: Used to specify an action code. Only applicable to Sabre Sonic-hosted carriers.
+                            example: 'PRINT'
+                            type: string
+                          Type:
+                            description: |
+                              Used to specify the type of ticket to issue.
+                              Acceptable values for Type:
+                              ETR = electronic ticket (default),
+                              EMD = Electronic Miscellaneous Document,
+                              XETR = paper ticket,
+                              VCR = paper ticket (for airline use only).
+                            example: 'ETR'
+                            type: string
+                      TourCode:
+                        description: Used to pass tour code information.
+                        properties:
+                          SuppressFareReplaceWithBT:
+                            description: Suppress the fare amount on the ticket and replace with BT.
+                            properties:
+                              Ind:
+                                description: If `true`, suppresses the fare amount on the ticket and replaces it with BT.
+                                example: true
+                                type: boolean
+                            required:
+                              - Ind
+                          SuppressFareReplaceWithIT:
+                            description: Suppress the fare amount on the ticket and replace with IT.
+                            properties:
+                              Ind:
+                                description: If `true`, suppresses the fare amount on the ticket and replaces it with IT.
+                                example: true
+                                type: boolean
+                            required:
+                              - Ind
+                          SuppressIT:
+                            description: Suppress the IT in the tour code box from printing.
+                            properties:
+                              Ind:
+                                description: If `true`, suppresses the IT in the tour code box from printing.
+                                example: true
+                                type: boolean
+                            required:
+                              - Ind
+                          SuppressITSupressFare:
+                            description: Suppress IT from printing in the tour box on the ticket and to suppress fare amounts from printing on the ticket.
+                            properties:
+                              Ind:
+                                description: If `true`, suppresses IT from printing in the tour box on the ticket and suppresses fare amounts from printing on the ticket.
+                                example: true
+                                type: boolean
+                            required:
+                              - Ind
+                          Text:
+                            description: Used to specify tour code.
+                            example: 'TEST1212'
+                            type: string
+                  PricingQualifiers:
+                    description: Used to pass pricing qualifiers.
+                    properties:
+                      Brand:
+                        description: Used to specify a brand. Only one brand may be requested for an entire journey or for the same segment.
+                        type: array
+                        items:
+                          properties:
+                            content:
+                              description: Used to specify text of the field.
+                              example: 'CP'
+                              type: string
+                            RPH:
+                              description: Used to match up with `.../ItineraryOptions/Segment`.
+                              example: 1
+                              type: integer
+                              format: int32
+                        minItems: 0
+                      FareFocusExclude:
+                        description: Used to exclude fare focus fares based on business rules of the agency. Can't be combined with `.../PriceQuote`.
+                        properties:
+                          Ind:
+                            description: If `true`, excludes fare focus fares based on business rules of the agency.
+                            example: true
+                            type: boolean
+                        required:
+                          - Ind
+                      Fare:
+                        description: This functionality is restricted to Sabre's Asian joint venture customers.
+                        properties:
+                          Type:
+                            description: Used to specify a fare type. Can be `NL` for normal fare, `EX` for special fare, and `IT` for inclusive tour.
+                            example: 'NL'
+                            type: string
+                        required:
+                          - Type
+                      ItineraryOptions:
+                        description: Used to issue tickets on specific itinerary segments.
+                        properties:
+                          SegmentSelect:
+                            description: Used to instruct the system to price specified itinerary segments.
+                            type: array
+                            items:
+                              properties:
+                                EndNumber:
+                                  description: Used to select a range of name numbers.
+                                  example: 3
+                                  type: integer
+                                  format: int32
+                                Number:
+                                  description: Used to specify segment number.
+                                  example: 1
+                                  type: integer
+                                  format: int32
+                                RPH:
+                                  description: Used to match up with ".../SpecificFare/@RPH" or .../Brand.
+                                  example: '1'
+                                  type: string
+                              required:
+                                - Number
+                            minItems: 0
+                          SideTrip:
+                            description: Used to instruct the system to price the specified itinerary segments as a side trip.
+                            properties:
+                              EndNumber:
+                                description: Used to select a range of name numbers.
+                                example: 3
+                                type: integer
+                                format: int32
+                              Number:
+                                description: Used to specify segment number.
+                                example: 1
+                                type: integer
+                                format: int32
+                            required:
+                              - Number
+                      NameSelect:
+                        description: Used to instruct the system to price the itinerary based upon a particular name field.
+                        type: array
+                        items:
+                          properties:
+                            EndNameNumber:
+                              description: Used to select a range of name numbers.
+                              example: '2.1'
+                              type: string
+                            NameNumber:
+                              description: Used to select a specific name number.
+                              example: '1.1'
+                              type: string
+                          required:
+                            - NameNumber
+                        minItems: 0
+                      PhaseIV:
+                        description: Used to issue a Phase IV ticket. Can't be combined with `.../PriceQuote`.
+                        type: array
+                        items:
+                          properties:
+                            NameSelect:
+                              description: Used to instruct the system to price the itinerary based upon a particular name field.
+                              type: array
+                              items:
+                                properties:
+                                  EndNameNumber:
+                                    description: Used to select a range of name numbers.
+                                    example: '4.1'
+                                    type: string
+                                  NameNumber:
+                                    description: Used to select a specific name number.
+                                    example: '2.1'
+                                    type: string
+                                required:
+                                  - NameNumber
+                              minItems: 0
+                            Number:
+                              description: Used to specify phase IV number.
+                              example: 1
+                              type: integer
+                              format: int32
+                          required:
+                            - Number
+                        minItems: 0
+                        maxItems: 7
+                      PriceQuote:
+                        description: Can't be combined with `.../NameSelect` and with `.../PhaseIV`.
+                        type: array
+                        items:
+                          properties:
+                            NameSelect:
+                              description: Used to instruct the system to price the itinerary based upon a particular name field.
+                              type: array
+                              items:
+                                properties:
+                                  EndNameNumber:
+                                    description: Used to select a range of name numbers.
+                                    example: 4.1
+                                    type: number
+                                    format: float
+                                  NameNumber:
+                                    description: Used to select a specific name number.
+                                    example: 2.1
+                                    type: number
+                                    format: float
+                                required:
+                                  - NameNumber
+                              minItems: 0
+                            Record:
+                              description: |
+                                To specify multiple PQR records to issue, define a range or specific record numbers by means of parameter repetition.
+                                `.../Ticketing/PricingQualifiers/PriceQuote/Record/@Reissue` can't be combined with `.../Ticketing/MiscQualifiers/Ticket`.
+                              type: array
+                              items:
+                                properties:
+                                  EndNumber:
+                                    description: Used to specify the ending PQ number in a range.
+                                    example: 3
+                                    type: integer
+                                    format: int32
+                                  Number:
+                                    description: Used to specify a PQ number.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                                  Reissue:
+                                    description: If `true`, indicates that the particular PQ record is a PQ Reissue record.
+                                    example: true
+                                    type: boolean
+                                required:
+                                  - Number
+                              minItems: 0
+                        minItems: 0
+                      RefundableBalance:
+                        description: Used to issue PQR with refundable balance EMD-S.
+                        properties:
+                          Taxes:
+                            description: Used to specify tax details.
+                            properties:
+                              Tax:
+                                description: Used to specify individual tax details.
+                                type: array
+                                items:
+                                  properties:
+                                    Amount:
+                                      description: Used to specify a value associated with the tax in PQR Exchange.
+                                      example: '20.00'
+                                      type: string
+                                    Code:
+                                      description: Used to specify a tax code associated with the tax in PQR Exchange.
+                                      example: 'XX'
+                                      type: string
+                                  required:
+                                    - Amount
+                                    - Code
+                                minItems: 1
+                            required:
+                              - Tax
+                          Amount:
+                            description: Used to specify refundable balance amount.
+                            example: '100.00'
+                            type: string
+                        required:
+                          - Amount
+                      SpanishLargeFamilyDiscountLevel:
+                        description: Used to specify the spanish large family discount level. Only applicable to Spain-based subscribers.
+                        example: '1'
+                        type: string
+                        enum:
+                          - '1'
+                          - '2'
+                      SpecificFare:
+                        description: Only applicable to Abacus.
+                        type: array
+                        items:
+                          properties:
+                            FareBasis:
+                              description: Used to specify a particular fare basis that will, in turn, be validated.
+                              example: 'ABCDE'
+                              type: string
+                            RPH:
+                              description: Used to match up with ../OptionalQualifiers/PricingQualifiers/ItineraryOptions/Segment.
+                              example: '1'
+                              type: string
+                        minItems: 0
+                      SpecificPenalty:
+                        description: Used to specify change or cancellation amounts for an itinerary.
+                        properties:
+                          Changeable:
+                            description: One object can't contain both `BeforeDeparture` and `AfterDeparture`.
+                            properties:
+                              Any:
+                                description: If `true`, specifies only changeable fare options.
+                                example: true
+                                type: boolean
+                              CurrencyCode:
+                                description: Used to specify the specific currency for maximum exchange penalty.
+                                example: 'USD'
+                                type: string
+                              MaxPenalty:
+                                description: |
+                                  Used to specify a maximum change penalty. If set to `0`, no penalty is preferred.
+                                  If set to `N`, only non-changeable options are requested.
+                                  Decimals aren't allowed.
+                                example: '100'
+                                type: string
+                              BeforeDeparture:
+                                description: If `true`, queries for before departure fees.
+                                example: true
+                                type: boolean
+                              AfterDeparture:
+                                description: If `true`, queries for after departure fees.
+                                example: true
+                                type: boolean
+                          EitherOr:
+                            description: One object can't contain both `BeforeDeparture` and `AfterDeparture`.
+                            properties:
+                              Any:
+                                description: If `true`, specifies only changeable fare options.
+                                example: true
+                                type: boolean
+                              CurrencyCode:
+                                description: Used to specify the specific currency for maximum exchange penalty.
+                                example: 'USD'
+                                type: string
+                              MaxPenalty:
+                                description: |
+                                  Used to specify a maximum change penalty. If set to `0`, no penalty is preferred.
+                                  If set to `N`, only non-changeable options are requested.
+                                  Decimals aren't allowed.
+                                example: '100'
+                                type: string
+                              BeforeDeparture:
+                                description: If `true`, queries for before departure fees.
+                                example: true
+                                type: boolean
+                              AfterDeparture:
+                                description: If `true`, queries for after departure fees.
+                                example: true
+                                type: boolean
+                          Refundable:
+                            description: One object can't contain both `BeforeDeparture` and `AfterDeparture`.
+                            properties:
+                              Any:
+                                description: If `true`, specifies only changeable fare options.
+                                example: true
+                                type: boolean
+                              CurrencyCode:
+                                description: Used to specify the specific currency for maximum exchange penalty.
+                                example: 'USD'
+                                type: string
+                              MaxPenalty:
+                                description: |
+                                  Used to specify a maximum change penalty. If set to `0`, no penalty is preferred.
+                                  If set to `N`, only non-changeable options are requested.
+                                  Decimals aren't allowed.
+                                example: '100'
+                                type: string
+                              BeforeDeparture:
+                                description: If `true`, queries for before departure fees.
+                                example: true
+                                type: boolean
+                              AfterDeparture:
+                                description: If `true`, queries for after departure fees.
+                                example: true
+                                type: boolean
+                          AdditionalInfo:
+                            description: If `true`, receives additional tags with information on fare flexibility.
+                            example: true
+                            type: boolean
+                      Taxes:
+                        description: Used to exempt taxes.
+                        properties:
+                          NoTax:
+                            description: Used to specify whether or not to exempt all taxes during EMD issuance.
+                            properties:
+                              Ind:
+                                description: If `true`, exempts all taxes during EMD issuance.
+                                example: true
+                                type: boolean
+                          TaxExempt:
+                            description: Used to specify a tax code to exempt during EMD issuance.
+                            type: array
+                            items:
+                              properties:
+                                Code:
+                                  description: Used to specify a tax code to exempt during EMD issuance.
+                                  example: 'GB'
+                                  type: string
+                            minItems: 0
+                            maxItems: 5
+                      ValidityDates:
+                        description: Used to specify ticket validity dates. Can't be combined with `PhaseIV`.
+                        type: array
+                        items:
+                          properties:
+                            NotValidAfter:
+                              description: Used to specify the ending validity date.
+                              example: '2024-12-31'
+                              type: string
+                              pattern: (((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-9])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-30)))|(((19|20)(([02468][048])|([13579][26]))-02-29))|((20[0-9][0-9])|(19[0-9][0-9]))-((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-8])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-(29|30)))))
+                            NotValidBefore:
+                              description: Used to specify the beginning validity date.
+                              example: '2024-12-31'
+                              type: string
+                              pattern: (((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-9])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-30)))|(((19|20)(([02468][048])|([13579][26]))-02-29))|((20[0-9][0-9])|(19[0-9][0-9]))-((((0[1-9])|(1[0-2]))-((0[1-9])|(1\d)|(2[0-8])))|((((0[13578])|(1[02]))-31)|(((0[1,3-9])|(1[0-2]))-(29|30)))))
+                            Segment:
+                              description: Used to specify the relevant itinerary segments.
+                              type: array
+                              items:
+                                properties:
+                                  EndNumber:
+                                    description: Used to specify end number in range.
+                                    example: 3
+                                    type: integer
+                                    format: int32
+                                  Number:
+                                    description: Used to specify segment number.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                                required:
+                                  - Number
+                              minItems: 1
+                          required:
+                            - Segment
+                        minItems: 0
+              minItems: 1
+              maxItems: 99
+            PostProcessing:
+              type: object
+              description: Additional ticket issuance options, mostly related to post issuance actions.
+              properties:
+                EndTransaction:
+                  description: Used to end the transaction and finalize the record.
+                  properties:
+                    generateSingleInvoice:
+                      description: |
+                        If `true`, the API sends a single commit message after issuing multiple tickets.
+                        
+                        This alters the default mechanism in which each ticket is committed to the PNR immediately after issuance.
+                      example: false
+                      type: boolean
+                    Source:
+                      description: Used to receive the record.
+                      properties:
+                        ReceivedFrom:
+                          description: Used to receive the record.
+                          example: 'SWS TESTING'
+                          type: string
+                      required:
+                        - ReceivedFrom
+                    InvoiceOption:
+                      description:
+                        Contains parameters used to request the issuance of an invoice document.
+                        Mainly applies to low-cost airline booking fulfillment (Sabre Air Connect).
+                        Can't be combined with `ItineraryOption`.
+                      properties:
+                        Ind:
+                          description: If `true`, requests the issuance of an invoice document.
+                          example: true
+                          type: boolean
+                      required:
+                        - Ind
+                    ItineraryOption:
+                      description:
+                        Contains parameters used to request the issuance of an itinerary document.
+                        Mainly applies to low-cost airline booking fulfillment (Sabre Air Connect).
+                        Can't be combined with `InvoiceOption`.
+                      properties:
+                        Ind:
+                          description: If `true`, requests the issuance of an itinerary document.
+                          example: true
+                          type: boolean
+                      required:
+                        - Ind
+                    Email:
+                      description: Used to send an email notification upon end transaction to any email addresses contained within the particular record.
+                      properties:
+                        eTicket:
+                          description: Used to send an email notification containing a text-based copy of the eTicket. Can't be combined with `.../Invoice` or `.../Itinerary`.
+                          properties:
+                            PDF:
+                              description: Used to send an email notification containing a PDF-based copy of the eTicket.
+                              properties:
+                                Ind:
+                                  description: If `true`, requests a PDF copy of the eTicket.
+                                  example: true
+                                  type: boolean
+                              required:
+                                - Ind
+                            Ind:
+                              description: If `true`, sends an email notification containing a text-based copy of the eTicket.
+                              example: true
+                              type: boolean
+                          required:
+                            - Ind
+                        Invoice:
+                          description: Used to send an email notification containing a text-based copy of the invoice. Can't be combined with `.../eTicket` or `.../Itinerary`.
+                          properties:
+                            Ind:
+                              description: If `true`, adds a text-based copy of the invoice to the email notification.
+                              example: true
+                              type: boolean
+                          required:
+                            - Ind
+                        Itinerary:
+                          description: Used to send an email notification containing a text-based copy of the itinerary. Can't be combined with `.../eTicket` or `.../Invoice`.
+                          properties:
+                            PDF:
+                              description: Used to send an email notification containing a PDF-based copy of the itinerary.
+                              properties:
+                                Ind:
+                                  description: If `true`, sends an email notification containing a PDF-based copy of the itinerary.
+                                  example: true
+                                  type: boolean
+                              required:
+                                - Ind
+                            Segment:
+                              type: array
+                              items:
+                                properties:
+                                  EndNumber:
+                                    description: Used to specify an ending segment in the range to include in the email message.
+                                    example: 1
+                                    type: integer
+                                    format: int32
+                                  Number:
+                                    description: Used to specify a segment number to include in the email message.
+                                    example: 2
+                                    type: integer
+                                    format: int32
+                                required:
+                                  - Number
+                              minItems: 0
+                            Ind:
+                              description: If `true`, sends an email notification containing a text-based copy of the itinerary.
+                              example: true
+                              type: boolean
+                          required:
+                            - Ind
+                        PersonName:
+                          properties:
+                            NameNumber:
+                              description: |
+                                Used to specify a particular passenger name number to send the email notification to.
+                                The email address in the PNR's email field must be name-associated to the specified name number.
+                              example: '2.1'
+                              type: string
+                          required:
+                            - NameNumber
+                        Ind:
+                          description: If `true`, sends an email notification upon end transaction.
+                          example: true
+                          type: boolean
+                      required:
+                        - Ind
+                GhostTicketCheck:
+                  properties:
+                    waitInterval:
+                      description: Used to specify interval of time that system will wait.
+                      example: 1000
+                      type: integer
+                      format: int32
+                      maximum: 30000
+                      minimum: 1000
+                    numAttempts:
+                      description: Used to specify how many times GhostTicket will be checked.
+                      example: 2
+                      type: integer
+                      format: int32
+                      maximum: 6
+                      minimum: 1
+                TicketingInterval:
+                  description: |
+                    Specifies the wait interval before the second and then to any subsequent ticketing operations.
+                    For example, if you send four `/Ticketing` nodes, the system will perform four ticketing issuance operations.
+                    In this case the delay is set after the first, second, and third operation.
+                  properties:
+                    waitInterval:
+                      description: Used to specify an interval that the system should wait in milliseconds.
+                      example: 1000
+                      type: integer
+                      format: int32
+                      maximum: 5000
+                      minimum: 1000
+                    includeFirst:
+                      description: If `true`, triggers the Ticketing Interval logic for first ticketing transaction.
+                      example: true
+                      type: boolean
+                CreditVerificationInterval:
+                  description: If `true`, specifies the wait interval before committing the changes to the ticket in the instance of system encountering `CREDIT VERIFICATION` message.
+                  properties:
+                    waitInterval:
+                      description: The duration of the wait interval in milliseconds.
+                      example: 4000
+                      type: integer
+                      format: int32
+                      maximum: 10000
+                      minimum: 3000
+                acceptNegotiatedFare:
+                  description: If `true`, accepts a negotiated fare when it's impossible to ticket the stored fare.
+                  example: true
+                  type: boolean
+                acceptPriceChanges:
+                  description: If `true`, issues a ticket even if the price increases while processing.
+                  example: true
+                  type: boolean
+                actionOnPQExpired:
+                  description: Used to specify appropriate action when Price Quote expires. Available options are "R" - reprice, "Q" Quit, "O" Override.
+                  example: 'O'
+                  type: string
+                  enum:
+                    - O
+                    - Q
+                    - R
+                actionOnBackDatePrice:
+                  description: |
+                    Used to specify appropriate action when Price Quote contains back date price. Available options are "R" - reprice, "Q" Quit, "O" Override.
+                    If no action is specified, system will automatically perform the reprice.
+                  example: 'Q'
+                  type: string
+                  enum:
+                    - O
+                    - Q
+                    - R
+            Diagnostics:
+              type: object
+              properties: { }
+            haltOnInvalidMCT:
+              description: |
+                If `true`, the API stops processing upon encountering an error indicating
+                that the minimum connection time between air itinerary segments isn't met.
+              example: true
+              type: boolean
+            targetCity:
+              description: |
+                Used to specify to which city service should change context using ContextChange (AAA) and the rest of the service uses new security.
+                If empty or equals current city the context doesn't change.
+              example: 'AAAA'
+              type: string
+            healthCheck:
+              description: |
+                This is for Sabre internal use only.
+                
+                If `true`, the API is queried in health check mode and returns a blank success that doesn't invoke downstream providers.
+              example: 'false'
+              type: string
+            version:
+              description: Used to specify API version.
+              example: '1.3.0'
+              type: string
+              minLength: 1
+              maxLength: 255
+          required:
+            - Itinerary
+            - Ticketing
+
+    EnhancedAirTicketResponse:
+      type: object
+      properties:
+        Links:
+          type: array
+          description: Lists hypertext application language links.
+          items:
+            properties:
+              rel:
+                type: string
+                example: 'self'
+                description: Describes relationship between href and current request.
+              href:
+                type: string
+                example: 'https://api.cert.platform.sabre.com/v1.3.0/air/ticket'
+                description: Link to related API request.
+        AirTicketRS:
+          type: object
+          description: Orchestrated Air Ticket API response.
+          properties:
+            ApplicationResults:
+              type: object
+              description: ApplicationResults can be used anywhere where Results is referenced, specifically as the contents of a Sabre SOAP Fault/detail element.
+              properties:
+                Success:
+                  description: Lists details of a successful call.
+                  type: array
+                  items:
+                    properties:
+                      SystemSpecificResults:
+                        $ref: "#/components/schemas/SystemSpecificResults"
+                      type:
+                        description: An indication of the source of error when processing the request.
+                        type: string
+                        pattern: \c+
+                        enum:
+                          - Transport
+                          - Validation
+                          - Application
+                          - BusinessLogic
+                      timeStamp:
+                        type: string
+                  minItems: 0
+                  maxItems: 99
+                Error:
+                  description: Lists details of any errors encountered during processing.
+                  type: array
+                  items:
+                    properties:
+                      SystemSpecificResults:
+                        $ref: "#/components/schemas/SystemSpecificResults"
+                      type:
+                        description: An indication of the source of error when processing the request.
+                        type: string
+                        pattern: \c+
+                        enum:
+                          - Transport
+                          - Validation
+                          - Application
+                          - BusinessLogic
+                      timeStamp:
+                        type: string
+                  minItems: 0
+                  maxItems: 99
+                Warning:
+                  description: |
+                    Lists details of any issues encountered during processing.
+                    
+                    Use this information to help troubleshoot further.
+                  type: array
+                  items:
+                    properties:
+                      SystemSpecificResults:
+                        $ref: "#/components/schemas/SystemSpecificResults"
+                      type:
+                        description: An indication of the source of error when processing the request.
+                        type: string
+                        pattern: \c+
+                        enum:
+                          - Transport
+                          - Validation
+                          - Application
+                          - BusinessLogic
+                      timeStamp:
+                        type: string
+                  minItems: 0
+                  maxItems: 99
+                status:
+                  description: Transaction status.
+                  type: string
+                  enum:
+                    - Complete
+                    - Incomplete
+                    - NotProcessed
+                    - Unknown
+              required:
+                - status
+            Summary:
+              description: This element is used to return a summary information about the documents that were found.
+              type: array
+              items:
+                properties:
+                  DocumentNumber:
+                    description: Used to specify serial number.
+                    example: '8298200110468'
+                    type: string
+                  LocalIssueDateTime:
+                    description: Used to specify issue date and time - in local time zone of the station that issued it.
+                    example: '2024-09-08T16:11:32.000Z'
+                    type: string
+                  DocumentType:
+                    description: Used to specify type of the document. Possible values are TKT, MSR and EMD.
+                    example: 'TKT'
+                    type: string
+                  IssuingLocation:
+                    description: Used to specify station location code (usually city code) of the station that issued the document.
+                    example: 'G7HE'
+                    type: string
+                  Reservation:
+                    description: Used to specify PNR locator of the PNR containing this document. Returned if the document is a part of a PNR.
+                    properties:
+                      content:
+                        description: Used to specify Passenger Name Record (PNR) locator of the PNR containing this document. Returned if the document is a part of a PNR.
+                        example: 'DHTYAF'
+                        type: string
+                      provider:
+                        description: Used to inform about the code of the airline that owns the PNR. Optional.
+                        example: 'SY'
+                        type: string
+                      purgeDate:
+                        description: Used to specify purge date informs about the purge date of the PNR. Optional.
+                        example: '2024-12-17T09:30:47Z'
+                        type: string
+                      createDate:
+                        description: Used to inform about the creation date of the PNR. Optional.
+                        example: '2024-12-17T09:30:47Z'
+                        type: string
+                  FirstName:
+                    description: Used to specify first name of the customer.
+                    example: 'ADAM'
+                    type: string
+                  LastName:
+                    description: Used to specify last name (family name or surname) of the customer.
+                    example: 'JONES'
+                    type: string
+                  DocumentStatus:
+                    description: |
+                      DocumentStatus is used to specify status of the document found (of the whole document, not particular coupon).
+
+                      Possible values: V - VOIDED E - EXCHANGED R - REFUNDED.
+                    example: 'V'
+                    type: string
+                  TotalAmount:
+                    description: Used to describe amount of money paid for this document.
+                    properties:
+                      content:
+                        description: Used to specify amount of money paid.
+                        example: '60.0'
+                        type: string
+                      currencyCode:
+                        description: Used to specify the code of the currency in which the amount is expressed.
+                        example: 'USD'
+                        type: string
+                      decimalPlace:
+                        description: Used to indicate the number of decimal places required by the currency.
+                        example: 2
+                        type: integer
+                        format: int32
+                  committed:
+                    description: If `true`, the ticket number has been commited to the face of the PNR.
+                    example: true
+                    type: boolean
+              minItems: 0
+            Diagnostics:
+              type: object
+              description: For internal use only.
+              properties:
+                ESSM_Data:
+                  type: object
+                  description: For internal use only.
+                  properties:
+                    AutoEnd:
+                      description: For internal use only.
+                      example: true
+                      type: boolean
+                    AutoEndAndRetrieve:
+                      description: For internal use only.
+                      example: true
+                      type: boolean
+                    AbacusPrimeHost:
+                      description: For internal use only.
+                      example: true
+                      type: boolean
+                    InfiniPrimeHost:
+                      description: For internal use only.
+                      example: true
+                      type: boolean
+                    AutoEndDetected:
+                      description: For internal use only.
+                      example: true
+                      type: boolean
+                    PrevSimulChgTty:
+                      description: For internal use only.
+                      example: true
+                      type: boolean
+                  required:
+                    - AutoEnd
+                    - AutoEndAndRetrieve
+                    - AbacusPrimeHost
+                    - InfiniPrimeHost
+                    - AutoEndDetected
+                    - PrevSimulChgTty
+              required:
+                - ESSM_Data
+            version:
+              description: Used to indicate version of the payload message.
+              example: '1.3.0'
+              type: string
+              minLength: 1
+              maxLength: 255
+
+    SystemSpecificResults:
+      description: Lists specific information from the system and/or other sub-systems invoked during processing.
+      type: array
+      items:
+        properties:
+          HostCommand:
+            description: Contains the host system command run to create this result.
+            type: object
+            properties:
+              content:
+                type: string
+                minLength: 0
+                maxLength: 4096
+              LNIATA:
+                description: |
+                  An abbreviation for Line / Interface Adapter / Terminal Address.
+
+                  A three-byte terminal address, usually seen as a six-character hexadecimal field.
+                example: '0358DC'
+                type: string
+          Message:
+            description: |
+              Lists application-specific codes and messages.
+              
+              Refers to a text-based description that provides more information about a specific condition, warning, or error, and is accompanied by a code attribute as a numeric value.
+            type: array
+            items:
+              properties:
+                content:
+                  type: string
+                  minLength: 0
+                  maxLength: 4096
+                code:
+                  type: string
+            minItems: 0
+            maxItems: 99
+          ShortText:
+            description: An abbreviated version of the error in textual format.
+            type: string
+            minLength: 1
+            maxLength: 128
+          Element:
+            description: |
+              May identify an unknown or misspelled tag that caused a processing error.
+              If more than one tag with the same name is present in the document, use the XPath notation in the `Tag` parameter to identify the location of a tag.
+              Alternatively, the tag name alone can be used to identify missing data (`Type=ReqFieldMissing`).
+            type: string
+            minLength: 0
+            maxLength: 4096
+          RecordID:
+            description: |
+              Allows for batch processing and identification of the record that failed amongst a group of records.
+              May be a concatenation of a unique failed transaction ID with specific records associated with that transaction.
+            type: string
+            minLength: 1
+            maxLength: 255
+          DocURL:
+            description: If present, this attribute refers to an online description of the error that occurred.
+            type: string
+          timeStamp:
+            type: string
+          reference:
+            description: If present, this attribute provides an XML IDREF to the element for which the results apply.
+            type: string
+      minItems: 0
+      maxItems: 99
+
+  examples:
+    requestExample:
+      value:
+        AirTicketRQ:
+          version: 1.3.0
+          DesignatePrinter:
+            Printers:
+              Hardcopy:
+                LNIATA: ABCDEF
+              Ticket:
+                CountryCode: AT
+          Itinerary:
+            ID: OXRBAK
+          Ticketing:
+            - FOP_Qualifiers:
+                BasicFOP:
+                  CC_Info:
+                    PaymentCard:
+                      Code: VI
+                      ExpireDate: 2024-12
+                      Number: 1234567890123456
+              PricingQualifiers:
+                PriceQuote:
+                  - Record:
+                      - Number: 1
+          PostProcessing:
+            EndTransaction:
+              Source:
+                ReceivedFrom: API TEST
+
+
+    responseExample:
+      value:
+        AirTicketRS:
+          ApplicationResults:
+            status: Complete
+            Success:
+              - timeStamp: '2026-12-06T12:27:48.530Z'
+          Summary:
+            - DocumentNumber: '0019152055935'
+              LocalIssueDateTime: '2026-12-06T12:27:00'
+              DocumentType: TKT
+              IssuingLocation: 61N1
+              Reservation:
+                content: OXRBAK
+              FirstName: JAMES
+              LastName: SMITH
+              TotalAmount:
+                currencyCode: GBP
+                decimalPlace: 2
+                content: '1328.70'
+        Links:
+          - rel: self
+            href: https://api.cert.platform.sabre.com/v1.3.0/air/ticket
+          - rel: linkTemplate
+            href: https://api.cert.platform.sabre.com/<version>/air/ticket

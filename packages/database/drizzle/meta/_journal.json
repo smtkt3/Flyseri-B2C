@@ -225,6 +225,41 @@
       "when": 1791949288469,
       "tag": "0031_coupon_discounts",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792458000000,
+      "tag": "0032_visa_assistance_archive",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792473000000,
+      "tag": "0033_flight_servicing_cases",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792497600000,
+      "tag": "0034_flight_contact_servicing",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792501200000,
+      "tag": "0035_flight_exchange_payment",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793232000000,
+      "tag": "0036_flight_pricing_policies",
+      "breakpoints": true
     }
   ]
 }

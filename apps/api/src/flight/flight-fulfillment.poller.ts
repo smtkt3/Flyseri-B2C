@@ -23,7 +23,8 @@ export class FlightFulfillmentPoller implements OnModuleInit, OnModuleDestroy {
     if (this.running || this.stopped || !this.connection) return;
     this.running = true;
     try {
-      if (!(await this.ticketing.capabilities()).ticketIssuanceAvailable) return;
+      const capabilities=await this.ticketing.capabilities();
+      if (!capabilities.ticketIssuanceAvailable||!capabilities.automaticTicketingEnabled) return;
       const db = this.connection.db;
       const candidates = await db.selectDistinct({id:flightBookings.id,customerId:flightBookings.customerId,pnr:flightBookings.pnrLocator,tripId:flightBookings.tripId,paidAt:orders.paidAt})
         .from(flightBookings).innerJoin(orders,and(eq(orders.bookingIntentId,flightBookings.bookingIntentId),eq(orders.customerId,flightBookings.customerId)))

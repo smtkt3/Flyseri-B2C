@@ -22,7 +22,7 @@ const search = { origin: 'KUL', destination: 'NRT', departureDate: '2026-12-10',
 describe('flight booking intent foundation', () => {
   it('uses owned trips and travellers, idempotency, RLS and a disabled validation boundary', async () => {
     const database = new PGlite();
-  await database.exec('CREATE ROLE flyseri_api');
+  await database.exec('CREATE ROLE flyseri_api; CREATE ROLE anon; CREATE ROLE authenticated;');
     try {
       const journal = JSON.parse(readFileSync(resolve(process.cwd(), '../../packages/database/drizzle/meta/_journal.json'), 'utf8')) as { entries: { tag: string }[] };
       for (const entry of journal.entries) {

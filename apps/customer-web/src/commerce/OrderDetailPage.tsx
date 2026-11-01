@@ -1,11 +1,13 @@
 import { CouponCheckout } from './CouponCheckout';
+import {FlightExchangeQuotationCard} from '../flight/FlightExchangeQuotationCard';
+import {OrderRefundSummary} from './OrderRefundSummary';
 import { PaymentMethodsPanel } from '../components/PaymentMethodsPanel';
 import { useBookingEvidencePoll } from '../flight/useBookingEvidencePoll';
 import { FlightTicketIssuanceNotice } from '../flight/FlightTicketIssuanceNotice';
 import { CheckoutActionBar } from '../components/CheckoutActionBar';
 import { checkoutPrice } from '../components/checkoutPrice';
 import { CheckoutHelpPanel } from '../components/CheckoutHelpPanel';
-import { bookingHasIssuedTickets, bookingOutcome } from '../flight/bookingPresentation';
+import { bookingHasCancelledSegments, bookingHasIssuedTickets, bookingOutcome } from '../flight/bookingPresentation';
 import { CheckoutPageHeader } from '../flight/CheckoutPageHeader';
 import '../flight/checkout-step-style.css';
 import { Translated } from '../travel/language';
@@ -26,6 +28,7 @@ import { BookingLoading } from '../flight/BookingLoading';
 import { usePreferredDisplayPrices } from '../flight/usePreferredDisplayPrices';
 import { clearPaymentAttempt, keepPaymentAttempt, readPaymentAttempt } from './paymentRecovery';
 import { PointsCheckout } from '../rewards/PointsCheckout';
+import {ApiClientError} from '../lib/api/client';
 
 export function OrderDetailPage() {
   const { orderId } = useParams();
@@ -38,6 +41,7 @@ export function OrderDetailPage() {
   const [servicesUnavailable, setServicesUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [missingOrder,setMissingOrder]=useState(false);
   const [checkoutAvailable, setCheckoutAvailable] = useState(false);
   const [ticketingAvailable, setTicketingAvailable] = useState(false);
   const [startingPayment, setStartingPayment] = useState(false);
@@ -55,14 +59,19 @@ export function OrderDetailPage() {
   ]);
   const displayPrice = (index: number) => {const value=display.prices[index];return value?.amount != null ? `${value.estimated ? '≈ ' : ''}${formatMoney(value.amount,display.currency)}` : display.failed ? 'Conversion unavailable' : `Updating ${display.currency}…`;};
   const expired = !!order?.expiresAt && Date.parse(order.expiresAt) <= now && !paid;
-  const mustCheckPayment = !paid && (needsPaymentCheck || ['UNKNOWN','CREATED'].includes(order?.payment?.status ?? ''));
+  const mustCheckPayment = !paid && (needsPaymentCheck || ['UNKNOWN','CREATED','PROCESSING'].includes(order?.payment?.status ?? ''));
   const pending = !!order?.payment && ['PENDING', 'PROCESSING', 'UNKNOWN', 'CREATED'].includes(order.payment.status);
-  const resultReached = !!order && (paid || pending || mustCheckPayment || ['PAYMENT_FAILED','CANCELLED','EXPIRED'].includes(order.status));
-  const outcome = !order ? undefined : ['PAYMENT_FAILED','CANCELLED','EXPIRED'].includes(order.status) || booking && bookingOutcome({...booking,order}) === 'unsuccessful' ? 'unsuccessful' as const : paid && booking && bookingHasIssuedTickets(booking) ? 'confirmed' as const : 'pending' as const;
+  // An open/failed Stripe checkout is still the Payment step. A PNR and a
+  // pending payment record do not establish that the customer has paid.
+  const reservationClosed = !!booking && (bookingHasCancelledSegments(booking) || ['CANCELLED','BOOKING_FAILED','PNR_EXPIRED'].includes(booking.status));
+  const resultReached = !!order && (paid || reservationClosed || order.status === 'CANCELLED');
+  const outcome = !order ? undefined : booking?.status === 'CANCELLED' ? 'cancelled' as const : ['PAYMENT_FAILED','CANCELLED','EXPIRED'].includes(order.status) || booking && bookingOutcome({...booking,order}) === 'unsuccessful' ? 'unsuccessful' as const : paid && booking?.status === 'TICKETED' && bookingHasIssuedTickets(booking) ? 'confirmed' as const : 'pending' as const;
   const flightResult = !!order?.flightBookingId && resultReached && !!booking;
   const awaitingFlightResult = !!order?.flightBookingId && resultReached && !booking && !servicesUnavailable;
   const checkoutTotal = checkoutPrice(order?.totalAmount,order?.currency);
-  const canPay = !!checkoutTotal && !!order && order.id === orderId && checkoutAvailable && !error && !mustCheckPayment && !expired && ['PENDING_PAYMENT', 'PAYMENT_FAILED', 'PAYMENT_PROCESSING'].includes(order.status)
+  const canRecheckFare = expired && !!order?.flightBookingId && !order.flightServicingCaseId && !!booking && !reservationClosed && ['PNR_CREATED','AWAITING_PAYMENT','PAYMENT_PENDING'].includes(booking.status)
+    && (!booking.ancillaryPurchase || ['SKIPPED','UNAVAILABLE'].includes(booking.ancillaryPurchase.status));
+  const canPay = (!order?.flightServicingCaseId || !!order.exchangeQuotation && ['PAYMENT_REQUIRED','PAYMENT_PROCESSING'].includes(order.exchangeQuotation.status)) && (!order?.flightBookingId || !!booking && !reservationClosed && ['PNR_CREATED','AWAITING_PAYMENT','PAYMENT_PENDING'].includes(booking.status)) && !!checkoutTotal && !!order && order.id === orderId && checkoutAvailable && !error && !mustCheckPayment && (!expired || canRecheckFare) && (['PENDING_PAYMENT', 'PAYMENT_FAILED', 'PAYMENT_PROCESSING'].includes(order.status) || canRecheckFare && order.status === 'EXPIRED')
     && (!order.payment || ['FAILED','PENDING','PROCESSING'].includes(order.payment.status));
   useEffect(() => {
     let active = true; setBooking(null); setServicesUnavailable(false);
@@ -75,11 +84,33 @@ export function OrderDetailPage() {
   async function loadOrder(id: string): Promise<OrderDetail> {
     const current = await commerceService.order(id);
     if (!current.payment || !['PENDING', 'PROCESSING', 'UNKNOWN'].includes(current.payment.status)) return current;
-    try { await commerceService.payment(current.payment.id); return await commerceService.order(id); }
+    try {
+      const payment=await commerceService.payment(current.payment.id);
+      // A pending checkout does not change the order. Avoid another database
+      // round trip on every poll; terminal payment events need the updated order.
+      if(payment?.id===current.payment.id && payment.status==='PENDING')return {...current,payment};
+      return await commerceService.order(id);
+    }
     catch { return current; }
   }
+  useEffect(() => {
+    if (!order || order.id !== orderId) return;
+    // A verified failure ends that attempt. Reusing its idempotency key would
+    // repeatedly return the failed checkout instead of allowing a fresh one.
+    if (order.payment?.status === 'FAILED' || paid) {
+      clearPaymentAttempt(order.id);
+      setNeedsPaymentCheck(false);
+    } else if(order.payment?.status==='PENDING') {
+      // The server has persisted an existing checkout. It is safe to offer
+      // resume: the API verifies that same session before returning its URL.
+      // Preserve the original key rather than starting another attempt.
+      if(readPaymentAttempt(order.id))keepPaymentAttempt(order.id,false);
+      setNeedsPaymentCheck(false);
+      setPaymentNotice('');
+    }
+  }, [orderId, order, paid]);
   useEffect(() => { if (!orderId) return; let active = true; setNeedsPaymentCheck(!!readPaymentAttempt(orderId)?.uncertain); setCheckoutAvailable(false); setStartingPayment(false); setUpdatingPoints(false); setUpdatingCoupon(false); setRefreshing(false); setLoading(true); setOrder(null); setError(false); setPaymentNotice(''); setPaymentConfirmed(false); void loadOrder(orderId).then((value) => {
-    if (active) setOrder(value); }, () => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); });
+    if (active) {setOrder(value);setMissingOrder(false);} }, cause => { if (active) {setError(true);setMissingOrder(cause instanceof ApiClientError&&cause.code==='NOT_FOUND');} }).finally(() => { if (active) setLoading(false); });
     void commerceService.paymentCapabilities().then((value) => { if (active) setCheckoutAvailable(value.checkoutAvailable); }, () => {});
     return () => { active = false; }; }, [orderId]);
   useEffect(() => {
@@ -87,7 +118,7 @@ export function OrderDetailPage() {
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
-    if (!orderId || !pending) return;
+    if (!orderId || !pending && !needsPaymentCheck) return;
     let active = true, running = false, attempts = 0;
     const timer = window.setInterval(() => {
       if (!active || running || document.visibilityState !== 'visible') return;
@@ -96,8 +127,8 @@ export function OrderDetailPage() {
       void loadOrder(orderId).then(value => { if (active) setOrder(value); }, () => undefined).finally(() => { running = false; });
     }, 5000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [orderId, pending]);
-  async function refresh() { if (!orderId || refreshing) return; const id=orderId;setRefreshing(true); try { const value=await loadOrder(id);if(activeOrderId.current===id){setOrder(value);setError(false);setPaymentConfirmed(false);if(!value.payment||value.payment?.status==='FAILED'||['PAID','CANCELLED','EXPIRED'].includes(value.status))clearPaymentAttempt(id);if(!value.payment||!['UNKNOWN','CREATED'].includes(value.payment.status)){setNeedsPaymentCheck(false);if(readPaymentAttempt(id))keepPaymentAttempt(id,false);}} } catch { if(activeOrderId.current===id)setError(true); } finally { if(activeOrderId.current===id)setRefreshing(false); } }
+  }, [orderId, pending, needsPaymentCheck]);
+  async function refresh() { if (!orderId || refreshing) return; const id=orderId;setRefreshing(true); void commerceService.paymentCapabilities().then(value=>{if(activeOrderId.current===id)setCheckoutAvailable(value.checkoutAvailable);},()=>undefined); try { const value=await loadOrder(id);if(activeOrderId.current===id){setOrder(value);setError(false);setPaymentConfirmed(false);if(value.payment?.status==='FAILED'||['PAID','CANCELLED','EXPIRED'].includes(value.status))clearPaymentAttempt(id);if(!value.payment||!['UNKNOWN','CREATED'].includes(value.payment.status)){setNeedsPaymentCheck(false);if(readPaymentAttempt(id))keepPaymentAttempt(id,false);}} } catch { if(activeOrderId.current===id)setError(true); } finally { if(activeOrderId.current===id)setRefreshing(false); } }
   async function beginPayment() {
     if (!orderId || sending.current || updatingPoints || updatingCoupon || !paymentConfirmed || !canPay) return;
     sending.current = true;
@@ -111,14 +142,18 @@ export function OrderDetailPage() {
       if (result.redirectUrl) { window.location.assign(result.redirectUrl); return; }
       setPaymentNotice(result.payment.status === 'SUCCEEDED' ? 'Payment verified. Your order is being updated.' : 'This checkout has no available payment link. Check the latest status before continuing.');
       await refresh();
-    } catch (cause) { keepPaymentAttempt(id,true); if(activeOrderId.current===id){setNeedsPaymentCheck(true);setPaymentConfirmed(false);setPaymentNotice(cause instanceof Error ? cause.message : 'Checkout could not start. Check the order status before trying again.');} }
+    } catch (cause) {
+      const rejectedBeforeCheckout = cause instanceof ApiClientError && [400,403,404,409].includes(cause.status ?? 0);
+      if (rejectedBeforeCheckout) clearPaymentAttempt(id); else keepPaymentAttempt(id,true);
+      if(activeOrderId.current===id){setNeedsPaymentCheck(!rejectedBeforeCheckout);setPaymentConfirmed(false);setPaymentNotice(cause instanceof Error ? cause.message : 'Checkout could not start. Check the order status before trying again.');}
+    }
     finally { sending.current = false; if(activeOrderId.current===id)setStartingPayment(false); }
   }
   return <div className={`account-page checkout-step-page${canPay ? ' checkout-with-mobile-actions' : ''}`}>
-    <CheckoutPageHeader introOnly={!resultReached || !!order?.flightBookingId} progress={order?.flightBookingId ? <BookingProgress current={3} outcome={resultReached ? outcome : undefined} paymentComplete={paid} /> : undefined} title={order?.flightBookingId && resultReached && outcome ? {confirmed:'Booking confirmed',pending:'Booking pending',unsuccessful:'Booking unsuccessful'}[outcome] : paid ? 'Payment confirmed' : 'Complete your payment'} back={<Link to={order?.flightBookingId ? '/app/bookings' : '/app/orders'}>{order?.flightBookingId ? '← My bookings' : '← My orders'}</Link>}/>
+    <CheckoutPageHeader introOnly={!resultReached || !!order?.flightBookingId} progress={order?.flightBookingId ? <BookingProgress current={3} outcome={resultReached ? outcome : undefined} paymentComplete={paid} /> : undefined} title={order?.flightBookingId && resultReached && outcome ? {confirmed:'Booking confirmed',pending:'Booking pending',unsuccessful:'Booking unsuccessful',cancelled:'Booking cancelled'}[outcome] : paid ? 'Payment confirmed' : 'Complete your payment'} back={<Link to={order?.flightBookingId ? '/app/bookings' : '/app/orders'}>{order?.flightBookingId ? '← My bookings' : '← My orders'}</Link>}/>
     {loading && <BookingLoading label="Loading your order…" heading="Complete your payment" description="Review your total and continue to secure checkout." />}
     {!loading && awaitingFlightResult && <BookingLoading label="Loading your booking result…" heading="Your booking" description="Checking your reservation, payment and ticket status."/>}
-    {!loading && error && <div className="account-panel" role="alert">We couldn't refresh this order. <button className="account-link" onClick={() => { void refresh(); }}><Translated text="Retry" /></button></div>}
+    {!loading && error && <div className="account-panel" role="alert">{missingOrder?<><h2>Order unavailable in this account</h2><p>Open your orders, or sign in with the account used for this checkout. If payment was completed, keep your payment confirmation for support.</p><Link className="account-link" to="/app/orders">My orders →</Link></>:<>We couldn't refresh this order. <button className="account-link" onClick={() => { void refresh(); }}><Translated text="Retry" /></button></>}</div>}
     {mustCheckPayment && !flightResult && <section className="checkout-recovery-card" role="status"><h2>Check your payment before continuing</h2><p>The checkout connection was interrupted. Your payment may still be processing. Check the latest status before trying again; don’t create another booking.</p><button type="button" className="account-outline-button" disabled={refreshing} onClick={() => void refresh()}>{refreshing?'Checking payment…':'Check payment status'}</button><Link to="/help#payment-help">Payment help</Link></section>}
     {flightResult && order && booking && outcome && <><FlightOrderResult order={order} booking={booking} paid={paid} outcome={outcome} ticketingAvailable={ticketingAvailable} refreshing={refreshing} onRefresh={() => void refresh()} canPay={canPay} paymentConfirmed={paymentConfirmed} onPaymentConfirmed={setPaymentConfirmed} startingPayment={startingPayment} onPay={() => void beginPayment()}/>{paymentNotice && <p role="status">{paymentNotice}</p>}</>}
     {order && !flightResult && !awaitingFlightResult && <>
@@ -127,10 +162,11 @@ export function OrderDetailPage() {
       <div className={`checkout-status-card${paid ? ' is-paid' : expired || order.status === 'PAYMENT_FAILED' ? ' is-attention' : ''}`} role="status" aria-live="polite">
         <span className="checkout-status-caption"><i />{paid ? 'Payment verified' : expired ? 'Payment window closed' : mustCheckPayment ? 'Payment status needs checking' : pending ? 'Checkout in progress' : 'Secure checkout'}</span>
         <h2>{paid ? 'Payment confirmed' : expired ? 'This payment window has expired' : needsPaymentCheck ? 'Verify the latest payment result' : order.status === 'PAYMENT_FAILED' ? 'Payment was not completed' : pending ? 'Continue your payment' : 'Review and pay'}</h2>
-        <p>{paid ? order.flightBookingId ? 'Your test reservation and payment are saved. View your booking reference and services below.' : 'Your test payment is recorded. Review the next step below.' : expired ? 'Payment is unavailable for this expired order. Contact Flyseri to review the reservation before creating another booking.' : mustCheckPayment ? 'Your last checkout did not return a confirmed result. Check payment status before attempting payment again.' : pending ? 'We’re checking your payment. You can resume an available checkout below. Please wait for confirmation before paying again.' : 'Check the order total and reservation details, then continue to secure checkout.'}</p>
+        <p>{paid ? order.flightBookingId ? 'Your test reservation and payment are saved. View your booking reference and services below.' : 'Your test payment is recorded. Review the next step below.' : expired ? canRecheckFare ? 'Recheck your existing reservation and fare below. Checkout opens only if the airline still confirms your flights at the same fare. No new booking is created.' : 'The fare-check window has closed; this alone does not mean the airline cancelled your reservation. Contact Flyseri to recheck the existing reservation before payment.' : mustCheckPayment ? 'Your last checkout did not return a confirmed result. Check payment status before attempting payment again.' : pending ? 'Payment has not been confirmed. Resume your existing secure checkout below; its status is checked before it opens.' : 'Check the order total and reservation details, then continue to secure checkout.'}</p>
         {query.get('checkout') === 'cancelled' && !paid && <p>You returned from checkout without completing it. Your reservation has not been cancelled.</p>}
         {query.get('checkout') === 'returned' && !paid && <p>Welcome back. We’re checking your payment. Please wait for confirmation before paying again.</p>}
       </div>
+      {order.exchangeQuotation && <FlightExchangeQuotationCard quotation={order.exchangeQuotation} checkout/>}{order.flightServicingCaseId && !order.exchangeQuotation && <div className="checkout-recovery-card" role="status"><h2>Flight change · additional payment</h2><p>{paid ? order.fulfillmentStatus==='COMPLETED' ? 'Your additional payment and ticket reissue are complete.' : 'Your additional payment is verified. Flyseri will confirm your replacement tickets after reissue.' : 'This order covers the approved additional fare for your flight change. Your original ticket payment is kept separately.'}</p></div>}
       <p>Status: <strong>{orderStatus(order.status)}</strong>{order.payment && <> · Payment: <strong>{paymentStatus(order.payment.status)}</strong></>}</p>
       {booking && resultReached && <BookingPnr pnr={booking.pnr} bookingId={booking.id}/>}
       {paid && booking && <FlightTicketIssuanceNotice booking={booking} paidAt={order.paidAt} ticketingAvailable={ticketingAvailable}/>}
@@ -144,14 +180,14 @@ export function OrderDetailPage() {
       {servicesUnavailable && <p role="status">Your saved service requests could not be loaded. Open the reservation details to review them.</p>}
       {order.status === 'PAID' && order.payment?.status === 'SUCCEEDED' ? <><p>{order.visaAssistanceRequestId ? "Payment confirmed. Continue to submit your visa application to Flyseri." : "Payment confirmed. Fulfilment is handled separately."}</p>{order.visaAssistanceRequestId && <Link className="btn-primary account-submit" to={"/app/visa/assistance/" + order.visaAssistanceRequestId + "/payment"}>Continue to visa submission →</Link>}
         {order.fulfillmentStatus === 'REVALIDATION_REQUIRED' && <p role="status">This fare needs a fresh check before the flight can be booked. Please contact support with your order number.</p>}
-        <PaymentReceiptActions key={order.id} order={order} booking={booking}/></>
+        <OrderRefundSummary refunds={order.refunds}/><PaymentReceiptActions key={order.id} order={order} booking={booking}/></>
         : order.payment && ['PENDING', 'PROCESSING', 'UNKNOWN', 'CREATED'].includes(order.payment.status)
           ? <p role="status">Payment confirmation is pending. Check its status below{order.payment.status !== 'UNKNOWN' ? ' or resume an available checkout' : ''}. Please wait for payment confirmation before paying again.</p>
           : order.payment ? <p role="status">No payment has been confirmed for this order. If your bank shows a charge, contact support with your order number.</p>
             : checkoutAvailable ? <p>Your trip is ready for secure test payment. Ticket issuance starts after payment is verified.</p>
               : <p>Online payment is not available yet. Please contact Flyseri before making a payment.</p>}
       {!paid && <PaymentMethodsPanel/>}
-      {!paid && <CouponCheckout key={order.id} order={order} locked={!!order.payment || expired || startingPayment || updatingPoints || refreshing || mustCheckPayment || !!readPaymentAttempt(order.id)} onChanged={refresh} onBusy={value=>{if(activeOrderId.current===order.id){setUpdatingCoupon(value);setPaymentConfirmed(false);}}}/>}
+      {!paid && !order.flightServicingCaseId && <CouponCheckout key={order.id} order={order} locked={!!order.payment || expired || startingPayment || updatingPoints || refreshing || mustCheckPayment || !!readPaymentAttempt(order.id)} onChanged={refresh} onBusy={value=>{if(activeOrderId.current===order.id){setUpdatingCoupon(value);setPaymentConfirmed(false);}}}/>}
       {!paid && order.flightBookingId && <PointsCheckout orderId={order.id} locked={startingPayment || pending || paid || mustCheckPayment || updatingCoupon || !!order.coupon || !!order.payment || !!readPaymentAttempt(order.id)} onChanged={refresh} onBusy={value=>{if(activeOrderId.current===order.id){setUpdatingPoints(value);setPaymentConfirmed(false);}}}/>}
       {canPay && <><p className="checkout-charge-amount"><span>Payment total · {order.currency}</span><strong>{formatMoney(order.totalAmount, order.currency)}</strong></p><label className="checkout-confirmation"><input type="checkbox" checked={paymentConfirmed} onChange={event => setPaymentConfirmed(event.target.checked)} /><span>I reviewed the total{order.flightBookingId ? ' and traveler details' : ''}. I understand this is a test payment.</span></label></>}
       <div className="checkout-actions">
@@ -163,8 +199,8 @@ export function OrderDetailPage() {
       {booking?.ancillaryPurchase && ['CONFIRMED','FULFILLMENT_PENDING','FULFILLED'].includes(booking.ancillaryPurchase.status) && <details className="checkout-service-details"><summary>Your selected extras</summary><FlightAncillaryPurchasePanel booking={booking} readOnly /></details>}
       {booking?.ancillaryRequests?.length && !['CONFIRMED','FULFILLMENT_PENDING','FULFILLED'].includes(booking.ancillaryPurchase?.status ?? '') && <CheckoutHelpPanel title="Extras not included"><p>Your selected extra requests were not purchased. No extra charge is included in this payment.</p><ul>{booking.ancillaryRequests.map(extra=><li key={extra.id}>{extra.name} · {extra.segmentLabels.join(' / ')}</li>)}</ul></CheckoutHelpPanel>}
       </aside></div></>}
-    {!flightResult && !awaitingFlightResult && <CheckoutActionBar label="Continue payment" caption={paid ? 'Payment confirmed' : expired ? 'Order expired' : mustCheckPayment ? 'Check payment status above' : 'Payment total'} total={checkoutTotal ?? (loading ? 'Loading price…' : 'Price unavailable')}>
-      <button type="button" className="btn-primary" disabled={!canPay || loading || refreshing || startingPayment || updatingPoints || updatingCoupon || !paymentConfirmed} onClick={() => void beginPayment()}>{loading ? 'Loading payment…' : startingPayment ? 'Opening secure checkout…' : paid ? 'Payment completed' : !canPay ? 'Payment unavailable' : pending ? 'Resume secure checkout →' : `Pay ${checkoutTotal} securely →`}</button>
+    {order && !error && !flightResult && !awaitingFlightResult && <CheckoutActionBar label="Continue payment" caption={paid ? 'Payment confirmed' : expired ? 'Fare recheck required' : mustCheckPayment ? 'Check payment status above' : 'Payment total'} total={checkoutTotal ?? (loading ? 'Loading price…' : 'Price unavailable')}>
+      <button type="button" className="btn-primary" disabled={!canPay || loading || refreshing || startingPayment || updatingPoints || updatingCoupon || !paymentConfirmed} onClick={() => void beginPayment()}>{loading ? 'Loading payment…' : startingPayment ? 'Checking fare & opening checkout…' : paid ? 'Payment completed' : !canPay ? 'Payment unavailable' : canRecheckFare ? 'Recheck fare & continue to payment →' : pending ? 'Resume secure checkout →' : `Pay ${checkoutTotal} securely →`}</button>
     </CheckoutActionBar>}
   </div>;
 }

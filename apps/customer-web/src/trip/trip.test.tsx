@@ -24,7 +24,7 @@ describe('trip planning screens', () => {
     let resolve!: (value: unknown[]) => void;
     trips.list.mockReturnValue(new Promise((done) => { resolve = done; }));
     render(<MemoryRouter><MyTripsPage /></MemoryRouter>);
-    expect(screen.getByRole('status').textContent).toContain('Finding your trips');
+    expect(screen.getByRole('status', { name: 'Finding your trips…' })).toBeTruthy();
     resolve([]);
     expect(await screen.findByText('No trips yet')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: 'Plan a trip' })).toHaveLength(2);

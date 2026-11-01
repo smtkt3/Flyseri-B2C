@@ -1,4 +1,5 @@
 import { Translated } from '../travel/language';
+import { PageLoading } from '../components/PageLoading';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { DocumentDetail } from '@flyseri/types';
@@ -47,7 +48,7 @@ export function DocumentDetailPage() {
     try { await documentService.archive(document.id); navigate('/app/documents', { replace: true }); }
     catch { setError("We couldn't archive this document. Please try again."); setBusy(false); }
   }
-  if (loading) return <div role="status" className="account-page vault-page"><div className="trip-skeleton trip-skeleton-wide"/>Opening document…</div>;
+  if (loading) return <PageLoading label="Opening document…"/>;
   if (notFound) return <div className="account-page vault-page"><h1>Document not found</h1><Link to="/app/documents">Back to My Documents</Link></div>;
   if (!document) return <div className="account-page vault-page" role="alert"><h1>We couldn't load this document.</h1><button onClick={() => documentId && void load(documentId)}><Translated text="Try again" /></button></div>;
   return <div className="account-page vault-page"><Link className="trip-back" to="/app/documents">← My Documents</Link><p className="account-eyebrow">PRIVATE DOCUMENT</p><h1>{document.displayName || documentLabels[document.documentType]}</h1><p className="account-muted">{document.travellerName || 'Shared document'} · {documentLabels[document.documentType]}</p>{error && <p role="alert" className="account-error">{error}</p>}

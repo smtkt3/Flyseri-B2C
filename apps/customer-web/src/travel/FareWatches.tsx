@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PageLoading } from '../components/PageLoading';
 import { Link, useLocation } from 'react-router-dom';
 import type { FareWatch, FlightSearchRequest } from '@flyseri/types';
 import { useAuth } from '../auth/AuthProvider';
@@ -34,7 +35,7 @@ export function FareWatchesPage() {
   async function load() { setBusy(true); setError(''); try { setItems(await travelService.watches()); } catch { setError('Could not load price watches. Please try again.'); } finally { setBusy(false); } }
   useEffect(() => { void load(); }, []);
   return <main className="account-page"><h1>{t('Price alerts')}</h1><section className="travel-tool"><div className="travel-tool-heading"><h2>{t('Saved price watches')}</h2><button disabled={busy} onClick={() => void load()}>{t('Refresh')}</button></div><p>We check approximately every 6 hours while the service is running. Matching fares appear here; prices are checked again before booking.</p>
-    {busy && <p role="status">Loading price watches…</p>}{error && <p role="alert" className="travel-error">{error}</p>}
+    {busy && <PageLoading label="Loading price watches…"/>}{error && <p role="alert" className="travel-error">{error}</p>}
     {!busy && !error && !items.length && <p>Search for a flight, then choose “Watch this route” to save your target price. <Link to="/app/flights">{t('Search flights')} →</Link></p>}
     {items.map(item => <article className="travel-row" key={item.id}><div><strong>{item.search.origin} → {item.search.destination}</strong><small>{item.search.departureDate}{item.search.returnDate ? ` — ${item.search.returnDate}` : ''} · {item.search.adults} adults</small><small>Target: {money(String(item.targetAmount), item.currency)}</small>
       {item.matchedAt && !item.checkError && <span className="travel-badge">Within your target</span>}

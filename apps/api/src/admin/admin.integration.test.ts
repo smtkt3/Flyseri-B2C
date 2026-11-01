@@ -14,7 +14,10 @@ import { AdminRecordsService } from './admin-records.service.js';
 import { AdminDocumentsService } from './admin-documents.service.js';
 import { AdminCommerceService } from './admin-commerce.service.js';
 import { AdminFlightsService } from './admin-flights.service.js';
+import { AdminFlightOperationsService } from './admin-flight-operations.service.js';
 import { verifyAdminToken, type AdminRole } from './admin-auth.js';
+import {FlightPricingService} from '../pricing/flight-pricing.service.js';
+import {AdminAncillaryRefundsService} from './admin-ancillary-refunds.service.js';
 
 const secret = 'a-local-test-secret-that-is-at-least-32-characters-long';
 const staffId = 'aef8b4d2-8ab1-41f6-94c3-b31289fb5b84';
@@ -33,11 +36,17 @@ describe('Flyseri staff admin boundary', () => {
   const access = vi.fn(async () => ({ url: 'https://example.invalid/short-lived', expiresInSeconds: 60 }));
   const refreshBooking = vi.fn(async () => ({ id: resourceId, pnr: null, ticketStatus: 'NOT_VERIFIED' }));
   const visaList = vi.fn(async () => data);
+  const caseAction = vi.fn(async () => ({id:resourceId,status:'QUOTED'}));
+  const publishPricing=vi.fn(async()=>({revision:1,rules:[],available:true}));
+  const prepareExtraRefund=vi.fn(async()=>({id:resourceId})),extraRefundAction=vi.fn(async()=>undefined),extraDocuments=vi.fn(async()=>({status:'FULFILLED'}));
   beforeAll(async () => {
     const config = parseConfig({ APP_ENV: 'test', B2C_ADMIN_SHARED_SECRET: secret });
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(APP_CONFIG).useValue(config)
       .overrideProvider(DATABASE_CONNECTION).useValue(undefined)
+      .overrideProvider(AdminAncillaryRefundsService).useValue({prepare:prepareExtraRefund,action:extraRefundAction,documents:extraDocuments})
+      .overrideProvider(FlightPricingService).useValue({policy:async()=>({revision:0,rules:[],available:true}),save:publishPricing,preview:()=>({sellingTotal:'11800.00'})})
+      .overrideProvider(AdminFlightOperationsService).useValue({action:caseAction})
       .overrideProvider(AdminDashboardService).useValue({ summary: async () => ({ metrics: { customers: 0 }, needsAttention: [], recentActivity: [] }),
         aiMetrics: async () => ({ conversationsToday: 1, requests: 2, deterministicResponses: 1, llmRequests: 1, primaryRequests: 1,
           fallbackRequests: 0, toolCalls: 1, toolFailures: 0, averageLatencyMs: 18, inputTokens: 8, outputTokens: 3,
@@ -58,6 +67,56 @@ describe('Flyseri staff admin boundary', () => {
     await app.init();
   });
   afterAll(async () => { await app?.close(); });
+  it('routes authenticated support evidence through the same protected case endpoint',async()=>{
+    caseAction.mockClear();
+    const path=`/api/v1/admin/flights/servicing-cases/${resourceId}/actions`;
+    const body={action:'RECORD_SUPPORT_EVIDENCE',version:5,supportEvidence:{source:'SABRE_SUPPORT_PORTAL',reference:'CASE-1234',confirmedPnr:'ABC123',confirmedPcc:'BD01',outcome:'UNRESOLVED',ticketNumbers:[],channelAuthenticated:true,salesReportScope:'PCC_NOT_CONFIRMED'}};
+    await request(app.getHttpServer()).post(path).send(body).expect(401);
+    await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('support_staff')}`).send(body).expect(403);
+    expect(caseAction).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('owner')}`).send(body).expect(201);
+    expect(caseAction).toHaveBeenCalledWith(resourceId,expect.objectContaining(body),{staffUserId:staffId,role:'owner'},expect.any(String));
+      const quotation={action:'SEND_EXCHANGE_QUOTATION',version:2,confirmedPnr:'TEST01'};
+      await request(app.getHttpServer()).post(path).send(quotation).expect(401);
+      await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('support_staff')}`).send(quotation).expect(403);
+      await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('owner')}`).send(quotation).expect(201);
+      expect(caseAction).toHaveBeenLastCalledWith(resourceId,expect.objectContaining(quotation),{staffUserId:staffId,role:'owner'},expect.any(String));
+    caseAction.mockClear();
+  });
+  it('limits pricing administration to the explicitly approved owner and manager roles',async()=>{
+    const path='/api/v1/admin/flights/pricing';
+    await request(app.getHttpServer()).get(path).expect(401);
+    for(const role of ['support_staff','ticketing_staff','payment_staff'] as const){await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${sign(role)}`).expect(403);await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign(role)}`).send({revision:0,rules:[]}).expect(403);}
+    for(const role of ['owner','manager'] as const){await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${sign(role)}`).expect(200);await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign(role)}`).send({revision:0,rules:[]}).expect(201);expect(publishPricing).toHaveBeenLastCalledWith(0,[],{staffUserId:staffId,role},expect.any(String));}
+  });
+  it('restricts extra refunds to managers and validates their one-operation request',async()=>{
+    const path='/api/v1/admin/flights/ancillary-refunds';
+    await request(app.getHttpServer()).post(path+'/prepare').send({bookingId:resourceId,requestId:'extra'}).expect(401);
+    for(const role of ['support_staff','ticketing_staff','payment_staff'] as const)await request(app.getHttpServer()).post(path+'/prepare').set('Authorization',`Bearer ${sign(role)}`).send({bookingId:resourceId,requestId:'extra'}).expect(403);
+    await request(app.getHttpServer()).post(path+'/prepare').set('Authorization',`Bearer ${sign('manager')}`).send({bookingId:resourceId,requestId:'extra',amount:'1'}).expect(400);
+    await request(app.getHttpServer()).post(path+'/prepare').set('Authorization',`Bearer ${sign('manager')}`).send({bookingId:resourceId,requestId:'extra'}).expect(201);
+    expect(prepareExtraRefund).toHaveBeenCalledWith(resourceId,'extra',{staffUserId:staffId,role:'manager'},expect.any(String));
+    await request(app.getHttpServer()).post(path+'/'+resourceId+'/actions').set('Authorization',`Bearer ${sign('owner')}`).send({action:'EXECUTE',version:1,confirmedPnr:'ABCDEF'}).expect(201);
+    expect(extraRefundAction).toHaveBeenCalledWith(resourceId,'EXECUTE',1,'ABCDEF',{staffUserId:staffId,role:'owner'},expect.any(String));
+    await request(app.getHttpServer()).post(path+'/fulfill-documents').set('Authorization',`Bearer ${sign('ticketing_staff')}`).send({bookingId:resourceId,confirmedPnr:'ABCDEF'}).expect(403);
+    await request(app.getHttpServer()).post(path+'/fulfill-documents').set('Authorization',`Bearer ${sign('manager')}`).send({bookingId:resourceId,confirmedPnr:'ABCDEF',ancillaryIds:['1']}).expect(400);
+    await request(app.getHttpServer()).post(path+'/fulfill-documents').set('Authorization',`Bearer ${sign('manager')}`).send({bookingId:resourceId,confirmedPnr:'ABCDEF'}).expect(201);
+    expect(extraDocuments).toHaveBeenCalledWith(resourceId,'ABCDEF',{staffUserId:staffId,role:'manager'},expect.any(String),false,undefined);
+    await request(app.getHttpServer()).post(path+'/fulfill-documents').set('Authorization',`Bearer ${sign('manager')}`).send({bookingId:resourceId,confirmedPnr:'ABCDEF',ticketingApi:'ENHANCED_AIR_TICKET'}).expect(201);
+    expect(extraDocuments).toHaveBeenLastCalledWith(resourceId,'ABCDEF',{staffUserId:staffId,role:'manager'},expect.any(String),false,'ENHANCED_AIR_TICKET');
+    await request(app.getHttpServer()).post(path+'/fulfill-documents').set('Authorization',`Bearer ${sign('manager')}`).send({bookingId:resourceId,confirmedPnr:'ABCDEF',ticketingApi:'ARBITRARY'}).expect(400);
+  });
+  it('protects the normal servicing action route and preserves the approved ticket policy',async()=>{
+    const path=`/api/v1/admin/flights/servicing-cases/${resourceId}/actions`;
+    const body={action:'QUOTE',version:1,quote:{currency:'BDT',amount:'6049.00',airlinePenalty:'0',serviceFee:'0',fareDifference:'0',refundAmount:'0',expiresAt:new Date(Date.now()+600000).toISOString(),evidenceReference:'Fixture',ticketing:{quoteHandling:'Reprice',commitWaitMs:3000}}};
+    await request(app.getHttpServer()).post(path).send(body).expect(401);
+    await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('support_staff')}`).send(body).expect(403);
+    await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('owner')}`).send({...body,version:0}).expect(400);
+    await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('owner')}`).send({...body,acceptPriceChanges:true}).expect(400);
+    expect(caseAction).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${sign('owner')}`).send(body).expect(201);
+    expect(caseAction).toHaveBeenCalledWith(resourceId,expect.objectContaining(body),{staffUserId:staffId,role:'owner'},expect.any(String));
+  });
   it('rejects unauthenticated, customer, forged, expired and wrong-audience tokens', async () => {
     await request(app.getHttpServer()).get('/api/v1/admin/customers').expect(401);
     await request(app.getHttpServer()).get('/api/v1/admin/customers').set('Authorization', 'Bearer customer-token').expect(401);

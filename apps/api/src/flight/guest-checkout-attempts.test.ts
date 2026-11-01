@@ -14,7 +14,7 @@ import type { FlightTelemetry } from './flight.telemetry.js';
 
 async function migrated() {
   const database = new PGlite();
-  await database.exec('CREATE ROLE flyseri_api');
+  await database.exec('CREATE ROLE flyseri_api; CREATE ROLE anon; CREATE ROLE authenticated;');
   const journal = JSON.parse(readFileSync(resolve(process.cwd(), '../../packages/database/drizzle/meta/_journal.json'), 'utf8')) as { entries: { tag: string }[] };
   for (const entry of journal.entries) {
     const migration = readFileSync(resolve(process.cwd(), `../../packages/database/drizzle/${entry.tag}.sql`), 'utf8');
